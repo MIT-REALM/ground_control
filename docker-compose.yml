@@ -1,0 +1,46 @@
+version: "3"
+
+services:
+  roscore:
+    image: highbay:latest
+    build: .docker
+    network_mode: host
+    privileged: true
+    stdin_open: true # docker run -i
+    tty: true # docker run -t
+    command: roscore
+
+  vicon_bridge:
+    image: highbay:latest
+    build: .docker
+    network_mode: host
+    privileged: true
+    stdin_open: true # docker run -i
+    tty: true # docker run -t
+    depends_on:
+      - roscore
+    command: /bin/bash -c '. /catkin_ws/devel/setup.bash && roslaunch --wait vicon_bridge vicon.launch datastream_hostport:=192.168.0.9'
+
+  rviz:
+    image: highbay:latest
+    build: .docker
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    network_mode: host
+    privileged: true
+    stdin_open: true # docker run -i
+    tty: true # docker run -t
+    depends_on:
+      - roscore
+    command: /bin/bash -c '. /catkin_ws/devel/setup.bash && rviz'
+
+  bash:
+    image: highbay:latest
+    build: .docker
+    network_mode: host
+    privileged: true
+    stdin_open: true # docker run -i
+    tty: true # docker run -t
+    command: bash
