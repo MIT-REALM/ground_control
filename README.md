@@ -1,6 +1,6 @@
-# Vicon-ROS Bridge Docker
+# REALM Ground Control
 
-This repository provides Docker images that interface with a Vicon motion capture system. It also provides a `docker compose` system for launching a complete ROS environment that connects to the Vicon system.
+This repository provides infrastructure for operating the REALM ground robots (F1tenth & Turtlebots). It is currently based on ROS 1 Noetic (for compatibility with the F1tenth and Turtlebots).
 
 ## Installation
 
@@ -12,8 +12,8 @@ This repository is currently only supported on Ubuntu Linux, but it may be possi
 4. Clone this repository
 
 ```bash
-git clone git@github.com:MIT-REALM/highbay.git
-cd highbay
+git clone git@github.com:MIT-REALM/ground_control.git
+cd ground_control
 ```
 
 5. Build the docker images
@@ -22,7 +22,7 @@ cd highbay
 docker compose build
 ```
 
-## Setup
+## Highbay Setup
 
 _These instructions are tailored for the East High Bay in Building 31 at MIT._
 

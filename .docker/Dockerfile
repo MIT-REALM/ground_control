@@ -1,6 +1,6 @@
 FROM osrf/ros:noetic-desktop-full
 
-# Download and build the required franka libraries
+# Install packages
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
