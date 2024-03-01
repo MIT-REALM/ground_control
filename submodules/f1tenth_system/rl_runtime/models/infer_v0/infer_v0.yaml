@@ -1,0 +1,11 @@
+infer_v0:
+  servo_pos_offset: 0.47930
+  servo_pos_gain: -0.31930
+  v_coeff: 2.0
+  # dt is 0.1, but allow running the controller slightly faster.
+  dt_min: 0.08
+
+  obs_lidar_theta_i: -1.57079632679
+  obs_lidar_theta_f: +1.57079632679
+  obs_n_lidar: 21
+  max_hit_dist: 9.0
