@@ -52,6 +52,8 @@ add_message_files(
   FILES
   F1TenthState.msg
   F1TenthStateCovariance.msg
+  TurtlebotState.msg
+  TurtlebotStateCovariance.msg
 )
 
 ## Generate services in the 'srv' folder

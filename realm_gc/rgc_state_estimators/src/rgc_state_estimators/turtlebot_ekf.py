@@ -1,41 +1,37 @@
 #!/usr/bin/env python
-"""Define a state estimator for the F1tenth car using an Extended Kalman Filter."""
+"""Define a state estimator for the turtlebot using an Extended Kalman Filter."""
 import numpy as np
 import rospy
-from f1tenth_system.msg import F1TenthDriveStamped
-from geometry_msgs.msg import TransformStamped
-from rgc_state_estimators.msg import F1TenthState, F1TenthStateCovariance
+from geometry_msgs.msg import TransformStamped, Twist
+from rgc_state_estimators.msg import TurtlebotState, TurtlebotStateCovariance
 from rgc_state_estimators.state_estimator import StateEstimator
 from tf2.transformations import euler_from_quaternion
 
 
-class F1tenthEKFStateEstimator(StateEstimator):
+class TurtlebotEKFStateEstimator(StateEstimator):
     """
-    State estimator for the F1tenth car using an Extended Kalman Filter.
+    State estimator for the Turtlebot using an Extended Kalman Filter.
     """
 
     def __init__(self):
-        super(F1tenthEKFStateEstimator, self).__init__()
+        super(TurtlebotEKFStateEstimator, self).__init__()
 
         # Fetch additional parameters
-        self.axle_length = rospy.get_param("~axle_length", 1.0)  # Default to 1 meter
         self.axle_length = rospy.get_param("~obs_noise_cov", 1.0)
         self.axle_length = rospy.get_param("~process_noise_cov", 1.0)
-        self.control_topic = rospy.get_param(
-            "~control_topic", "/vesc/high_level/ackermann_cmd_mux/input/nav_0"
-        )
+        self.control_topic = rospy.get_param("~control_topic", "/cmd_vel")
         self.position_topic = rospy.get_param(
-            "~position_topic", "/vicon/realm_f1tenth/realm_f1tenth"
+            "~position_topic", "/vicon/realm_turtle0/realm_turtle0"
         )
 
         # Initialize the EKF variables
-        self.state = np.zeros((4, 1))  # [x, y, theta, v]
-        self.covariance = np.eye(4)  # Initial covariance matrix
+        self.state = np.zeros((3, 1))  # [x, y, theta]
+        self.covariance = np.eye(3)  # Initial covariance matrix
 
         # Set up subscribers
         self.last_control_msg = None
         self.control_sub = rospy.Subscriber(
-            self.control_topic, F1TenthDriveStamped, self.control_callback
+            self.control_topic, Twist, self.control_callback
         )
         self.last_position_msg = None
         self.position_sub = rospy.Subscriber(
@@ -44,63 +40,60 @@ class F1tenthEKFStateEstimator(StateEstimator):
 
         # Publisher for PoseStamped messages
         self.estimate_pub = rospy.Publisher(
-            f"{rospy.get_name()}/estimate", F1TenthState, queue_size=10
+            f"{rospy.get_name()}/estimate", TurtlebotState, queue_size=10
         )
         self.covariance_pub = rospy.Publisher(
             f"{rospy.get_name()}/estimate_covariance",
-            F1TenthStateCovariance,
+            TurtlebotStateCovariance,
             queue_size=10,
         )
 
     def reset_state(self, msg=None):
         """Reset the state of the EKF."""
-        self.state = np.zeros((4, 1))  # Reset state to zeros
-        self.covariance = np.eye(4)  # Reset covariance to identity
+        self.state = np.zeros((3, 1))  # Reset state to zeros
+        self.covariance = np.eye(3)  # Reset covariance to identity
 
-    def bicyle_model(self, state, delta, a):
+    def unicycle_model(self, state, v, w):
         """
-        Update the state using the bicycle model.
+        Update the state using the unicycle model.
         Args:
-            state (np.ndarray): The current state [x, y, theta, v]
-            delta (float): The steering angle command
-            a (float): The acceleration command
+            state (np.ndarray): The current state [x, y, theta]
+            v (float): The velocity command
+            w (float): The angular velocity command
         Returns:
             np.ndarray: The updated state
         """
         # Extract the state variables
-        x, y, theta, v = state
+        x, y, theta = state
 
-        # Update the state using the bicycle model
+        # Update the state using the unicycle model
         x += v * np.cos(theta) * self.dt
         y += v * np.sin(theta) * self.dt
-        theta += (v / self.axle_length) * np.tan(delta) * self.dt
-        v += a * self.dt
+        theta += w * self.dt
 
-        return np.array([x, y, theta, v]).reshape(-1, 1)
+        return np.array([x, y, theta]).reshape(-1, 1)
 
-    def get_AB(self, state, delta, a):
+    def get_AB(self, state, v, w):
         """
         Compute the linearized dynamics matrices.
 
         Args:
-            state (np.ndarray): The current state [x, y, theta, v]
-            delta (float): The steering angle command
-            a (float): The acceleration command
+            state (np.ndarray): The current state [x, y, theta]
+            v (float): The velocity command
+            w (float): The angular velocity command
         """
         # Extract the state variables
-        _, _, theta, v = state
+        _, _, theta = state
 
         # Compute the linearized dynamics matrices
-        A = np.eye(4)
+        A = np.eye(3)
         A[0, 2] = -v * np.sin(theta) * self.dt
-        A[0, 3] = np.cos(theta) * self.dt
         A[1, 2] = v * np.cos(theta) * self.dt
-        A[1, 3] = np.sin(theta) * self.dt
-        A[2, 3] = (1.0 / self.axle_length) * np.tan(delta) * self.dt
 
-        B = np.zeros((4, 2))
-        B[2, 0] = (v / self.axle_length) * self.dt / np.cos(delta) ** 2
-        B[3, 1] = self.dt
+        B = np.zeros((3, 2))
+        B[0, 0] = np.cos(theta) * self.dt
+        B[1, 0] = np.sin(theta) * self.dt
+        B[2, 1] = self.dt
 
         return A, B
 
@@ -123,16 +116,16 @@ class F1tenthEKFStateEstimator(StateEstimator):
         This function should implement or call the EKF prediction and update steps.
         """
         if self.last_control_msg is not None:
-            # Extract control inputs (e.g., steering angle, velocity) from the message
-            steering_angle = self.last_control_msg.drive.steering_angle
-            acceleration = self.last_control_msg.drive.acceleration
+            # Extract control inputs from the message
+            v = self.last_control_msg.linear.x
+            w = self.last_control_msg.angular.z
 
             # Update the state based on the control inputs
-            self.state = self.bicyle_model(self.state, steering_angle, acceleration)
+            self.state = self.unicycle_model(self.state, v, w)
 
             # Update the covariance based on the linearized dynamics
-            A, _ = self.get_AB(self.state, steering_angle, acceleration)
-            Q = np.eye(4) * self.process_noise_cov
+            A, _ = self.get_AB(self.state, v, w)
+            Q = np.eye(3) * self.process_noise_cov
             self.covariance = A @ self.covariance @ A.T + Q
 
             self.last_control_msg = None
@@ -151,36 +144,34 @@ class F1tenthEKFStateEstimator(StateEstimator):
             )
             _, _, theta = euler_from_quaternion([x, y, z, w])
 
-            # The measurement matrix H is the identity matrix (except for speed)
-            H = np.zeros((3, 4))
-            H[:3, :3] = np.eye(3)
+            # The measurement matrix H is the identity matrix
+            H = np.eye(3)
 
             # Do the measurement update step of the EKF
-            R = np.eye(4) * self.obs_noise_cov
-            error = np.array([x, y, theta]).reshape(-1, 1) - H @ self.state
+            R = np.eye(3) * self.obs_noise_cov
+            error = np.array([x, y, theta]).reshape(-1, 1) - self.state
             S = H @ self.covariance @ H.T + R
             K = self.covariance @ H.T @ np.linalg.inv(S)
             self.state += K @ error
-            self.covariance = (np.eye(4) - K @ H) @ self.covariance
+            self.covariance = (np.eye(3) - K @ H) @ self.covariance
 
             self.last_position_msg = None
 
         # Publish the new state estimate
-        msg = F1TenthState()
+        msg = TurtlebotState()
         msg.x = self.state[0, 0]
         msg.y = self.state[1, 0]
         msg.theta = self.state[2, 0]
-        msg.v = self.state[3, 0]
         self.estimate_pub.publish(msg)
 
         # Publish the new covariance estimate
-        cov_msg = F1TenthStateCovariance()
+        cov_msg = TurtlebotStateCovariance()
         cov_msg.covariance = self.covariance.ravel().tolist()
 
 
 if __name__ == "__main__":
     try:
-        ekf_node = F1tenthEKFStateEstimator()
+        ekf_node = TurtlebotEKFStateEstimator()
         ekf_node.run()
     except rospy.ROSInterruptException:
         pass
