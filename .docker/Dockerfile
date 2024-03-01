@@ -1,4 +1,4 @@
-FROM osrf/ros:melodic-desktop-full
+FROM osrf/ros:noetic-desktop-full
 
 # Install packages
 RUN apt-get update && apt-get install -y \
@@ -7,13 +7,13 @@ RUN apt-get update && apt-get install -y \
     git \
     python3-pip \
     python3-dev \
-    ros-melodic-driver-base \
-    ros-melodic-sophus \
-    ros-melodic-robot-pose-ekf \
-    ros-melodic-ackermann-msgs \
-    ros-melodic-urg-node
+    ros-noetic-driver-base \
+    ros-noetic-sophus \
+    ros-noetic-robot-pose-ekf \
+    ros-noetic-ackermann-msgs \
+    ros-noetic-urg-node
 
-RUN pip3 install numpy jax
+RUN pip3 install numpy jax pyyaml rospkg transforms3d
 
 # Install updated cmake
 RUN apt-get update \
@@ -32,15 +32,15 @@ RUN apt-get update \
 RUN mkdir -p /catkin_ws/src
 WORKDIR /catkin_ws
 SHELL ["/bin/bash", "-c"]  # so we can use `source`
-RUN source /opt/ros/melodic/setup.sh && catkin_init_workspace src
+RUN source /opt/ros/noetic/setup.sh && catkin_init_workspace src
 
 # Clone the vicon bridge
 WORKDIR /catkin_ws/src
 RUN git clone https://github.com/ethz-asl/vicon_bridge.git
 # Build
 WORKDIR /catkin_ws
-RUN rosdep install --from-paths src --ignore-src --rosdistro melodic -y
-RUN source /opt/ros/melodic/setup.sh && catkin_make
+RUN rosdep install --from-paths src --ignore-src --rosdistro noetic -y
+RUN source /opt/ros/noetic/setup.sh && catkin_make
 
 # Clone f1tenth system
 WORKDIR /catkin_ws/src
@@ -60,16 +60,15 @@ WORKDIR /catkin_ws/src/f1tenth_system/serial
 RUN touch CATKIN_IGNORE
 WORKDIR /catkin_ws/src/f1tenth_system/vesc/vesc_driver
 RUN touch CATKIN_IGNORE
+WORKDIR /catkin_ws/src/f1tenth_system/vesc/vesc
+RUN touch CATKIN_IGNORE
 
 # Build
 WORKDIR /catkin_ws
 RUN apt-get update && apt-get install -y 
-RUN rosdep install --from-paths src --ignore-src --rosdistro melodic -y
-RUN source /opt/ros/melodic/setup.sh && catkin_make
+RUN rosdep install --from-paths src --ignore-src --rosdistro noetic -y
+RUN source /opt/ros/noetic/setup.sh && catkin_make
 
 # Add lines to the bashrc file that source ROS
-RUN echo "source /opt/ros/melodic/setup.bash" >> /root/.bashrc
+RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
 RUN echo "source /catkin_ws/devel/setup.bash" >> /root/.bashrc
-
-# TODO move this above
-RUN pip3 install pyyaml

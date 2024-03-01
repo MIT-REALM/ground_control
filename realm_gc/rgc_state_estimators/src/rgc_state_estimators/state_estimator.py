@@ -2,7 +2,7 @@
 import abc
 
 import rospy
-from std_msgs.msg import Event
+from std_msgs.msg import Empty
 
 
 class StateEstimator(abc.ABC):
@@ -25,7 +25,7 @@ class StateEstimator(abc.ABC):
 
         # Reset event subscriber
         self.reset_sub = rospy.Subscriber(
-            f"{rospy.get_name()}/reset", Event, self.reset_state
+            f"{rospy.get_name()}/reset", Empty, self.reset_state
         )
 
         # Other subscribers - to be defined in subclasses, as needed

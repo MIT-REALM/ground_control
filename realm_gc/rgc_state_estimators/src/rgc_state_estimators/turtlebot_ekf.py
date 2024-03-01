@@ -5,7 +5,7 @@ import rospy
 from geometry_msgs.msg import TransformStamped, Twist
 from rgc_state_estimators.msg import TurtlebotState, TurtlebotStateCovariance
 from rgc_state_estimators.state_estimator import StateEstimator
-from tf2.transformations import euler_from_quaternion
+from transforms3d.euler import quat2euler
 
 
 class TurtlebotEKFStateEstimator(StateEstimator):
@@ -17,8 +17,8 @@ class TurtlebotEKFStateEstimator(StateEstimator):
         super(TurtlebotEKFStateEstimator, self).__init__()
 
         # Fetch additional parameters
-        self.axle_length = rospy.get_param("~obs_noise_cov", 1.0)
-        self.axle_length = rospy.get_param("~process_noise_cov", 1.0)
+        self.obs_noise_cov = rospy.get_param("~obs_noise_cov", 0.1)
+        self.process_noise_cov = rospy.get_param("~process_noise_cov", 0.1)
         self.control_topic = rospy.get_param("~control_topic", "/cmd_vel")
         self.position_topic = rospy.get_param(
             "~position_topic", "/vicon/realm_turtle0/realm_turtle0"
@@ -136,13 +136,13 @@ class TurtlebotEKFStateEstimator(StateEstimator):
             y = self.last_position_msg.transform.translation.y
 
             # Convert quaternion to yaw angle
-            (x, y, z, w) = (
+            (qx, qy, qz, qw) = (
                 self.last_position_msg.transform.rotation.x,
                 self.last_position_msg.transform.rotation.y,
                 self.last_position_msg.transform.rotation.z,
                 self.last_position_msg.transform.rotation.w,
             )
-            _, _, theta = euler_from_quaternion([x, y, z, w])
+            _, _, theta = quat2euler([qw, qx, qy, qz])
 
             # The measurement matrix H is the identity matrix
             H = np.eye(3)
@@ -167,6 +167,7 @@ class TurtlebotEKFStateEstimator(StateEstimator):
         # Publish the new covariance estimate
         cov_msg = TurtlebotStateCovariance()
         cov_msg.covariance = self.covariance.ravel().tolist()
+        self.covariance_pub.publish(cov_msg)
 
 
 if __name__ == "__main__":
