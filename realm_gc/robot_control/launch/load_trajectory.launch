@@ -1,0 +1,25 @@
+<!--
+This launch file is to load a sample trajectory from sample_trajectories/ folder as a param to the robot control classnode. 
+
+1. Need to change the robot_control_node in robot_control/src to include a param description for loading trajectory
+2. Currently taking a txt/csv file as a dummy input (need to change it to eqx file)
+-->
+<launch>
+    <arg name="mode" default="load"/>
+    <arg name="path" default="$(find turtlebot)"/>
+    <arg name="file" default="sample_trajectories/test_trajectory.txt"/>
+            <node name="robot_control_node" pkg="robot_control">
+        <param name="mode" type="string" value="$(arg mode)"/>
+        <param name="trajectory/base_path" type="string" value="$(arg path)"/>
+        <param name="trajectory/filename" type="string" value="$(arg file)"/>
+    </node>
+</launch>
+
+
+
+
+
+
+
+
+

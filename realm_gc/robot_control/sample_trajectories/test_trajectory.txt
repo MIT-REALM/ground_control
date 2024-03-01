@@ -1,0 +1,3 @@
+<!--
+Placeholder file used in load_trajectory.launch
+-->
