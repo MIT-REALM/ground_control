@@ -1,0 +1,3 @@
+[submodule "f1tenth_system"]
+	path = f1tenth_system
+	url = git@github.com:MIT-REALM/f1tenth_system.git
