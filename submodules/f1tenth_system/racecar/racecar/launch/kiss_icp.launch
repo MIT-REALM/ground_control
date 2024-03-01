@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="racecar_version" default="racecar-v2" />
+
+  <!-- ROS paramaters -->
+  <arg name="bagfile" default=""/>
+  <arg name="visualize" default="false"/>
+  <arg name="odom_frame" default="odom"/>
+  <arg name="child_frame" default="base_link"/>
+  <arg name="pointcloud_topic" default="pointcloud"/>
+
+  <!-- KISS-ICP paramaters -->
+  <arg name="deskew" default="false"/>
+  <arg name="max_range" default="10.0" />
+  <arg name="min_range" default="0.006" />
+  <arg name="voxel_size" default="0.05" />
+
+<!--    --><!-- static transforms, e.g. base_link to imu -->
+<!--   <include file="$(find racecar)/launch/includes/$(arg racecar_version)/static_transforms.launch.xml" /> -->
+
+<!--    --><!-- Lidar node -->
+<!--   <include file="$(find racecar)/launch/includes/common/sensors.launch.xml" > -->
+<!--     <arg name="racecar_version" value="$(arg racecar_version)" /> -->
+<!--   </include> -->
+
+
+  <!-- Remap from LaserScan to Pointcloud2 -->
+  <node pkg="scan2pc" type="scan2pc_node" name="scan2pc">
+<!--    <remap from="scan" to="/scan" />-->
+<!--    <remap from="pointcloud" to="/" />-->
+  </node>
+
+  <!-- Odometry node -->
+  <node pkg="kiss_icp" type="odometry_node" name="odometry_node" output="screen">
+    <!-- ROS params -->
+    <remap from="pointcloud_topic" to="$(arg pointcloud_topic)"/>
+    <param name="odom_frame" value="$(arg odom_frame)"/>
+    <param name="child_frame" value="$(arg child_frame)"/>
+    <!-- KISS-ICP params -->
+    <param name="max_range" value="$(arg max_range)"/>
+    <param name="min_range" value="$(arg min_range)"/>
+    <param name="deskew" value="$(arg deskew)"/>
+    <param name="voxel_size" value="$(arg voxel_size)"/>
+    <param name="max_points_per_voxel" value="20"/>
+    <param name="initial_threshold" value="0.01"/>
+    <param name="min_motion_th" value="0.1" />
+  </node>
+
+</launch>

@@ -1,0 +1,89 @@
+joy_node:
+  dev: /dev/input/joypad-f710
+  deadzone: 0.01
+  autorepeat_rate: 20
+  coalesce_interval: 0.01
+
+teleop:
+  # Default mode - Stop for safety. Use current control so that braking happens.
+  default:
+    type: topic
+    is_default: true
+    message_type: f1tenth_msgs/F1TenthDriveStamped
+    topic_name: low_level/ackermann_cmd_mux/input/teleop
+    message_value:
+      -
+        target: drive.steer_mode
+        value: 0
+      -
+        target: drive.mode
+        value: 1
+      -
+        target: drive.acceleration
+        value: -0.5
+      -
+        target: drive.steering_angle
+        value: 0.0
+
+  # Enable Human velocity control by holding L1.
+  velocity_control:
+    type: topic
+    message_type: f1tenth_msgs/F1TenthDriveStamped
+    topic_name: low_level/ackermann_cmd_mux/input/teleop
+    deadman_buttons: [4]
+    message_value:
+      -
+        target: drive.steer_mode
+        value: 0
+      -
+        target: drive.mode
+        value: 0
+    axis_mappings:
+      -
+        axis: 1
+        target: drive.speed
+        scale: 2.0                   # joystick will command plus or minus 2 meters / second
+        offset: 0.0
+      -
+        axis: 3
+        target: drive.steering_angle
+        scale: 0.34                  # joystick will command plus or minus ~20 degrees steering angle
+        offset: 0.0
+
+  # Current control by holding L2.
+  current_control:
+    type: topic
+    message_type: f1tenth_msgs/F1TenthDriveStamped
+    topic_name: low_level/ackermann_cmd_mux/input/teleop
+    deadman_buttons: [6]
+    message_value:
+      -
+        target: drive.steer_mode
+        value: 0
+      -
+        target: drive.mode
+        value: 1
+    axis_mappings:
+      -
+        axis: 1
+        target: drive.acceleration
+        scale: 0.8                   # joystick will command plus or minus 2 meters / second
+        offset: 0.0
+      -
+        axis: 3
+        target: drive.steering_angle
+        scale: 0.34                  # joystick will command plus or minus ~20 degrees steering angle
+        offset: 0.0
+
+  # Enable autonomous control by holding R1.
+  # This switch causes the joy_teleop to stop sending messages to input/teleop
+  # And send messages to /dev/null (an unused ROS topic)
+  autonomous_control:
+    type: topic
+    message_type: std_msgs/Int8
+    topic_name: /dev/null
+    deadman_buttons: [5]
+    message_value:
+      -
+        target: data
+        value: 0

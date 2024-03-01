@@ -1,12 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Define a state estimator for the F1tenth car using an Extended Kalman Filter."""
 import numpy as np
 import rospy
-from f1tenth_system.msg import F1TenthDriveStamped
+from f1tenth_msgs.msg import F1TenthDriveStamped
 from geometry_msgs.msg import TransformStamped
 from rgc_state_estimators.msg import F1TenthState, F1TenthStateCovariance
 from rgc_state_estimators.state_estimator import StateEstimator
-from tf2.transformations import euler_from_quaternion
+from transforms3d.euler import quat2euler
 
 
 class F1tenthEKFStateEstimator(StateEstimator):
@@ -18,9 +18,9 @@ class F1tenthEKFStateEstimator(StateEstimator):
         super(F1tenthEKFStateEstimator, self).__init__()
 
         # Fetch additional parameters
-        self.axle_length = rospy.get_param("~axle_length", 1.0)  # Default to 1 meter
-        self.axle_length = rospy.get_param("~obs_noise_cov", 1.0)
-        self.axle_length = rospy.get_param("~process_noise_cov", 1.0)
+        self.axle_length = rospy.get_param("~axle_length", 0.28)  # Default to 1 meter
+        self.obs_noise_cov = rospy.get_param("~obs_noise_cov", 0.1)
+        self.process_noise_cov = rospy.get_param("~process_noise_cov", 0.1)
         self.control_topic = rospy.get_param(
             "~control_topic", "/vesc/high_level/ackermann_cmd_mux/input/nav_0"
         )
@@ -57,7 +57,7 @@ class F1tenthEKFStateEstimator(StateEstimator):
         self.state = np.zeros((4, 1))  # Reset state to zeros
         self.covariance = np.eye(4)  # Reset covariance to identity
 
-    def bicyle_model(self, state, v, delta, a):
+    def bicyle_model(self, state, delta, a):
         """
         Update the state using the bicycle model.
         Args:
@@ -98,7 +98,7 @@ class F1tenthEKFStateEstimator(StateEstimator):
         A[1, 3] = np.sin(theta) * self.dt
         A[2, 3] = (1.0 / self.axle_length) * np.tan(delta) * self.dt
 
-        B = np.zeros((4, 3))
+        B = np.zeros((4, 2))
         B[2, 0] = (v / self.axle_length) * self.dt / np.cos(delta) ** 2
         B[3, 1] = self.dt
 
@@ -115,7 +115,7 @@ class F1tenthEKFStateEstimator(StateEstimator):
         Update the state based on new position measurements.
         Placeholder function - implement measurement update logic here.
         """
-        # Convert TransformStamped to pose and update the measurement step of the EKF
+        self.last_position_msg = msg
 
     def update(self):
         """
@@ -143,21 +143,21 @@ class F1tenthEKFStateEstimator(StateEstimator):
             y = self.last_position_msg.transform.translation.y
 
             # Convert quaternion to yaw angle
-            (x, y, z, w) = (
+            (qx, qy, qz, qw) = (
                 self.last_position_msg.transform.rotation.x,
                 self.last_position_msg.transform.rotation.y,
                 self.last_position_msg.transform.rotation.z,
                 self.last_position_msg.transform.rotation.w,
             )
-            _, _, theta = euler_from_quaternion([x, y, z, w])
+            _, _, theta = quat2euler([qw, qx, qy, qz])
 
             # The measurement matrix H is the identity matrix (except for speed)
-            H = np.eye(4)
-            H[3, 3] = 0.0
+            H = np.zeros((3, 4))
+            H[:3, :3] = np.eye(3)
 
             # Do the measurement update step of the EKF
-            R = np.eye(4) * self.obs_noise_cov
-            error = self.state - np.array([x, y, theta, 0.0]).reshape(-1, 1)
+            R = np.eye(3) * self.obs_noise_cov
+            error = np.array([x, y, theta]).reshape(-1, 1) - H @ self.state
             S = H @ self.covariance @ H.T + R
             K = self.covariance @ H.T @ np.linalg.inv(S)
             self.state += K @ error
@@ -170,12 +170,13 @@ class F1tenthEKFStateEstimator(StateEstimator):
         msg.x = self.state[0, 0]
         msg.y = self.state[1, 0]
         msg.theta = self.state[2, 0]
-        msg.v = self.state[3, 0]
+        msg.speed = self.state[3, 0]
         self.estimate_pub.publish(msg)
 
         # Publish the new covariance estimate
         cov_msg = F1TenthStateCovariance()
         cov_msg.covariance = self.covariance.ravel().tolist()
+        self.covariance_pub.publish(cov_msg)
 
 
 if __name__ == "__main__":

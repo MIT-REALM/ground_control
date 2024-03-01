@@ -1,0 +1,16 @@
+<!-- -*- mode: XML -*- -->
+<launch>
+  <arg name="rl_runtime_config"
+       default="$(find rl_runtime)/models/infer_v0/infer_v0.yaml" />
+
+  <rosparam file="$(arg rl_runtime_config)" command="load" />
+
+  <node pkg="rl_runtime" type="infer_v0_node" name="infer_v0" output="screen">
+      <param name="trt_model_path" value="$(find rl_runtime)/models/infer_v0/infer_v0.trt" />
+
+      <remap from="cmd" to="/vesc/high_level/ackermann_cmd_mux/input/nav_0" />
+      <remap from="odom" to="/laser_scan_matcher/odom" />
+      <remap from="scan" to="/scan" />
+      <remap from="nav_goal" to="/move_base_simple/goal" />
+  </node>
+</launch>

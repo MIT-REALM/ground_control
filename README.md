@@ -12,7 +12,7 @@ This repository is currently only supported on Ubuntu Linux, but it may be possi
 4. Clone this repository
 
 ```bash
-git clone git@github.com:MIT-REALM/ground_control.git
+git clone --recurse-submodules git@github.com:MIT-REALM/ground_control.git
 cd ground_control
 ```
 

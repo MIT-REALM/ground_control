@@ -3,7 +3,9 @@ version: "3"
 services:
   roscore:
     image: realm_gc:latest
-    build: .docker
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
     network_mode: host
     privileged: true
     stdin_open: true # docker run -i
@@ -12,7 +14,9 @@ services:
 
   vicon_bridge:
     image: realm_gc:latest
-    build: .docker
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
     network_mode: host
     privileged: true
     stdin_open: true # docker run -i
@@ -23,7 +27,9 @@ services:
 
   rviz:
     image: realm_gc:latest
-    build: .docker
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
     environment:
       - DISPLAY=${DISPLAY}
     volumes:
@@ -38,7 +44,9 @@ services:
 
   bash:
     image: realm_gc:latest
-    build: .docker
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
     environment:
       - DISPLAY=${DISPLAY} # allows GUI access
     volumes:
