@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Define a base class for state estimators."""
 import abc
 

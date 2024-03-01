@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Define a state estimator for the F1tenth car using an Extended Kalman Filter."""
 import numpy as np
 import rospy
