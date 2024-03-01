@@ -8,7 +8,7 @@ This launch file is to load a sample trajectory from sample_trajectories/ folder
     <arg name="mode" default="load"/>
     <arg name="path" default="$(find turtlebot)"/>
     <arg name="file" default="sample_trajectories/test_trajectory.txt"/>
-            <node name="robot_control_node" pkg="robot_control">
+            <node name="robot_control_node" pkg="rgc_control">
         <param name="mode" type="string" value="$(arg mode)"/>
         <param name="trajectory/base_path" type="string" value="$(arg path)"/>
         <param name="trajectory/filename" type="string" value="$(arg file)"/>
