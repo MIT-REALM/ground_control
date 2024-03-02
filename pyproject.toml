@@ -1,0 +1,4 @@
+[tool.ruff]
+select = ["F", "E", "W", "I001"]
+ignore = ["E721", "E731", "F722"]
+ignore-init-module-imports = true

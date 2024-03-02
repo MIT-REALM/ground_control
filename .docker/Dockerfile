@@ -7,13 +7,14 @@ RUN apt-get update && apt-get install -y \
     git \
     python3-pip \
     python3-dev \
+    python3-tk \
     ros-noetic-driver-base \
     ros-noetic-sophus \
     ros-noetic-robot-pose-ekf \
     ros-noetic-ackermann-msgs \
     ros-noetic-urg-node
 
-RUN pip3 install numpy jax pyyaml rospkg transforms3d
+RUN pip3 install numpy jax pyyaml rospkg transforms3d equinox scipy matplotlib
 
 # Install updated cmake
 RUN apt-get update \
