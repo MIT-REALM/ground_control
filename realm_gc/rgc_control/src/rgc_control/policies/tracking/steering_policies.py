@@ -85,6 +85,7 @@ class TurtlebotSteeringPolicy(ControlPolicy):
         )
 
 
+@dataclass
 class F1TenthSteeringAction(ControlAction):
     """The action for a F1Tenth steering controller."""
 
@@ -173,43 +174,3 @@ class F1TenthSteeringPolicy(ControlPolicy):
         return F1TenthSteeringAction(
             steering_angle=u[0].item(), acceleration=u[1].item()
         )
-
-
-if __name__ == "__main__":
-    # Test the turtlebot steering policy
-    policy = TurtlebotSteeringPolicy()
-
-    initial_state = np.array([-1.0, -1.0, 1.0])
-    states = [initial_state.tolist()]
-    for i in range(500):
-        action = policy.compute_action(
-            SteeringObservation(
-                pose=Pose2DObservation(
-                    x=initial_state[0], y=initial_state[1], theta=initial_state[2]
-                ),
-                goal=Pose2DObservation(x=0.0, y=0.0, theta=0.0),
-            )
-        )
-        initial_state += (
-            np.array(
-                [
-                    action.linear_velocity * np.cos(initial_state[2]),
-                    action.linear_velocity * np.sin(initial_state[2]),
-                    action.angular_velocity,
-                ]
-            )
-            * 0.05
-        )
-        states.append(initial_state.tolist())
-
-    import matplotlib
-    import matplotlib.pyplot as plt
-
-    matplotlib.use("Agg")
-
-    states = np.array(states)
-    plt.plot(states[:, 0], states[:, 1])
-    plt.scatter(0.0, 0.0, c="r", label="Goal")
-    plt.scatter(states[0, 0], states[0, 1], c="g", label="Start")
-    plt.legend()
-    plt.savefig("src/realm_gc/turtlebot_steering.png")
