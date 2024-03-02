@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-ackermann-msgs \
     ros-noetic-urg-node
 
-RUN pip3 install numpy jax pyyaml rospkg transforms3d equinox scipy matplotlib
+RUN pip3 install numpy "jax[cpu]" pyyaml rospkg transforms3d equinox scipy matplotlib
 RUN pip3 install --upgrade numpy
 
 # Install updated cmake

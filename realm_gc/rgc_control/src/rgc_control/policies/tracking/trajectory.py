@@ -1,4 +1,6 @@
 """Define linearly interpolated trajectories."""
+from typing import List
+
 import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Float
@@ -39,7 +41,7 @@ class MultiAgentTrajectoryLinear(eqx.Module):
         trajectories: the list of trajectories for each robot.
     """
 
-    trajectories: list[LinearTrajectory2D]
+    trajectories: List[LinearTrajectory2D]
 
     def __call__(self, t: Float[Array, ""]) -> Float[Array, "N 2"]:
         """Return the waypoints for each agent at a given time (linear interpolate)"""

@@ -14,6 +14,7 @@ class Pose2DObservation(Observation):
     x: float
     y: float
     theta: float
+    v: float
 
 
 @dataclass
@@ -69,7 +70,7 @@ class TurtlebotSteeringPolicy(ControlPolicy):
 
         # Compute the angular velocity: steer towards the goal if we're far from it
         # (so the arctan is well defined), and align to the goal orientation
-        if linear_velocity > 0.05:
+        if np.linalg.norm(error) > 0.05:
             angular_velocity = np.arctan2(error[1], error[0])
         else:
             angle_error = observation.goal.theta - observation.pose.theta
@@ -157,7 +158,7 @@ class F1TenthSteeringPolicy(ControlPolicy):
                 observation.pose.x,
                 observation.pose.y,
                 observation.pose.theta,
-                self.equilibrium_state[3],
+                observation.pose.v,
             ]
         ).reshape(-1, 1)
         goal = np.array(
