@@ -1,16 +1,7 @@
 """Define generic control policy interface."""
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
-
-@dataclass
-class Observation:
-    pass
-
-
-@dataclass
-class ControlAction:
-    pass
+from rgc_control.policies.common import ControlAction, Observation
 
 
 class ControlPolicy(ABC):

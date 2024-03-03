@@ -4,7 +4,8 @@ from dataclasses import dataclass
 import numpy as np
 import scipy
 
-from rgc_control.policies.policy import ControlAction, ControlPolicy, Observation
+from rgc_control.policies.common import F1TenthAction, TurtlebotAction
+from rgc_control.policies.policy import ControlPolicy, Observation
 
 
 @dataclass
@@ -25,14 +26,6 @@ class SteeringObservation(Observation):
     goal: Pose2DObservation
 
 
-@dataclass
-class TurtlebotSteeringAction(ControlAction):
-    """The action for a turtlebot steering controller."""
-
-    linear_velocity: float
-    angular_velocity: float
-
-
 class TurtlebotSteeringPolicy(ControlPolicy):
     """Steer a turtlebot towards a waypoint using a proportional controller."""
 
@@ -42,11 +35,9 @@ class TurtlebotSteeringPolicy(ControlPolicy):
 
     @property
     def action_type(self):
-        return TurtlebotSteeringAction
+        return TurtlebotAction
 
-    def compute_action(
-        self, observation: SteeringObservation
-    ) -> TurtlebotSteeringAction:
+    def compute_action(self, observation: SteeringObservation) -> TurtlebotAction:
         """Takes in an observation and returns a control action."""
         # Compute the error in the turtlebot's frame
         error = np.array(
@@ -80,18 +71,10 @@ class TurtlebotSteeringPolicy(ControlPolicy):
                 angle_error += 2 * np.pi
             angular_velocity = 0.1 * angle_error
 
-        return TurtlebotSteeringAction(
+        return TurtlebotAction(
             linear_velocity=linear_velocity.item(),
             angular_velocity=angular_velocity.item(),
         )
-
-
-@dataclass
-class F1TenthSteeringAction(ControlAction):
-    """The action for a F1Tenth steering controller."""
-
-    steering_angle: float
-    acceleration: float
 
 
 class F1TenthSteeringPolicy(ControlPolicy):
@@ -123,7 +106,7 @@ class F1TenthSteeringPolicy(ControlPolicy):
 
     @property
     def action_type(self):
-        return F1TenthSteeringAction
+        return F1TenthAction
 
     def get_AB(self, state, delta, a):
         """
@@ -151,7 +134,7 @@ class F1TenthSteeringPolicy(ControlPolicy):
 
         return A, B
 
-    def compute_action(self, observation: SteeringObservation) -> F1TenthSteeringAction:
+    def compute_action(self, observation: SteeringObservation) -> F1TenthAction:
         """Takes in an observation and returns a control action."""
         state = np.array(
             [
@@ -172,6 +155,4 @@ class F1TenthSteeringPolicy(ControlPolicy):
         error = state - goal
         u = -self.K * error
 
-        return F1TenthSteeringAction(
-            steering_angle=u[0].item(), acceleration=u[1].item()
-        )
+        return F1TenthAction(steering_angle=u[0].item(), acceleration=u[1].item())

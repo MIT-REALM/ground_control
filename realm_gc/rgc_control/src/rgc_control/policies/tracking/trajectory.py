@@ -32,6 +32,13 @@ class LinearTrajectory2D(eqx.Module):
             ]
         )
 
+    @staticmethod
+    def from_eqx(T: int, filepath: str) -> "LinearTrajectory2D":
+        """Load a LinearTrajectory2D from a file."""
+        traj = LinearTrajectory2D(jnp.zeros((T, 2)))
+        traj = eqx.tree_deserialise_leaves(filepath, traj)
+        return traj
+
 
 class MultiAgentTrajectoryLinear(eqx.Module):
     """
@@ -46,3 +53,10 @@ class MultiAgentTrajectoryLinear(eqx.Module):
     def __call__(self, t: Float[Array, ""]) -> Float[Array, "N 2"]:
         """Return the waypoints for each agent at a given time (linear interpolate)"""
         return jnp.array([traj(t) for traj in self.trajectories])
+
+    @staticmethod
+    def from_eqx(N: int, T: int, filepath: str) -> "MultiAgentTrajectoryLinear":
+        """Load a MultiAgentTrajectoryLinear from a file."""
+        trajs = [LinearTrajectory2D(jnp.zeros((T, 2))) for _ in range(N)]
+        trajs = eqx.tree_deserialise_leaves(filepath, trajs)
+        return trajs
