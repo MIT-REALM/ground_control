@@ -31,7 +31,7 @@ class CompositePolicy(ControlPolicy):
         # Create a new action by summing all fields of the sub-policy actions
         composite_action = type(actions[0])(
             **{
-                field: np.sum([getattr(action, field) for action in actions])
+                field.name: np.sum([getattr(action, field.name) for action in actions])
                 for field in fields(actions[0])
             }
         )

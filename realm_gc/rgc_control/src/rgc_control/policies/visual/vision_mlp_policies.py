@@ -3,8 +3,9 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 
-from rgc_control.policies.policy import ControlPolicy, F1TenthAction
-from rgc_control.policies.vision.common import VisualObservation
+from rgc_control.policies.common import F1TenthAction
+from rgc_control.policies.policy import ControlPolicy
+from rgc_control.policies.visual.common import VisualObservation
 
 
 class F1TenthVisionMLPPolicy(ControlPolicy):
@@ -37,4 +38,10 @@ class F1TenthVisionMLPPolicy(ControlPolicy):
         depth_image = jnp.where(depth_image < 1e-3, min_distance, depth_image)
         image = jnp.reshape(depth_image, (-1,))
         action = 0.1 * self.actor_fcn(image)
+
+        action = F1TenthAction(
+            acceleration=action[0],
+            steering_angle=action[1],
+        )
+
         return action
