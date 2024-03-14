@@ -72,7 +72,7 @@ class TurtlebotControl(RobotControl):
             v = self.control.linear_velocity
             t = rospy.Time.now() - self.time_begin
             current_state = TimedPose2DObservation(
-                self.state.x, self.state.y, self.state.theta, v, t
+                x=self.state.x, y=self.state.y, theta=self.state.theta, v=v, t=t
             )
             self.control = self.control_policy.compute_action(current_state)
 

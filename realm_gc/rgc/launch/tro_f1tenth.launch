@@ -1,0 +1,35 @@
+<!-- This launch file starts the controller and state estimator for the F1Tenth platform -->
+
+<launch>
+    <arg name="machine_name" default="realm_f1tenth"/>
+    
+    <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
+    <arg name="traj_filepath" default="base/ego_traj.eqx"/>
+    <arg name="mlp_filepath" default="base/mlp.eqx"/>
+
+    <arg name="vicon_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
+    
+    <!-- State estimator -->
+    <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_ekf.py" output="screen" machine="$(arg machine_name)">
+        <param name="position_topic" type="string" value="$(arg vicon_topic)"/>
+    </node>
+
+    <!-- Camera node -->
+    <include file="$(find rgc)/launch/realsense2/rs_camera.launch">
+        <arg name="machine_name" value="$(arg machine_name)"/>
+    </include>
+
+    <!-- Controller -->
+    <node name="f1tenth_controller" pkg="rgc_control" type="f1tenth_control.py" output="screen" machine="$(arg machine_name)">
+        <!-- Info on where to find the saved trajectory file -->
+        <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
+        <param name="trajectory/filename" type="string" value="$(arg traj_filepath)"/>
+
+        <!-- Info on where to find the saved MLP weights -->
+        <param name="mlp/base_path" type="string" value="$(arg base_path)"/>
+        <param name="mlp/filename" type="string" value="$(arg mlp_filepath)"/>
+
+        <!-- Match up with state estimator topic name -->
+        <param name="state_estimate_topic" type="string" value="f1tenth_state_estimator"/>
+    </node>
+</launch>

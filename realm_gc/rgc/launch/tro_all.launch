@@ -1,0 +1,48 @@
+<!--
+    Launch the f1tenth stack on the F1Tenth platform and the turtlebot stack on each
+    of the turtlebots.
+-->
+
+<launch>
+
+    <!-- Define a machine for each robot -->
+    <!-- TODO set these up for passwordless SSH -->
+    <!-- TODO set up env loader scripts -->
+    <machine name="realm_turtle0" address="realm-turtle0" user="realm" env-loader="/home/realm/.bashrc" />
+    <machine name="realm_turtle1" address="realm-turtle1" user="realm" env-loader="/home/realm/.bashrc" />
+    <machine name="realm_f1tenth" address="realm-f1tenth" user="realm" env-loader="/home/realm/.bashrc" />
+
+    <!-- Start the F1Tenth stack -->
+    <include file="$(find rgc)/launch/tro_f1tenth.launch">
+        <arg name="machine_name" value="realm_f1tenth"/>
+
+        <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
+        <arg name="traj_filepath" default="base/ego_traj.eqx"/>
+        <arg name="mlp_filepath" default="base/mlp.eqx"/>
+
+        <arg name="vicon_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
+    </include>
+
+    <!-- Start the Turtlebot stacks -->
+    <group ns="turtle0">
+        <include file="$(find rgc)/launch/tro_turtlebot.launch">
+            <arg name="machine_name" value="realm_turtle0"/>
+
+            <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
+            <arg name="traj_filepath" default="base/non_ego_traj_0.eqx"/>
+
+            <arg name="vicon_topic" default="/vicon/realm_turtle0/realm_turtle0"/>
+        </include>
+    </group>
+
+    <group ns="turtle1">
+        <include file="$(find rgc)/launch/tro_turtlebot.launch">
+            <arg name="machine_name" value="realm_turtle1"/>
+
+            <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
+            <arg name="traj_filepath" default="base/non_ego_traj_1.eqx"/>
+
+            <arg name="vicon_topic" default="/vicon/realm_turtle1/realm_turtle1"/>
+        </include>
+    </group>
+</launch>

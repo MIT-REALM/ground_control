@@ -7,17 +7,8 @@ trajectory loader
 <launch>
     <arg name="path" default="$(find rgc_control)"/>
     <arg name="filepath" default="saved_policies/ego_traj.eqx"/>
-            <node name="robot_control_node" pkg="rgc_control">
+    <node name="robot_control_node" pkg="rgc_control">
         <param name="trajectory/base_path" type="string" value="$(arg path)"/>
         <param name="trajectory/filename" type="string" value="$(arg file)"/>
     </node>
 </launch>
-
-
-
-
-
-
-
-
-
