@@ -4,9 +4,10 @@ import numpy as np
 import rospy
 from f1tenth_msgs.msg import F1TenthDriveStamped
 from geometry_msgs.msg import TransformStamped
+from transforms3d.euler import quat2euler
+
 from rgc_state_estimators.msg import F1TenthState, F1TenthStateCovariance
 from rgc_state_estimators.state_estimator import StateEstimator
-from transforms3d.euler import quat2euler
 
 
 class F1tenthEKFStateEstimator(StateEstimator):
