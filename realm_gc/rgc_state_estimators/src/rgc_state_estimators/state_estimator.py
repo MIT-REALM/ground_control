@@ -20,7 +20,11 @@ class StateEstimator(abc.ABC):
         self.rate_timer = rospy.Rate(self.rate)
 
         # Publisher - to be defined in subclasses, as needed
-        # e.g., self.pub = rospy.Publisher(f"{rospy.get_name()}/estimate", PoseStamped, queue_size=10)
+        # e.g., self.pub = rospy.Publisher(
+        #           f"{rospy.get_name()}/estimate",
+        #           PoseStamped,
+        #           queue_size=10
+        #       )
         self.pub = None
 
         # Reset event subscriber

@@ -3,9 +3,10 @@
 import numpy as np
 import rospy
 from geometry_msgs.msg import TransformStamped, Twist
+from transforms3d.euler import quat2euler
+
 from rgc_state_estimators.msg import TurtlebotState, TurtlebotStateCovariance
 from rgc_state_estimators.state_estimator import StateEstimator
-from transforms3d.euler import quat2euler
 
 
 class TurtlebotEKFStateEstimator(StateEstimator):
