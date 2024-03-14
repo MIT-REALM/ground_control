@@ -46,8 +46,13 @@ class F1TenthControl(RobotControl):
         # trajectory. We need to wait until we get the first state estimate in order
         # to instantiate the control policy.
         while self.state is None:
-            rospy.loginfo("Waiting for state estimate to instantiate control policy")
-            rospy.sleep(1)
+            rospy.loginfo(
+                "Waiting for state estimate to converge to instantiate control policy"
+            )
+            rospy.sleep(1.0)
+
+        rospy.sleep(2.0)  # additional waiting for state to converge
+        rospy.loginfo("State estimate has converged. Instantiating control policy.")
 
         self.control_policy = create_tro_f1tenth_policy(
             np.array([self.state.x, self.state.y, self.state.theta, self.state.speed]),
