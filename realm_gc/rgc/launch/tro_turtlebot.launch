@@ -8,6 +8,8 @@
     
     <arg name="vicon_topic" default="/vicon/realm_turtle0/realm_turtle0"/>
     
+    <!-- Runs everything on the ROS master machine -->
+
     <!-- State estimator -->
     <node name="turtlebot_state_estimator" pkg="rgc_state_estimators" type="turtlebot_ekf.py" output="screen">
         <param name="position_topic" type="string" value="$(arg vicon_topic)"/>

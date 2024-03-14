@@ -7,10 +7,9 @@
 
     <!-- Define a machine for each robot -->
     <!-- TODO set these up for passwordless SSH -->
-    <!-- TODO set up env loader scripts -->
-    <machine name="realm_turtle0" address="realm-turtle0" user="realm" env-loader="/home/realm/.bashrc" />
-    <machine name="realm_turtle1" address="realm-turtle1" user="realm" env-loader="/home/realm/.bashrc" />
-    <machine name="realm_f1tenth" address="realm-f1tenth" user="realm" env-loader="/home/realm/.bashrc" />
+    <machine name="realm_turtle0" address="realm-turtle0" user="realm"/>
+    <machine name="realm_turtle1" address="realm-turtle1" user="realm"/>
+    <machine name="realm_f1tenth" address="realm-f1tenth" user="realm"/>
 
     <!-- Start the F1Tenth stack -->
     <include file="$(find rgc)/launch/tro_f1tenth.launch">

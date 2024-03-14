@@ -8,19 +8,21 @@
     <arg name="mlp_filepath" default="base/mlp.eqx"/>
 
     <arg name="vicon_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
-    
-    <!-- State estimator -->
-    <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_ekf.py" output="screen" machine="$(arg machine_name)">
-        <param name="position_topic" type="string" value="$(arg vicon_topic)"/>
-    </node>
+
+    <!-- The camera node runs on the robot, but everything else runs on master -->
 
     <!-- Camera node -->
     <include file="$(find rgc)/launch/realsense2/rs_camera.launch">
         <arg name="machine_name" value="$(arg machine_name)"/>
     </include>
+    
+    <!-- State estimator -->
+    <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_ekf.py" output="screen">
+        <param name="position_topic" type="string" value="$(arg vicon_topic)"/>
+    </node>
 
     <!-- Controller -->
-    <node name="f1tenth_controller" pkg="rgc_control" type="f1tenth_control.py" output="screen" machine="$(arg machine_name)">
+    <node name="f1tenth_controller" pkg="rgc_control" type="f1tenth_control.py" output="screen">
         <!-- Info on where to find the saved trajectory file -->
         <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
         <param name="trajectory/filename" type="string" value="$(arg traj_filepath)"/>
