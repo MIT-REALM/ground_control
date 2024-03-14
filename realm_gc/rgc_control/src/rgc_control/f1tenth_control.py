@@ -1,5 +1,7 @@
 #!usr/bin/env python
 """Define class for robot control """
+import os
+
 import numpy as np
 import rospy
 from f1tenth_msgs.msg import F1TenthDriveStamped
@@ -36,8 +38,8 @@ class F1TenthControl(RobotControl):
         )
 
         # Get MLP eqx filepath from rosparam supplied by roslaunch
-        self.mlp_eqx = rospy.get_param("~mlp/base_path") + rospy.get_param(
-            "~mlp/filename"
+        self.mlp_eqx = os.path.join(
+            rospy.get_param("~mlp/base_path"), rospy.get_param("~mlp/filename")
         )
 
         # Instantiate control policy using F1Tenth steering policy and reference
