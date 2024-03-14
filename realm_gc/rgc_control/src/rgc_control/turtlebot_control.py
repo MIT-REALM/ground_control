@@ -32,16 +32,15 @@ class TurtlebotControl(RobotControl):
         )
 
         # Instantiate control policy using Turtlebot steering policy and reference
-        # trajectory
+        # trajectory. We need to wait until we get the first state estimate in order
+        # to instantiate the control policy.
+        while self.state is None:
+            rospy.loginfo("Waiting for state estimate to instantiate control policy")
+            rospy.sleep(1)
+
         self.control_policy = create_tro_turtlebot_policy(
-            np.zeros((2, 1)), self.eqx_filepath
+            np.array([self.state.x, self.state.y]), self.eqx_filepath
         )
-
-        # Start time
-        self.time_begin = rospy.Time.now()
-
-    def shutdownhook(self):
-        self.ctrl_c = True
 
     def state_estimate_callback(self, msg):
         self.state = msg
@@ -49,6 +48,10 @@ class TurtlebotControl(RobotControl):
     def reset_control(self, msg=None):
         """Reset the control."""
         self.control = TurtlebotAction(0.0, 0.0)
+        msg = Twist()
+        msg.linear.x = self.control.linear_velocity
+        msg.angular.z = self.control.angular_velocity
+        self.control_pub.publish(msg)
 
     def update(self):
         """
@@ -56,6 +59,9 @@ class TurtlebotControl(RobotControl):
         This function implements and calls the control prediction and update steps.
         """
         if self.state is not None:
+            # Make sure to normalize the time.
+            t = (rospy.Time.now() - self.time_begin).to_sec() / self.T
+
             # Pack [x,y,theta,v] from state message and control policy into
             # TimedPose2DObservation instance.
             v = self.control.linear_velocity
@@ -66,8 +72,8 @@ class TurtlebotControl(RobotControl):
             self.control = self.control_policy.compute_action(current_state)
 
         msg = Twist()
-        msg.v = self.control.linear_velocity
-        msg.w = self.control.angular_velocity
+        msg.linear.x = self.control.linear_velocity
+        msg.angular.z = self.control.angular_velocity
         self.control_pub.publish(msg)
 
 

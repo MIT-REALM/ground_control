@@ -43,23 +43,28 @@ class F1TenthControl(RobotControl):
         )
 
         # Instantiate control policy using F1Tenth steering policy and reference
-        # trajectory
+        # trajectory. We need to wait until we get the first state estimate in order
+        # to instantiate the control policy.
+        while self.state is None:
+            rospy.loginfo("Waiting for state estimate to instantiate control policy")
+            rospy.sleep(1)
+
         self.control_policy = create_tro_f1tenth_policy(
-            np.zeros((4, 1)), self.eqx_filepath, self.mlp_eqx
+            np.array([self.state.x, self.state.y, self.state.theta, self.state.speed]),
+            self.eqx_filepath,
+            self.mlp_eqx,
         )
-
-        # Start time
-        self.time_begin = rospy.Time.now()
-
-    def shutdownhook(self):
-        self.ctrl_c = True
 
     def state_estimate_callback(self, msg):
         self.state = msg
 
     def reset_control(self, msg=None):
-        """Reset the control."""
+        """Reset the control to stop the experiment and publish the command."""
         self.control = F1TenthAction(0.0, 0.0)
+        msg = F1TenthDriveStamped()
+        msg.drive.steering_angle = self.control.steering_angle
+        msg.drive.acceleration = self.control.acceleration
+        self.control_pub.publish(msg)
 
     def update(self):
         """
@@ -68,15 +73,16 @@ class F1TenthControl(RobotControl):
         """
         if self.state is not None:
             # Pack [x,y,theta,v] from state message into TimedPose2DObservation instance
-            t = rospy.Time.now() - self.time_begin
+            # Make sure to normalize the time
+            t = (rospy.Time.now() - self.time_begin).to_sec() / self.T
             current_state = TimedPose2DObservation(
                 self.state.x, self.state.y, self.state.theta, self.state.speed, t
             )
             self.control = self.control_policy.compute_action(current_state)
 
         msg = F1TenthDriveStamped()
-        msg.steering_angle = self.control.steering_angle
-        msg.acceleration = self.control.acceleration
+        msg.drive.steering_angle = self.control.steering_angle
+        msg.drive.acceleration = self.control.acceleration
         self.control_pub.publish(msg)
 
 
