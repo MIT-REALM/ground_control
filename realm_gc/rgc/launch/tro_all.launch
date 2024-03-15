@@ -4,17 +4,8 @@
 -->
 
 <launch>
-
-    <!-- Define a machine for each robot -->
-    <!-- TODO set these up for passwordless SSH -->
-    <machine name="realm_turtle0" address="realm-turtle0" user="realm"/>
-    <machine name="realm_turtle1" address="realm-turtle1" user="realm"/>
-    <machine name="realm_f1tenth" address="realm-f1tenth" user="realm"/>
-
     <!-- Start the F1Tenth stack -->
     <include file="$(find rgc)/launch/tro_f1tenth.launch">
-        <arg name="machine_name" value="realm_f1tenth"/>
-
         <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
         <arg name="traj_filepath" default="base/ego_traj.eqx"/>
         <arg name="mlp_filepath" default="base/mlp.eqx"/>
@@ -25,8 +16,6 @@
     <!-- Start the Turtlebot stacks -->
     <group ns="turtle0">
         <include file="$(find rgc)/launch/tro_turtlebot.launch">
-            <arg name="machine_name" value="realm_turtle0"/>
-
             <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
             <arg name="traj_filepath" default="base/non_ego_traj_0.eqx"/>
 
@@ -36,8 +25,6 @@
 
     <group ns="turtle1">
         <include file="$(find rgc)/launch/tro_turtlebot.launch">
-            <arg name="machine_name" value="realm_turtle1"/>
-
             <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
             <arg name="traj_filepath" default="base/non_ego_traj_1.eqx"/>
 

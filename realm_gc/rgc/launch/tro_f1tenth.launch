@@ -1,20 +1,11 @@
 <!-- This launch file starts the controller and state estimator for the F1Tenth platform -->
 
 <launch>
-    <arg name="machine_name" default="realm_f1tenth"/>
-    
     <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
     <arg name="traj_filepath" default="base/ego_traj.eqx"/>
     <arg name="mlp_filepath" default="base/mlp.eqx"/>
 
     <arg name="vicon_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
-
-    <!-- The camera node runs on the robot, but everything else runs on master -->
-
-    <!-- Camera node -->
-    <include file="$(find rgc)/launch/realsense2/rs_camera.launch">
-        <arg name="machine_name" value="$(arg machine_name)"/>
-    </include>
     
     <!-- State estimator -->
     <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_ekf.py" output="screen">

@@ -43,3 +43,22 @@ This system includes a `docker-compose.yml` file that defines 4 services, which 
 If you want to run all of these services, simply run `docker compose up`. If you want to connect to the `bash` service, run `docker attach highbay-1-bash` in another terminal tab, and to disconnect type `Ctrl+p` then `Ctrl-q`. To stop, use `Ctrl+C` in the terminal where you ran `docker compose up` (you may need to manually close the RViz window).
 
 If you only want to run the `vicon_bridge` service (e.g. if you want to start your own ROS core using `roslaunch`), then just run `docker compose start vicon_bridge` after you have started `roscore`. To stop it, run `docker compose stop vicon_bridge`.
+
+## Robot setup
+
+TODO document how to set ROS_MASTER_URI and ROS_HOSTNAME on all robots
+TODO document how to get the F1Tenth on the right wifi
+
+## Running experiments
+
+After putting all robots in their start positions:
+
+1. **Start ROS core and main stack:** Run `docker compose up` to start all services
+2. **Start TB1:** SSH into turtle 1 and run `ROS_NAMESPACE=turtle1 roslaunch turtlebot3_bringup turtlebot3_robot.launch`
+3. **Start TB2:** SSH into turtle 2 and run `ROS_NAMESPACE=turtle2 roslaunch turtlebot3_bringup turtlebot3_robot.launch`
+4. **Start F1Tenth:** SSH into f1tenth and run `roslaunch racecar teleop.launch`
+5. **Start camera:** SSH into f1tenth again and run `roslaunch realsense2_camera rs_camera.launch`
+5. **Start experiments:** Attach to the bash service `docker attach bash`
+    a. Enable teleop control of F1Tenth by holding R1 on the controller
+    b. Start the experiment by `rostopic pub -1 /start_control`
+    c. Stop the experiment by `rostopic pub -1 /stop_control`

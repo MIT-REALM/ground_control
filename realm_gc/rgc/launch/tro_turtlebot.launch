@@ -1,15 +1,11 @@
 <!-- This launch file starts the controller and state estimator for the turtlebot platform -->
 
 <launch>
-    <arg name="machine_name" default="realm_turtle0"/>
-
     <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
     <arg name="traj_filepath" default="base/non_ego_traj_0.eqx"/>
     
     <arg name="vicon_topic" default="/vicon/realm_turtle0/realm_turtle0"/>
     
-    <!-- Runs everything on the ROS master machine -->
-
     <!-- State estimator -->
     <node name="turtlebot_state_estimator" pkg="rgc_state_estimators" type="turtlebot_ekf.py" output="screen">
         <param name="position_topic" type="string" value="$(arg vicon_topic)"/>
