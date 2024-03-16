@@ -29,7 +29,7 @@ class F1TenthMAFStateEstimator(StateEstimator):
         )
 
         # Initialize the MAF variables
-        self.state = np.zeros((3, 1))  # [x, y, theta, v]
+        self.state = np.zeros((4, 1))  # [x, y, theta, v]
         self.last_pose = np.zeros((3, 1))  # [x, y, theta]
 
         # Set up subscribers
@@ -53,7 +53,7 @@ class F1TenthMAFStateEstimator(StateEstimator):
 
     def reset_state(self, msg=None):
         """Reset the state of the MAF."""
-        self.state = np.zeros((3, 1))  # Reset state to zeros
+        self.state = np.zeros((4, 1))  # Reset state to zeros
         self.last_pose = np.zeros((3, 1))  # [x, y, theta]
 
     def position_callback(self, msg):
@@ -103,7 +103,7 @@ class F1TenthMAFStateEstimator(StateEstimator):
         msg.x = self.state[0, 0]
         msg.y = self.state[1, 0]
         msg.theta = self.state[2, 0]
-        msg.v = self.state[3, 0]
+        msg.speed = self.state[3, 0]
         self.estimate_pub.publish(msg)
 
 

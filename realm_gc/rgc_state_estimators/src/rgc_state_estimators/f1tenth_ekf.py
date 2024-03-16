@@ -19,7 +19,7 @@ class F1tenthEKFStateEstimator(StateEstimator):
         super(F1tenthEKFStateEstimator, self).__init__()
 
         # Fetch additional parameters
-        self.axle_length = rospy.get_param("~axle_length", 0.28)  # Default to 1 meter
+        self.axle_length = rospy.get_param("~axle_length", 0.28)
         self.obs_noise_cov = rospy.get_param("~obs_noise_cov", 0.1)
         self.process_noise_cov = rospy.get_param("~process_noise_cov", 0.1)
         self.control_topic = rospy.get_param(
@@ -132,6 +132,7 @@ class F1tenthEKFStateEstimator(StateEstimator):
         Update the state based on control inputs.
         """
         self.last_control_msg = msg
+        rospy.loginfo("Received control input")
 
     def position_callback(self, msg):
         """

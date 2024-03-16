@@ -13,6 +13,7 @@ class F1TenthSimulator:
         """Initialize the simulator."""
         # Initialize the node
         rospy.init_node("f1tenth_simulator")
+        self.axle_length = rospy.get_param("~axle_length", 0.28)
         self.control_topic = rospy.get_param(
             "~control_topic", "/vesc/high_level/ackermann_cmd_mux/input/nav_0"
         )

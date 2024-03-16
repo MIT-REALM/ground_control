@@ -1,0 +1,11 @@
+<!-- This launch file starts simulators for the turtlebot -->
+
+<launch>
+    <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
+    <arg name="control_topic" default="/vesc/high_level/ackermann_cmd_mux/input/nav_0"/>
+    
+    <node name="f1tenth_simulator" pkg="rgc_simulator" type="f1tenth_simulator.py" output="screen">
+        <param name="position_topic" type="string" value="$(arg position_topic)"/>
+        <param name="control_topic" type="string" value="$(arg control_topic)"/>
+    </node>
+</launch>
