@@ -5,11 +5,11 @@
     <arg name="traj_filepath" default="base/ego_traj.eqx"/>
     <arg name="mlp_filepath" default="base/mlp.eqx"/>
 
-    <arg name="vicon_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
+    <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
     
     <!-- State estimator -->
     <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_ekf.py" output="screen">
-        <param name="position_topic" type="string" value="$(arg vicon_topic)"/>
+        <param name="position_topic" type="string" value="$(arg position_topic)"/>
     </node>
 
     <!-- Controller -->

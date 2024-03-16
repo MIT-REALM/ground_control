@@ -11,7 +11,7 @@
         <arg name="traj_filepath" default="base/ego_traj.eqx"/>
         <arg name="mlp_filepath" default="base/mlp.eqx"/>
 
-        <arg name="vicon_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
+        <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
     </include> -->
 
     <!-- Start the Turtlebot stacks -->
@@ -20,7 +20,7 @@
             <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
             <arg name="traj_filepath" default="base/non_ego_traj_0.eqx"/>
 
-            <arg name="vicon_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
+            <arg name="position_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
         </include>
     </group>
 
@@ -29,7 +29,7 @@
             <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
             <arg name="traj_filepath" default="base/non_ego_traj_1.eqx"/>
 
-            <arg name="vicon_topic" default="/vicon/realm_turtle_2/realm_turtle_2"/>
+            <arg name="position_topic" default="/vicon/realm_turtle_2/realm_turtle_2"/>
         </include>
     </group>
 </launch>
