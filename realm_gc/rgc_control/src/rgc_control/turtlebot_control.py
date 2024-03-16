@@ -1,4 +1,4 @@
-#!usr/bin/env python
+#!/usr/bin/env python3
 """Define control for turtlebot using LQR """
 import numpy as np
 import rospy

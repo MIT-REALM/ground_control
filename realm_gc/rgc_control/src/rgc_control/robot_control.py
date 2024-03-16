@@ -23,7 +23,6 @@ class RobotControl(abc.ABC):
         self.control_pub = None
 
         # Initialize the control
-        self.reset_control()
         self.ctrl_c = False
 
         # Create a subscriber for starting/stopping the controller

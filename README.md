@@ -62,3 +62,11 @@ After putting all robots in their start positions:
     a. Enable teleop control of F1Tenth by holding R1 on the controller
     b. Start the experiment by `rostopic pub -1 /start_control`
     c. Stop the experiment by `rostopic pub -1 /stop_control`
+
+## TODO
+
+Configure environment variables
+```
+ENV ROS_MASTER_URI=http://localhost:11311
+ENV ROS_IP=192.168.0.166
+```

@@ -29,6 +29,11 @@ class F1tenthEKFStateEstimator(StateEstimator):
             "~position_topic", "/vicon/realm_f1tenth/realm_f1tenth"
         )
 
+        # Set a timer to poll the parameters
+        self.poll_timer = rospy.Timer(
+            rospy.Duration(1.0), self.poll_parameters_callback
+        )
+
         # Initialize the EKF variables
         self.state = np.zeros((4, 1))  # [x, y, theta, v]
         self.covariance = np.eye(4)  # Initial covariance matrix
@@ -52,6 +57,23 @@ class F1tenthEKFStateEstimator(StateEstimator):
             F1TenthStateCovariance,
             queue_size=10,
         )
+
+    def poll_parameters_callback(self, _):
+        """Poll the parameters from the parameter server."""
+        new_obs_noise_cov = rospy.get_param("~obs_noise_cov", 0.1)
+        new_process_noise_cov = rospy.get_param("~process_noise_cov", 0.1)
+
+        if new_obs_noise_cov != self.obs_noise_cov:
+            self.obs_noise_cov = new_obs_noise_cov
+            rospy.loginfo(
+                f"Updated observation noise covariance to {self.obs_noise_cov}"
+            )
+
+        if new_process_noise_cov != self.process_noise_cov:
+            self.process_noise_cov = new_process_noise_cov
+            rospy.loginfo(
+                f"Updated process noise covariance to {self.process_noise_cov}"
+            )
 
     def reset_state(self, msg=None):
         """Reset the state of the EKF."""

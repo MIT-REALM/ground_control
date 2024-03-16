@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-robot-pose-ekf \
     ros-noetic-ackermann-msgs \
     ros-noetic-urg-node \
-    ros-noetic-realsense2-camera
+    ros-noetic-realsense2-camera \
+    ros-noetic-foxglove-bridge
 
 RUN pip3 install numpy "jax[cpu]" pyyaml rospkg transforms3d equinox scipy matplotlib
 RUN pip3 install --upgrade numpy

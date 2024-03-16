@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+  simulators:
+    image: realm_gc:latest
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+    environment:
+      - DISPLAY=${DISPLAY} # allows GUI access
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
+      - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
+    network_mode: host
+    privileged: true
+    stdin_open: true # docker run -i
+    tty: true # docker run -t
+    depends_on:
+      - roscore
+    command: /bin/bash -c 'source /catkin_ws/devel/setup.bash && roslaunch --wait rgc all_simulators.launch'

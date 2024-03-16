@@ -4,21 +4,20 @@
     <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
     <arg name="traj_filepath" default="base/non_ego_traj_0.eqx"/>
     
-    <arg name="vicon_topic" default="/vicon/realm_turtle0/realm_turtle0"/>
+    <arg name="vicon_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
     
     <!-- State estimator -->
     <node name="turtlebot_state_estimator" pkg="rgc_state_estimators" type="turtlebot_ekf.py" output="screen">
         <param name="position_topic" type="string" value="$(arg vicon_topic)"/>
+        <param name="obs_noise_cov" type="double" value="0.1"/>
+        <param name="process_noise_cov" type="double" value="0.1"/>
     </node>
 
     <!-- Controller -->
-    <node name="turtlebot_controller" pkg="rgc_control" type="turtlebot_control.py" output="screen">
-        <!-- Info on where to find the saved trajectory file -->
+    <!-- TODO uncomment -->
+    <!-- <node name="turtlebot_controller" pkg="rgc_control" type="turtlebot_control.py" output="screen">
         <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
         <param name="trajectory/filename" type="string" value="$(arg traj_filepath)"/>
-
-        <!-- Match up with state estimator topic name -->
         <param name="state_estimate_topic" type="string" value="turtlebot_state_estimator"/>
-    </node>
-
+    </node> -->
 </launch>

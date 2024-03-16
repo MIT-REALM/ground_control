@@ -5,30 +5,31 @@
 
 <launch>
     <!-- Start the F1Tenth stack -->
-    <include file="$(find rgc)/launch/tro_f1tenth.launch">
+    <!-- TODO uncomment -->
+    <!-- <include file="$(find rgc)/launch/tro_f1tenth.launch">
         <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
         <arg name="traj_filepath" default="base/ego_traj.eqx"/>
         <arg name="mlp_filepath" default="base/mlp.eqx"/>
 
         <arg name="vicon_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
-    </include>
+    </include> -->
 
     <!-- Start the Turtlebot stacks -->
-    <group ns="turtle0">
+    <group ns="turtle1">
         <include file="$(find rgc)/launch/tro_turtlebot.launch">
             <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
             <arg name="traj_filepath" default="base/non_ego_traj_0.eqx"/>
 
-            <arg name="vicon_topic" default="/vicon/realm_turtle0/realm_turtle0"/>
+            <arg name="vicon_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
         </include>
     </group>
 
-    <group ns="turtle1">
+    <group ns="turtle2">
         <include file="$(find rgc)/launch/tro_turtlebot.launch">
             <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
             <arg name="traj_filepath" default="base/non_ego_traj_1.eqx"/>
 
-            <arg name="vicon_topic" default="/vicon/realm_turtle1/realm_turtle1"/>
+            <arg name="vicon_topic" default="/vicon/realm_turtle_2/realm_turtle_2"/>
         </include>
     </group>
 </launch>

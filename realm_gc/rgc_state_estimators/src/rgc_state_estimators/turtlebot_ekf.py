@@ -20,9 +20,14 @@ class TurtlebotEKFStateEstimator(StateEstimator):
         # Fetch additional parameters
         self.obs_noise_cov = rospy.get_param("~obs_noise_cov", 0.1)
         self.process_noise_cov = rospy.get_param("~process_noise_cov", 0.1)
-        self.control_topic = rospy.get_param("~control_topic", "/cmd_vel")
+        self.control_topic = rospy.get_param("~control_topic", "cmd_vel")
         self.position_topic = rospy.get_param(
             "~position_topic", "/vicon/realm_turtle0/realm_turtle0"
+        )
+
+        # Set a timer to poll the parameters
+        self.poll_timer = rospy.Timer(
+            rospy.Duration(1.0), self.poll_parameters_callback
         )
 
         # Initialize the EKF variables
@@ -48,6 +53,23 @@ class TurtlebotEKFStateEstimator(StateEstimator):
             TurtlebotStateCovariance,
             queue_size=10,
         )
+
+    def poll_parameters_callback(self, _):
+        """Poll the parameters from the parameter server."""
+        new_obs_noise_cov = rospy.get_param("~obs_noise_cov", 0.1)
+        new_process_noise_cov = rospy.get_param("~process_noise_cov", 0.1)
+
+        if new_obs_noise_cov != self.obs_noise_cov:
+            self.obs_noise_cov = new_obs_noise_cov
+            rospy.loginfo(
+                f"Updated observation noise covariance to {self.obs_noise_cov}"
+            )
+
+        if new_process_noise_cov != self.process_noise_cov:
+            self.process_noise_cov = new_process_noise_cov
+            rospy.loginfo(
+                f"Updated process noise covariance to {self.process_noise_cov}"
+            )
 
     def reset_state(self, msg=None):
         """Reset the state of the EKF."""
