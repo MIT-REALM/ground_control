@@ -51,8 +51,18 @@ class TurtlebotControl(RobotControl):
         self.state = msg
 
     def reset_control(self, msg=None):
-        """Reset the control."""
-        self.control = TurtlebotAction(0.0, 0.0)
+        """Reset the turtlebot to its start position."""
+        # Make sure to normalize the time.
+        if self.state is None:
+            # Stop if no state information
+            self.control = TurtlebotAction(0.0, 0.0)
+        else:
+            # Otherwise, move to the start of the experiment
+            current_state = TimedPose2DObservation(
+                x=self.state.x, y=self.state.y, theta=self.state.theta, v=0.0, t=0.0
+            )
+            self.control = self.control_policy.compute_action(current_state)
+
         msg = Twist()
         msg.linear.x = self.control.linear_velocity
         msg.angular.z = self.control.angular_velocity
@@ -70,7 +80,6 @@ class TurtlebotControl(RobotControl):
             # Pack [x,y,theta,v] from state message and control policy into
             # TimedPose2DObservation instance.
             v = self.control.linear_velocity
-            t = rospy.Time.now() - self.time_begin
             current_state = TimedPose2DObservation(
                 x=self.state.x, y=self.state.y, theta=self.state.theta, v=v, t=t
             )
