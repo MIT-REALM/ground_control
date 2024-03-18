@@ -19,13 +19,13 @@ class TurtlebotControl(RobotControl):
         super(TurtlebotControl, self).__init__()
 
         # Publish cmd velocity for state estimation
-        self.control_pub = rospy.Publisher("/cmd", Twist, queue_size=1)
+        self.control_pub = rospy.Publisher("cmd_vel", Twist, queue_size=1)
         self.control = TurtlebotAction(0.0, 0.0)
 
         # Subscribe to State estimation topic from ros param
         self.state = None
         self.state_estimate_topic = rospy.get_param(
-            "~state_estimate_topic", f"{rospy.get_name()}/estimate"
+            "~state_estimate_topic", f"turtlebot_state_estimator/estimate"
         )
         self.estimate_sub = rospy.Subscriber(
             self.state_estimate_topic, TurtlebotState, self.state_estimate_callback

@@ -42,15 +42,16 @@ def create_tro_f1tenth_policy(
     """
     # Construct the components of the policy using the parameters they were trained with
 
-    # Load the trajectory and make it start at the right spot
+    # Start pointing along +y in the highbay
+    desired_equilibrium_state = jnp.array([0.0, 0.0, jnp.pi / 2.0, 1.0])
+
+    # Load the trajectory and flip x and y to convert from sim to high bay layout
     ego_traj = LinearTrajectory2D.from_eqx(6, traj_eqx_path)
-    ego_traj = LinearTrajectory2D(
-        p=ego_traj.p + initial_state[:2],
-    )
+    ego_traj = LinearTrajectory2D(p=jnp.fliplr(ego_traj.p))
 
     # Make the trajectory tracking policy
     steering_controller = F1TenthSteeringPolicy(
-        equilibrium_state=initial_state,
+        equilibrium_state=desired_equilibrium_state,
         axle_length=0.28,
         dt=0.1,
     )
@@ -78,9 +79,11 @@ def create_tro_turtlebot_policy(initial_position, traj_eqx_path) -> CompositePol
     """
     # Construct the components of the policy using the parameters they were trained with
 
-    # Load the trajectory and make it start at the right spot
+    # Load the trajectory and flip the x and y coordinates
     non_ego_traj = LinearTrajectory2D.from_eqx(2, traj_eqx_path)
-    non_ego_traj = LinearTrajectory2D(p=non_ego_traj.p + initial_position)
+    non_ego_traj = LinearTrajectory2D(p=jnp.fliplr(non_ego_traj.p))
+    print("Loaded trajectory with waypoints:")
+    print(non_ego_traj.p)
 
     # Make the trajectory tracking policy
     steering_controller = TurtlebotSteeringPolicy()

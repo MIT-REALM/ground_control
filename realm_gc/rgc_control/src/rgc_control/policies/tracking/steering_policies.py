@@ -57,11 +57,11 @@ class TurtlebotSteeringPolicy(ControlPolicy):
         )
 
         # Compute the control action
-        linear_velocity = 0.5 * error[0]  # projection along the turtlebot x-axis
+        linear_velocity = 1.0 * error[0]  # projection along the turtlebot x-axis
 
         # Compute the angular velocity: steer towards the goal if we're far from it
         # (so the arctan is well defined), and align to the goal orientation
-        if np.linalg.norm(error) > 0.05:
+        if np.linalg.norm(error) > 0.1:
             angular_velocity = np.arctan2(error[1], error[0])
         else:
             angle_error = observation.goal.theta - observation.pose.theta
@@ -69,11 +69,17 @@ class TurtlebotSteeringPolicy(ControlPolicy):
                 angle_error -= 2 * np.pi
             if angle_error < -np.pi:
                 angle_error += 2 * np.pi
-            angular_velocity = 0.1 * angle_error
+            angular_velocity = 0.3 * angle_error
+
+        if isinstance(linear_velocity, np.ndarray):
+            linear_velocity = linear_velocity.item()
+        
+        if isinstance(angular_velocity, np.ndarray):
+            angular_velocity = angular_velocity.item()        
 
         return TurtlebotAction(
-            linear_velocity=linear_velocity.item(),
-            angular_velocity=angular_velocity.item(),
+            linear_velocity=linear_velocity,
+            angular_velocity=angular_velocity,
         )
 
 

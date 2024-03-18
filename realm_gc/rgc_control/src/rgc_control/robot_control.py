@@ -22,8 +22,8 @@ class RobotControl(abc.ABC):
         # Control publisher - to be defined in subclasses, as needed
         self.control_pub = None
 
-        # Initialize the control
-        self.ctrl_c = False
+        # Initialize the control as stopped
+        self.ctrl_c = True
 
         # Create a subscriber for starting/stopping the controller
         self.start_sub = rospy.Subscriber(

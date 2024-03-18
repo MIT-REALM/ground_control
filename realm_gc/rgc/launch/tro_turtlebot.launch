@@ -3,6 +3,7 @@
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
     <arg name="traj_filepath" default="base/non_ego_traj_0.eqx"/>
+    <arg name="T" default="6.0"/>
     
     <arg name="position_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
     
@@ -14,12 +15,13 @@
     </node>
 
     <!-- Controller -->
-    <!-- <node name="turtlebot_controller" pkg="rgc_control" type="turtlebot_control.py" output="screen"> -->
+    <node name="turtlebot_controller" pkg="rgc_control" type="turtlebot_control.py" output="screen">
         <!-- Info on where to find the saved trajectory file -->
-        <!-- <param name="trajectory/base_path" type="string" value="$(arg base_path)"/> -->
-        <!-- <param name="trajectory/filename" type="string" value="$(arg traj_filepath)"/> -->
+        <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
+        <param name="trajectory/filename" type="string" value="$(arg traj_filepath)"/>
+        <param name="T" type="double" value="$(arg T)"/>
 
         <!-- Match up with state estimator topic name -->
-        <!-- <param name="state_estimate_topic" type="string" value="turtlebot_state_estimator"/> -->
-    <!-- </node> -->
+        <param name="state_estimate_topic" type="string" value="turtlebot_state_estimator/estimate"/>
+    </node>
 </launch>
