@@ -132,7 +132,6 @@ class F1tenthEKFStateEstimator(StateEstimator):
         Update the state based on control inputs.
         """
         self.last_control_msg = msg
-        rospy.loginfo("Received control input")
 
     def position_callback(self, msg):
         """

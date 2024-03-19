@@ -47,7 +47,14 @@ If you only want to run the `vicon_bridge` service (e.g. if you want to start yo
 ## Robot setup
 
 TODO document how to set ROS_MASTER_URI and ROS_HOSTNAME on all robots
-TODO document how to get the F1Tenth on the right wifi
+
+- Get the IP address of the host laptop on the wifi network you'll be using (`RAVEN-50` in the east high bay) by running `ip addr` and getting the IP address listed under `wlan0`.
+- Set the `ROS_MASTER_URI` and `ROS_HOSTNAME` environment variables on all robots.
+    - Get the IP address of the robot by running `ip addr` while ssh'd into the robot.
+    - Edit `~/.bashrc` with `export ROS_MASTER_URI=http://<host laptop ip>:11311` and `export ROS_HOSTNAME=<ip of robot>`.
+    - Run `source ~/.bashrc` before doing anything else.
+
+Whenever you start up the F1Tenth, make sure it connects to the right wifi (currently, you need to hook it up to a monitor/keyboard/mouse and manually connect). Also, when you ssh into the F1Tenth, make sure you `cd ~/sandbox/f1tenth_ws && source devel/setup.bash`
 
 ## Running experiments
 

@@ -98,7 +98,7 @@ class F1TenthControl(RobotControl):
         Update and publish the control.
         This function implements and calls the control prediction and update steps.
         """
-        if self.state is not None and self.img is not None:
+        if self.state is not None and self.depth_image is not None:
             # Pack [x,y,theta,v] from state message into TimedPose2DObservation instance
             # Make sure to normalize the time
             t = (rospy.Time.now() - self.time_begin).to_sec() / self.T
@@ -111,6 +111,8 @@ class F1TenthControl(RobotControl):
                 depth_image=self.depth_image,
             )
             self.control = self.control_policy.compute_action(current_state)
+        else:
+            rospy.loginfo("No estimate and image available!")
 
         msg = F1TenthDriveStamped()
         msg.drive.steering_angle = self.control.steering_angle
