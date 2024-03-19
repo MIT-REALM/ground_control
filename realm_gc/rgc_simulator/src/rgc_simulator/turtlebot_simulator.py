@@ -16,6 +16,7 @@ class TurtlebotSimulator:
         self.position_topic = rospy.get_param(
             "~position_topic", "/vicon/realm_turtle0/realm_turtle0"
         )
+        self.frame_name = rospy.get_param("~frame_name", "realm_turtle0")
 
         # Initialize the turtlebot state
         self.state = np.array([0.0, 0.0, 0.0])
@@ -55,7 +56,7 @@ class TurtlebotSimulator:
             tf = TransformStamped()
             tf.header.stamp = rospy.Time.now()
             tf.header.frame_id = "world"
-            tf.child_frame_id = "realm_turtle0"
+            tf.child_frame_id = self.frame_name
             tf.transform.translation.x = self.state[0]
             tf.transform.translation.y = self.state[1]
             tf.transform.translation.z = 0.0

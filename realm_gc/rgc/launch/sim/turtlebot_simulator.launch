@@ -3,9 +3,11 @@
 <launch>
     <arg name="position_topic" default="/vicon/realm_turtle0/realm_turtle0"/>
     <arg name="control_topic" default="/turtle1/cmd_vel"/>
+    <arg name="frame_name" default="realm_turtle0"/>
     
     <node name="turtlebot_simulator" pkg="rgc_simulator" type="turtlebot_simulator.py" output="screen">
         <param name="position_topic" type="string" value="$(arg position_topic)"/>
         <param name="control_topic" type="string" value="$(arg control_topic)"/>
+        <param name="frame_name" type="string" value="$(arg frame_name)"/>
     </node>
 </launch>

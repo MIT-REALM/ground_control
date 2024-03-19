@@ -69,13 +69,13 @@ class TurtlebotSteeringPolicy(ControlPolicy):
                 angle_error -= 2 * np.pi
             if angle_error < -np.pi:
                 angle_error += 2 * np.pi
-            angular_velocity = 0.3 * angle_error
+            angular_velocity = 1.0 * angle_error
 
         if isinstance(linear_velocity, np.ndarray):
             linear_velocity = linear_velocity.item()
-        
+
         if isinstance(angular_velocity, np.ndarray):
-            angular_velocity = angular_velocity.item()        
+            angular_velocity = angular_velocity.item()
 
         return TurtlebotAction(
             linear_velocity=linear_velocity,

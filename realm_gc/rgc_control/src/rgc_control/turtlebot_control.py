@@ -25,7 +25,7 @@ class TurtlebotControl(RobotControl):
         # Subscribe to State estimation topic from ros param
         self.state = None
         self.state_estimate_topic = rospy.get_param(
-            "~state_estimate_topic", f"turtlebot_state_estimator/estimate"
+            "~state_estimate_topic", "turtlebot_state_estimator/estimate"
         )
         self.estimate_sub = rospy.Subscriber(
             self.state_estimate_topic, TurtlebotState, self.state_estimate_callback
