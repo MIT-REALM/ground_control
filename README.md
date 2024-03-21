@@ -64,7 +64,7 @@ After putting all robots in their start positions:
 2. **Start TB1:** SSH into turtle 1 and run `ROS_NAMESPACE=turtle1 roslaunch turtlebot3_bringup turtlebot3_robot.launch`
 3. **Start TB2:** SSH into turtle 2 and run `ROS_NAMESPACE=turtle2 roslaunch turtlebot3_bringup turtlebot3_robot.launch`
 4. **Start F1Tenth:** SSH into f1tenth and run `roslaunch racecar teleop.launch`
-5. **Start camera:** SSH into f1tenth again and run `roslaunch realsense2_camera rs_camera.launch`
+5. **Start camera:** SSH into f1tenth again and run `roslaunch realsense2_camera rs_camera.launch depth_width:=256 depth_height:=144 depth_fps:=90 enable_color:=false`
 5. **Start experiments:** Attach to the bash service `docker attach bash`
     a. Enable teleop control of F1Tenth by holding R1 on the controller
     b. Start the experiment by `rostopic pub -1 /start_control`

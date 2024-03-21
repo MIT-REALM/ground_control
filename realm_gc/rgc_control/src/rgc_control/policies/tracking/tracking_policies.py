@@ -1,6 +1,7 @@
 """Define a policy for trajectory tracking."""
 from dataclasses import dataclass
 
+import rospy
 import jax
 import jax.numpy as jnp
 

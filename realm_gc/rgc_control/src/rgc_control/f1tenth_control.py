@@ -53,6 +53,7 @@ class F1TenthControl(RobotControl):
             Image,
             self.depth_image_callback,
         )
+        self.image_pub = rospy.Publisher("f1tenth_img", Image, queue_size=1)
 
         # Get MLP eqx filepath from rosparam supplied by roslaunch
         self.mlp_eqx = os.path.join(
@@ -85,6 +86,8 @@ class F1TenthControl(RobotControl):
         self.depth_image = cv2.resize(
             original_image, self.image_shape, interpolation=cv2.INTER_AREA
         )
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(self.depth_image, encoding="passthrough"))
+        self.depth_image = 0.001 * self.depth_image.astype(np.float64)  # convert to meters
 
     def reset_control(self, msg=None):
         """Reset the control to stop the experiment and publish the command."""
@@ -130,6 +133,9 @@ class F1TenthControl(RobotControl):
 
         # Control speed rather than acceleration directly
         self.desired_speed += self.dt * self.control.acceleration
+        if self.desired_speed > 1.5:
+            self.desired_speed = 1.5
+
         msg.drive.mode = 0
         msg.drive.speed = self.desired_speed
     

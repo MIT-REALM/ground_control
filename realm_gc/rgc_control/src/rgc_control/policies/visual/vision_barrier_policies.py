@@ -32,6 +32,7 @@ class F1TenthVisionBarrierPolicy(ControlPolicy):
         kernel = self.gaussian_kernel(depth_image.shape, 1.0)
         mean_distance = jnp.sum(depth_image * kernel) / jnp.sum(kernel)
         accel = 5 * jnp.clip(mean_distance - self.min_distance, -2.0, 0.0)
+        print(f"Vision barrier: mean_distance: {mean_distance},  accel {accel}")
 
         return F1TenthAction(
             acceleration=accel,

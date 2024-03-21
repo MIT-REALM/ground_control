@@ -71,8 +71,8 @@ def create_tro_f1tenth_policy(
     return CompositePolicy(
         [
             ego_tracking_policy,
-            # ego_mlp_policy,
-            # barrier_policy,
+            ego_mlp_policy,
+            barrier_policy,
         ]
     )
 
@@ -92,6 +92,23 @@ def create_tro_turtlebot_policy(
     # Load the trajectory and flip the x and y coordinates, then add some noise
     non_ego_traj = LinearTrajectory2D.from_eqx(2, traj_eqx_path)
     p = jnp.fliplr(non_ego_traj.p)
+
+    # # Clamp the initial position to be the intended starting position
+    # if p[0, 1] <= -3.0:
+    #     p = p.at[0, 0].set(-0.5)
+    # else:
+    #     p = p.at[0, 0].set(0.5)
+
+    # Shift to +y to account for limited highbay space
+    p = p.at[:, 1].add(0.5)
+
+    # Upscale if it's small
+    if p.shape == (2, 2):
+        p_new = jnp.zeros((6, 2))
+        p_new = p_new.at[:, 0].set(jnp.interp(jnp.linspace(0, 1, 6), jnp.array([0.0, 1.0]), p[:, 0]))
+        p_new = p_new.at[:, 1].set(jnp.interp(jnp.linspace(0, 1, 6), jnp.array([0.0, 1.0]), p[:, 1]))
+        p = p_new
+
     if randomize:
         noise_scale = 0.05
         p += np.random.normal(scale=np.sqrt(noise_scale), size=p.shape)

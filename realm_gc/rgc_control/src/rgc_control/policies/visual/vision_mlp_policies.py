@@ -41,7 +41,7 @@ class F1TenthVisionMLPPolicy(ControlPolicy):
 
         action = F1TenthAction(
             acceleration=action[0],
-            steering_angle=action[1],
+            steering_angle=-action[1],
         )
 
         return action

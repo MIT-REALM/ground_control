@@ -43,19 +43,26 @@ class TurtlebotControl(RobotControl):
         rospy.sleep(2.0)  # additional waiting for state to converge
         rospy.loginfo("State estimate has converged. Instantiating control policy.")
 
-        randomize_trajectory = rospy.get_param("~randomize_trajectory", False)
+        self.randomize_trajectory = rospy.get_param("~randomize_trajectory", False)
         self.control_policy = create_tro_turtlebot_policy(
             np.array([self.state.x, self.state.y]),
             self.eqx_filepath,
-            randomize_trajectory,
+            self.randomize_trajectory,
         )
 
     def state_estimate_callback(self, msg):
         self.state = msg
 
+    def stop_control_callback(self, msg):
+        super().stop_control_callback(msg)
+        self.control_policy = create_tro_turtlebot_policy(
+            np.array([self.state.x, self.state.y]),
+            self.eqx_filepath,
+            self.randomize_trajectory,
+        )
+
     def reset_control(self, msg=None):
         """Reset the turtlebot to its start position."""
-        # Make sure to normalize the time.
         if self.state is None:
             # Stop if no state information
             self.control = TurtlebotAction(0.0, 0.0)

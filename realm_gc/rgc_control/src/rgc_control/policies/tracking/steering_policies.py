@@ -158,6 +158,7 @@ class F1TenthSteeringPolicy(ControlPolicy):
                 self.equilibrium_state[3],
             ]
         ).reshape(-1, 1)
+
         error = state - goal
         u = -self.K * error
 
