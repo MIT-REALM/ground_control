@@ -23,6 +23,7 @@
 
             <arg name="position_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
             <arg name="T" default="12"/>
+            <arg name="randomize_trajectory" default="false"/>
         </include>
     </group>
 
@@ -33,6 +34,7 @@
 
             <arg name="position_topic" default="/vicon/realm_turtle_2/realm_turtle_2"/>
             <arg name="T" default="12"/>
+            <arg name="randomize_trajectory" default="false"/>
         </include>
     </group>
 </launch>

@@ -6,6 +6,8 @@
     <arg name="T" default="6.0"/>
     
     <arg name="position_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
+
+    <arg name="randomize_trajectory" default="false"/>
     
     <!-- State estimator -->
     <node name="turtlebot_state_estimator" pkg="rgc_state_estimators" type="turtlebot_ekf.py" output="screen">
@@ -23,5 +25,8 @@
 
         <!-- Match up with state estimator topic name -->
         <param name="state_estimate_topic" type="string" value="turtlebot_state_estimator/estimate"/>
+
+        <!-- Whether or not to randomize the trajectory -->
+        <param name="randomize_trajectory" type="bool" value="$(arg randomize_trajectory)"/>
     </node>
 </launch>
