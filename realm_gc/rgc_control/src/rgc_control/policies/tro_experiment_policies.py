@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 
 import jax.numpy as jnp
+import numpy as np
 
 from rgc_control.policies.composite import CompositePolicy
 from rgc_control.policies.tracking.steering_policies import (
@@ -70,18 +71,26 @@ def create_tro_f1tenth_policy(
     return CompositePolicy([ego_tracking_policy, ego_mlp_policy, barrier_policy])
 
 
-def create_tro_turtlebot_policy(initial_position, traj_eqx_path) -> CompositePolicy:
+def create_tro_turtlebot_policy(
+    initial_position, traj_eqx_path, randomize=False
+) -> CompositePolicy:
     """Create a composite policy for the turtlebot nonego agents in the TRO experiment.
 
     Args:
         initial_position: The initial 2D position of the turtlebot.
         traj_eqx_path: The path to the trajectory (stored in an Equinox file).
+        randomize: Whether to randomize the trajectory according to the prior.
     """
     # Construct the components of the policy using the parameters they were trained with
 
-    # Load the trajectory and flip the x and y coordinates
+    # Load the trajectory and flip the x and y coordinates, then add some noise
     non_ego_traj = LinearTrajectory2D.from_eqx(2, traj_eqx_path)
-    non_ego_traj = LinearTrajectory2D(p=jnp.fliplr(non_ego_traj.p))
+    p = jnp.fliplr(non_ego_traj.p)
+    if randomize:
+        noise_scale = 0.05
+        p += np.random.normal(scale=np.sqrt(noise_scale), size=p.shape)
+
+    non_ego_traj = LinearTrajectory2D(p=p)
     print("Loaded trajectory with waypoints:")
     print(non_ego_traj.p)
 
