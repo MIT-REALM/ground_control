@@ -43,7 +43,7 @@ def create_tro_f1tenth_policy(
     # Construct the components of the policy using the parameters they were trained with
 
     # Start pointing along +y in the highbay
-    desired_equilibrium_state = jnp.array([0.0, 0.0, jnp.pi / 2.0, 1.0])
+    desired_equilibrium_state = jnp.array([0.0, 0.0, jnp.pi / 2.0, 1.5])
 
     # Load the trajectory and flip x and y to convert from sim to high bay layout
     ego_traj = LinearTrajectory2D.from_eqx(6, traj_eqx_path)
@@ -67,7 +67,13 @@ def create_tro_f1tenth_policy(
     barrier_policy = F1TenthVisionBarrierPolicy(min_distance=1.0)
 
     # Combine the policies into a composite policy
-    return CompositePolicy([ego_tracking_policy, ego_mlp_policy, barrier_policy])
+    return CompositePolicy(
+        [
+            ego_tracking_policy,
+            # ego_mlp_policy,
+            # barrier_policy,
+        ]
+    )
 
 
 def create_tro_turtlebot_policy(initial_position, traj_eqx_path) -> CompositePolicy:
@@ -81,7 +87,8 @@ def create_tro_turtlebot_policy(initial_position, traj_eqx_path) -> CompositePol
 
     # Load the trajectory and flip the x and y coordinates
     non_ego_traj = LinearTrajectory2D.from_eqx(2, traj_eqx_path)
-    non_ego_traj = LinearTrajectory2D(p=jnp.fliplr(non_ego_traj.p))
+    # Also update the x position to shift over a bit
+    non_ego_traj = LinearTrajectory2D(p=jnp.fliplr(non_ego_traj.p + jnp.array([1.0, 0.0])))
     print("Loaded trajectory with waypoints:")
     print(non_ego_traj.p)
 

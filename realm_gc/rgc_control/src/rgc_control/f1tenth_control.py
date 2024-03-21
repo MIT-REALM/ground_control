@@ -29,6 +29,7 @@ class F1TenthControl(RobotControl):
             F1TenthDriveStamped,
             queue_size=1,
         )
+        self.desired_speed = 0.0
         self.control = F1TenthAction(0.0, 0.0)
 
         # Subscribe to state estimation topic from ros param
@@ -92,6 +93,7 @@ class F1TenthControl(RobotControl):
         msg.drive.steering_angle = self.control.steering_angle
         msg.drive.acceleration = self.control.acceleration
         self.control_pub.publish(msg)
+        self.desired_speed = 0.0
 
     def update(self):
         """
@@ -111,12 +113,26 @@ class F1TenthControl(RobotControl):
                 depth_image=self.depth_image,
             )
             self.control = self.control_policy.compute_action(current_state)
+
+            # Stop if the experiment is over
+            if t >= 1.0:
+                self.control = F1TenthAction(0.0, 0.0)
+
+        elif self.state is None:
+            rospy.loginfo("No state estimate available!")
         else:
-            rospy.loginfo("No estimate and image available!")
+            rospy.loginfo("No image available!")
 
         msg = F1TenthDriveStamped()
+        msg.drive.mode = 1
         msg.drive.steering_angle = self.control.steering_angle
         msg.drive.acceleration = self.control.acceleration
+
+        # Control speed rather than acceleration directly
+        self.desired_speed += self.dt * self.control.acceleration
+        msg.drive.mode = 0
+        msg.drive.speed = self.desired_speed
+    
         self.control_pub.publish(msg)
 
 

@@ -5,6 +5,8 @@
     <arg name="traj_filepath" default="base/ego_traj.eqx"/>
     <arg name="mlp_filepath" default="base/mlp.eqx"/>
 
+    <arg name="T" default="12"/>
+
     <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
     
     <!-- State estimator -->
@@ -24,5 +26,8 @@
 
         <!-- Match up with state estimator topic name -->
         <param name="state_estimate_topic" type="string" value="f1tenth_state_estimator/estimate"/>
+
+        <!-- Set experiment time -->
+        <param name="T" type="double" value="$(arg T)"/>
     </node>
 </launch>
