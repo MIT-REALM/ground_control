@@ -2,8 +2,7 @@
 
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
-    <arg name="traj_filepath" default="base/ego_traj.eqx"/>
-    <arg name="mlp_filepath" default="base/mlp.eqx"/>
+    <arg name="traj_filepath" default="base/ego_traj_nominal.pkl"/>
 
     <arg name="T" default="12"/>
 
@@ -19,10 +18,6 @@
         <!-- Info on where to find the saved trajectory file -->
         <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
         <param name="trajectory/filename" type="string" value="$(arg traj_filepath)"/>
-
-        <!-- Info on where to find the saved MLP weights -->
-        <param name="mlp/base_path" type="string" value="$(arg base_path)"/>
-        <param name="mlp/filename" type="string" value="$(arg mlp_filepath)"/>
 
         <!-- Match up with state estimator topic name -->
         <param name="state_estimate_topic" type="string" value="f1tenth_state_estimator/estimate"/>

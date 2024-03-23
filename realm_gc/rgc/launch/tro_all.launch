@@ -4,39 +4,15 @@
 -->
 
 <launch>
-    <arg name="base_path" default="$(find rgc_control)/saved_policies/v1/predictrepair"/>
+    <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
 
     <!-- Start the F1Tenth stack -->
     <include file="$(find rgc)/launch/tro_f1tenth.launch">
         <arg name="base_path" default="$(arg base_path)"/>
-        <arg name="traj_filepath" default="ego_traj.eqx"/>
-        <arg name="mlp_filepath" default="mlp.eqx"/>
+        <arg name="traj_filepath" default="ego_traj_nominal.pkl"/>
 
         <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
 
         <arg name="T" default="12"/>
     </include>
-
-    <!-- Start the Turtlebot stacks -->
-    <group ns="turtle1">
-        <include file="$(find rgc)/launch/tro_turtlebot.launch">
-            <arg name="base_path" default="$(find rgc_control)/saved_policies/v1/base"/>
-            <arg name="traj_filepath" default="non_ego_traj_0.eqx"/>
-
-            <arg name="position_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
-            <arg name="T" default="12"/>
-            <arg name="randomize_trajectory" default="true"/>
-        </include>
-    </group>
-
-    <group ns="turtle2">
-        <include file="$(find rgc)/launch/tro_turtlebot.launch">
-            <arg name="base_path" default="$(find rgc_control)/saved_policies/v1/base"/>
-            <arg name="traj_filepath" default="non_ego_traj_1.eqx"/>
-
-            <arg name="position_topic" default="/vicon/realm_turtle_2/realm_turtle_2"/>
-            <arg name="T" default="12"/>
-            <arg name="randomize_trajectory" default="true"/>
-        </include>
-    </group>
 </launch>

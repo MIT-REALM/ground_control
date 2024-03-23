@@ -2,11 +2,10 @@
 from dataclasses import dataclass
 
 import numpy as np
+import torch
 import scipy
-
 from rgc_control.policies.common import F1TenthAction, TurtlebotAction
 from rgc_control.policies.policy import ControlPolicy, Observation
-
 
 @dataclass
 class Pose2DObservation(Observation):
@@ -17,6 +16,25 @@ class Pose2DObservation(Observation):
     theta: float
     v: float
 
+@dataclass
+class G2CPose2DObservation(Observation):
+    """The observation for a single robot's 2D pose and linear speed."""
+
+    x: float
+    y: float
+    theta: float
+    v: float
+    e: float
+    theta_e: float
+
+@dataclass
+class G2CGoal2DObservation(Observation):
+    """The observation for a single robot's 2D pose and linear speed."""
+
+    x: float
+    y: float
+    theta: float
+    k: float
 
 @dataclass
 class SteeringObservation(Observation):
@@ -24,6 +42,13 @@ class SteeringObservation(Observation):
 
     pose: Pose2DObservation
     goal: Pose2DObservation
+
+@dataclass
+class SpeedSteeringObservation(Observation):
+    """This class computes corresponding terms for Speed+Steer control ."""
+
+    pose: G2CPose2DObservation
+    goal: G2CGoal2DObservation
 
 
 class TurtlebotSteeringPolicy(ControlPolicy):
@@ -163,3 +188,108 @@ class F1TenthSteeringPolicy(ControlPolicy):
         u = -self.K * error
 
         return F1TenthAction(steering_angle=u[0].item(), acceleration=u[1].item())
+
+
+
+class F1TenthSpeedSteeringPolicy(ControlPolicy):
+    """Steer a F1Tenth towards a waypoint using an LQR controller + control reference speed
+    The implemented controller has been adopted from PythonRobotics repo:
+    https://arxiv.org/abs/1808.10703
+
+    args:
+        equilibrium_state: the state around which to linearize the dynamics
+        axle_length: the distance between the front and rear axles
+        dt: the time step for the controller
+    """
+
+    def __init__(self, equilibrium_state: np.ndarray, axle_length: float, dt: float):
+        self.axle_length = axle_length
+        self.dt = dt
+
+        # Get A,B matrices for this state
+        self.equilibrium_state = equilibrium_state
+        A, B = self.get_AB(equilibrium_state)
+
+        # Compute the LQR controller about the equilibrium
+        Q = np.eye(5) #Change
+        R = np.eye(2) #Change
+        X = np.matrix(scipy.linalg.solve_discrete_are(A, B, Q, R))
+        self.K = np.matrix(scipy.linalg.inv(B.T * X * B + R) * (B.T * X * A))
+
+    @property
+    def observation_type(self):
+        return SteeringObservation
+
+    @property
+    def action_type(self):
+        return F1TenthAction
+
+    def get_AB(self,state):
+        #Extract state variable here
+        _,_,_, v = state
+        
+        A = torch.zeros((5, 5))
+        A[0, 0] = 1.0
+        A[0, 1] = self.dt
+        A[1, 2] = v
+        A[2, 2] = 1.0
+        A[2, 3] = self.dt
+        A[4, 4] = 1.0
+
+        B = torch.zeros((5, 2))
+        B[3, 0] = v / self.axle_length
+        B[4, 1] = self.dt
+        return A,B
+    
+    def pi_2_pi(self,angle):
+        return (angle + torch.pi) % (2 * torch.pi) - torch.pi
+    
+    def compute_action(self,observation:SpeedSteeringObservation)-> F1TenthAction:
+        state = torch.tensor(
+            [
+                observation.pose.x,
+                observation.pose.y,
+                observation.pose.theta,
+                observation.pose.v,
+                observation.pose.e,
+                observation.pose.theta_e,
+            ]
+        ).reshape(-1, 1)
+        goal = torch.tensor(
+            [
+                observation.goal.x,
+                observation.goal.y,
+                observation.goal.theta,
+                observation.goal.v,
+                observation.goal.k,
+            ]
+        ).reshape(-1, 1)
+
+        """
+        This block takes the nearest position to the current state as an input and returns curvilinear
+        state error and computes corresponding control action to minimize that error
+        """
+        e = torch.sqrt(torch.pow((goal[0]-state[0]),2) + torch.pow((goal[1]-state[1]),2))
+        dxl = goal[0] - state[0]
+        dyl = goal[1] - state[1]
+        angle = self.pi_2_pi(goal[2] - torch.atan2(dyl, dxl))
+        if angle < 0:
+            e *= -1
+        theta_e = self.pi_2_pi(goal[2]-state[2])
+
+        x = torch.zeros((5, 1))
+        x[0, 0] = torch.sqrt(e)
+        x[1, 0] = (e - state[4]) / self.dt
+        x[2, 0] = theta_e
+        x[3, 0] = (theta_e - state[5]) / self.dt
+        x[4, 0] = state[3] - goal[3]
+        ustar = -self.K @ x
+
+        # calc steering itorchut
+        ff = torch.atan2(torch.tensor(self.axle_length * goal[4]), torch.tensor(1))  # feedforward steering angle
+        fb = self.pi_2_pi(ustar[0, 0])  # feedback steering angle
+        delta = ff + fb
+
+        # calc acceleration itorchut
+        acc = ustar[1, 0]
+        return F1TenthAction(steering_angle=delta.item(), acceleration=acc.item())
