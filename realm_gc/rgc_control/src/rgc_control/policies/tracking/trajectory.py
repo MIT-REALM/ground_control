@@ -4,7 +4,6 @@ import pickle
 import equinox as eqx
 import jax.numpy as jnp
 import numpy as np
-import torch
 from jaxtyping import Array, Float
 from rgc_control.policies.cubic_spline import CubicSpline2D
 
@@ -81,7 +80,7 @@ class SplineTrajectory2D():
         # Set stop point
         for i in range(len(self.cyaw) - 1):
             dyaw = abs(self.cyaw[i + 1] - self.cyaw[i])
-            switch = torch.pi / 4.0 <= dyaw < torch.pi / 2.0
+            switch = np.pi / 4.0 <= dyaw < np.pi / 2.0
 
             if switch:
                 direction *= -1
@@ -93,18 +92,20 @@ class SplineTrajectory2D():
 
             if switch:
                 speed_profile[i] = 0.0
+            return speed_profile
 
         # speed down
+        """
         if i>20:
             for i in range(20):
                 speed_profile[-i] = v_ref / (50 - i)
                 if speed_profile[-i] <= 1.0 / 3.6:
                     speed_profile[-i] = 1.0 / 3.6
             return speed_profile
-
+        """
     def __call__(self, t: int) -> Float[Array, "5"]:
         """Return the point along the trajectory at the given index"""
-        return torch.tensor([self.cx[t],self.cy[t], self.cyaw[t], self.v[t], self.ck[t]])
+        return np.array([self.cx[t],self.cy[t], self.cyaw[t], self.v[t], self.ck[t]])
 
     
 

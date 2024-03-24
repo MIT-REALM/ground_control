@@ -2,7 +2,6 @@
 from dataclasses import dataclass
 
 import numpy as np
-import torch
 import scipy
 from rgc_control.policies.common import F1TenthAction, TurtlebotAction
 from rgc_control.policies.policy import ControlPolicy, Observation
@@ -34,6 +33,7 @@ class G2CGoal2DObservation(Observation):
     x: float
     y: float
     theta: float
+    v:float
     k: float
 
 @dataclass
@@ -228,7 +228,7 @@ class F1TenthSpeedSteeringPolicy(ControlPolicy):
         #Extract state variable here
         _,_,_, v = state
         
-        A = torch.zeros((5, 5))
+        A = np.zeros((5, 5))
         A[0, 0] = 1.0
         A[0, 1] = self.dt
         A[1, 2] = v
@@ -236,16 +236,16 @@ class F1TenthSpeedSteeringPolicy(ControlPolicy):
         A[2, 3] = self.dt
         A[4, 4] = 1.0
 
-        B = torch.zeros((5, 2))
+        B = np.zeros((5, 2))
         B[3, 0] = v / self.axle_length
         B[4, 1] = self.dt
         return A,B
     
     def pi_2_pi(self,angle):
-        return (angle + torch.pi) % (2 * torch.pi) - torch.pi
+        return (angle + np.pi) % (2 * np.pi) - np.pi
     
     def compute_action(self,observation:SpeedSteeringObservation)-> F1TenthAction:
-        state = torch.tensor(
+        state = np.array(
             [
                 observation.pose.x,
                 observation.pose.y,
@@ -255,7 +255,7 @@ class F1TenthSpeedSteeringPolicy(ControlPolicy):
                 observation.pose.theta_e,
             ]
         ).reshape(-1, 1)
-        goal = torch.tensor(
+        goal = np.array(
             [
                 observation.goal.x,
                 observation.goal.y,
@@ -269,26 +269,26 @@ class F1TenthSpeedSteeringPolicy(ControlPolicy):
         This block takes the nearest position to the current state as an input and returns curvilinear
         state error and computes corresponding control action to minimize that error
         """
-        e = torch.sqrt(torch.pow((goal[0]-state[0]),2) + torch.pow((goal[1]-state[1]),2))
+        e = np.sqrt(np.power((goal[0]-state[0]),2) + np.power((goal[1]-state[1]),2))
         dxl = goal[0] - state[0]
         dyl = goal[1] - state[1]
-        angle = self.pi_2_pi(goal[2] - torch.atan2(dyl, dxl))
+        angle = self.pi_2_pi(goal[2] - np.arctan2(dyl, dxl))
         if angle < 0:
             e *= -1
         theta_e = self.pi_2_pi(goal[2]-state[2])
 
-        x = torch.zeros((5, 1))
-        x[0, 0] = torch.sqrt(e)
+        x = np.zeros((5, 1))
+        x[0, 0] = e
         x[1, 0] = (e - state[4]) / self.dt
         x[2, 0] = theta_e
         x[3, 0] = (theta_e - state[5]) / self.dt
         x[4, 0] = state[3] - goal[3]
-        ustar = -self.K @ x
+        ustar = -self.K*x
 
         # calc steering itorchut
-        ff = torch.atan2(torch.tensor(self.axle_length * goal[4]), torch.tensor(1))  # feedforward steering angle
+        ff = np.arctan2(np.array(self.axle_length * goal[4]), np.array(1))  # feedforward steering angle
         fb = self.pi_2_pi(ustar[0, 0])  # feedback steering angle
-        delta = ff + fb
+        delta = -(fb +ff)
 
         # calc acceleration itorchut
         acc = ustar[1, 0]

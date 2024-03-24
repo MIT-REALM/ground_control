@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Define class for robot control """
 import os
-import torch
 import cv2
 import numpy as np
 import rospy
@@ -44,8 +43,9 @@ class F1TenthControl(RobotControl):
             self.state_estimate_topic, F1TenthState, self.state_estimate_callback
         )
         
-        self.v_ref = 2.0
+        self.v_ref = 0.5
         self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.eqx_filepath)
+        print(self.reference_trajectory.cy)
         # Instantiate control policy using F1Tenth steering policy and reference
         # trajectory. We need to wait until we get the first state estimate in order
         # to instantiate the control policy.
@@ -60,7 +60,8 @@ class F1TenthControl(RobotControl):
 
         self.control_policy = create_ral_f1tenth_policy(
             np.array([self.state.x, self.state.y, self.state.theta, self.state.speed,self.e,self.theta_e]),
-            self.csv_filepath,
+            self.v_ref,
+            self.eqx_filepath,
         )
 
     def state_estimate_callback(self, msg):
@@ -76,40 +77,41 @@ class F1TenthControl(RobotControl):
         self.desired_speed = 0.0
 
     def calc_nearest_index(self,state, cx, cy, cyaw):
-        x,y,_,_,_,_ = state
-        dx = [x - icx for icx in cx]
-        dy = [y - icy for icy in cy]
+        dx = [state.x - icx for icx in cx]
+        dy = [state.y - icy for icy in cy]
         d = [idx ** 2 + idy ** 2 for (idx, idy) in zip(dx, dy)]
         mind = min(d)
         ind = d.index(mind)
-        mind = torch.sqrt(mind)
-        dxl = cx[ind] - x
-        dyl = cy[ind] - y
-        angle = self.pi_2_pi(cyaw[ind] - torch.atan2(dyl, dxl))
+        mind = np.sqrt(mind)
+        dxl = cx[ind] - state.x
+        dyl = cy[ind] - state.y
+        angle = self.pi_2_pi(cyaw[ind] - np.arctan2(dyl, dxl))
         if angle < 0:
             mind *= -1
         return ind, mind
-    
+    def pi_2_pi(self,angle):
+        return (angle + np.pi) % (2 * np.pi) - np.pi
+
     def set_e(self,state,cx,cy,cyaw):
-        e = torch.sqrt(torch.pow((cx-state[0]),2) + torch.pow((cy-state[1]),2))
-        dxl = cx - state[0]
-        dyl = cy - state[1]
-        angle = self.pi_2_pi(cyaw - torch.atan2(dyl, dxl))
+        e = np.sqrt(np.power((cx-state.x),2) + np.power((cy-state.y),2))
+        dxl = cx - state.x  
+        dyl = cy - state.y
+        angle = self.pi_2_pi(cyaw - np.arctan2(dyl, dxl))
         if angle < 0:
             e *= -1
-        theta_e = self.pi_2_pi(cyaw-state[2])
+        theta_e = self.pi_2_pi(cyaw-state.theta)
         return e,theta_e
     
     def update(self):
         """
         Update and publish the control.
-        This function implements and calls the control prediction and update steps.
+        This function implements fand calls the control prediction and update steps.
         """
         if self.state is not None:
             # Pack [x,y,theta,v] from state message into TimedPose2DObservation instance
             # Make sure to normalize the time
             t = (rospy.Time.now() - self.time_begin).to_sec() / self.T 
-            
+
             #Calculate the nearest point on the curvature to steer towards
             ind, _ = self.calc_nearest_index(self.state,self.reference_trajectory.cx,self.reference_trajectory.cy,self.reference_trajectory.cyaw)
             
@@ -124,28 +126,32 @@ class F1TenthControl(RobotControl):
             )
 
             self.control = self.control_policy.compute_action(current_state)
-            self.e,self.theta_e = self.set_e(self.state,self.cx[ind],self.cy[ind],self.cyaw[ind])
+            self.e,self.theta_e = self.set_e(self.state,self.reference_trajectory.cx[ind],self.reference_trajectory.cy[ind],self.reference_trajectory.cyaw[ind])
             
             # Stop if the experiment is over
-            if t >= 1.0:
+            if t >= 10.0:
                 self.control = F1TenthAction(0.0, 0.0)
-
+            print(self.state)
+            print(self.reference_trajectory.cx[ind],self.reference_trajectory.cy[ind])
         elif self.state is None:
             rospy.loginfo("No state estimate available!")
 
         msg = F1TenthDriveStamped()
-        msg.drive.mode = 1
+        #msg.drive.mode = 1
+        msg.drive.mode=0
+        if self.control.steering_angle>=np.pi/20:
+            self.control.steering_angle=np.pi/20
+        elif self.control.steering_angle<=-np.pi/20:
+            self.control.steering_angle = -np.pi/20
         msg.drive.steering_angle = self.control.steering_angle
-        msg.drive.acceleration = self.control.acceleration
+        #msg.drive.acceleration = self.control.acceleration
 
         # Control speed rather than acceleration directly
         self.desired_speed += self.dt * self.control.acceleration
-        if self.desired_speed > 1.5:
-            self.desired_speed = 1.5
-
-        msg.drive.mode = 0
+        if self.desired_speed > 0.5:
+            self.desired_speed = 0.5
         msg.drive.speed = self.desired_speed
-    
+        print(msg.drive.speed,msg.drive.steering_angle)
         self.control_pub.publish(msg)
 
 

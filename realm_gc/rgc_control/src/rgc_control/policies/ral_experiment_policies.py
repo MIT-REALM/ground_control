@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 import jax.numpy as jnp
 import numpy as np
-import torch
 from rgc_control.policies.composite import CompositePolicy
 from rgc_control.policies.tracking.steering_policies import (
     F1TenthSpeedSteeringPolicy,
@@ -20,7 +19,7 @@ class RALF1tenthObservation(TimedG2CPose2DObservation):
     """The observation type for the F1 tenth ego agent in the RAL experiment."""
 
 def create_ral_f1tenth_policy(
-    initial_position, traj_csv_path
+    initial_position, v_ref, traj_csv_path
 ) -> CompositePolicy:
     """Create a composite policy for the F1tenth ego agent in the RAL experiment.
 
@@ -31,7 +30,11 @@ def create_ral_f1tenth_policy(
     # Construct the components of the policy using the parameters they were trained with
 
     # Load the trajectory and flip the x and y coordinates, then add some noise
-    ego_traj = SplineTrajectory2D(traj_csv_path)
+    ego_traj = SplineTrajectory2D(v_ref, traj_csv_path)
+
+    # Start pointing along +y in the highbay
+    desired_equilibrium_state = jnp.array([0.0, 0.0, jnp.pi / 2.0, 1.5])
+
     #p = jnp.fliplr(ego_traj.p) 
 
     # # Clamp the initial position to be the intended starting position
@@ -55,7 +58,11 @@ def create_ral_f1tenth_policy(
     print(ego_traj)
 
     # Make the trajectory tracking policy
-    steering_controller = F1TenthSpeedSteeringPolicy()
+    steering_controller = F1TenthSpeedSteeringPolicy(
+        equilibrium_state=desired_equilibrium_state,
+        axle_length=0.28,
+        dt=0.03,
+    )
     ego_tracking_policy = G2CTrajectoryTrackingPolicy(ego_traj, steering_controller)
 
     return ego_tracking_policy

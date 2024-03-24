@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip3 install numpy "jax[cpu]" pyyaml rospkg transforms3d equinox scipy matplotlib
 RUN pip3 install --upgrade numpy
-
+RUN pip3 install torch
 # Install updated cmake
 RUN apt-get update \
     && apt-get -y install build-essential \
