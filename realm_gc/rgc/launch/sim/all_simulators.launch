@@ -8,21 +8,4 @@
         <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
         <arg name="control_topic" default="/vesc/high_level/ackermann_cmd_mux/input/nav_0"/>
     </include>
-
-    <!-- Start the Turtlebot simulators -->
-    <group ns="turtle1">
-        <include file="$(find rgc)/launch/sim/turtlebot_simulator.launch">
-            <arg name="position_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
-            <arg name="control_topic" default="/turtle1/cmd_vel"/>
-            <arg name="frame_name" default="realm_turtle1"/>
-        </include>
-    </group>
-
-    <group ns="turtle2">
-        <include file="$(find rgc)/launch/sim/turtlebot_simulator.launch">
-            <arg name="position_topic" default="/vicon/realm_turtle_2/realm_turtle_2"/>
-            <arg name="control_topic" default="/turtle2/cmd_vel"/>
-            <arg name="frame_name" default="realm_turtle2"/>
-        </include>
-    </group>
 </launch>
