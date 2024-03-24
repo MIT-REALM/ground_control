@@ -45,7 +45,7 @@ class F1TenthControl(RobotControl):
         
         self.v_ref = 0.5
         self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.eqx_filepath)
-        print(self.reference_trajectory.cy)
+        print(self.reference_trajectory.cx[0],self.reference_trajectory.cy[0],self.reference_trajectory.cx[-1],self.reference_trajectory.cy[-1])
         # Instantiate control policy using F1Tenth steering policy and reference
         # trajectory. We need to wait until we get the first state estimate in order
         # to instantiate the control policy.

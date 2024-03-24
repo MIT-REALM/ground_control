@@ -61,7 +61,7 @@ def create_ral_f1tenth_policy(
     steering_controller = F1TenthSpeedSteeringPolicy(
         equilibrium_state=desired_equilibrium_state,
         axle_length=0.28,
-        dt=0.03,
+        dt=0.1,
     )
     ego_tracking_policy = G2CTrajectoryTrackingPolicy(ego_traj, steering_controller)
 
@@ -77,7 +77,8 @@ if __name__ == "__main__":
     matplotlib.use("Agg")
 
     # Load the policies
-    ego_state = jnp.array([-5.5, -0.5, 0.0, 2.0 * 0.5,0.0,0.0])
+    #ego_state = jnp.array([-5.5, -0.5, 0.0, 2.0 * 0.5,0.0,0.0])
+    ego_state = jnp.array([-2.0, -0.0, 0.0, 2.0 * 0.5,0.0,0.0])
     f1tenth_policy = create_ral_f1tenth_policy(
         ego_state,
         "/catkin_ws/src/realm_gc/rgc_control/saved_policies/base/ego_traj.pkl",
