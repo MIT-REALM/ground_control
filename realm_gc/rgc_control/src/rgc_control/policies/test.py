@@ -16,6 +16,7 @@ x = data['X']
 y = data['Y']
 plt.plot(x[0:-25],y[0:-25])
 plt.show()
+print(x[-25],y[-25])
 """
 x_ = x[0:-25]
 y_ = y[0:-25] 
