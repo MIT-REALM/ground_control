@@ -2,19 +2,19 @@
 
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
-    <arg name="traj_filepath" default="base/ego_traj_failure_1.pkl"/>
+    <arg name="traj_filepath" default="base/ego_traj.eqx"/>
 
     <arg name="T" default="12"/>
 
     <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
     
     <!-- State estimator -->
-    <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_ekf.py" output="screen">
+    <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_euler.py" output="screen">
         <param name="position_topic" type="string" value="$(arg position_topic)"/>
     </node>
 
     <!-- Controller -->
-    <node name="f1tenth_controller" pkg="rgc_control" type="f1tenth_control.py" output="screen">
+    <node name="f1tenth_controller" pkg="rgc_control" type="f1tenth_control_icra.py" output="screen">
         <!-- Info on where to find the saved trajectory file -->
         <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
         <param name="trajectory/filename" type="string" value="$(arg traj_filepath)"/>
