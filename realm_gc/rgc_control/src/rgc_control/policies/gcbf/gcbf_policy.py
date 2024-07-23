@@ -3,8 +3,6 @@ import os
 
 import jax
 import jax.numpy as jnp
-import jax.random as jr
-import jax.tree_util as jtu
 import numpy as np
 import yaml
 
@@ -23,7 +21,7 @@ class GCBF_policy(ControlPolicy):
             obs_pos: np.ndarray = np.array([0.5, 0.5]),
             num_obs: int = 1,
             mov_obs: int = 1,
-            model_path = 'realm_gc/rgc_control/src/logs/DubinsCarAdapt/gcbf+/seed1_20240719162242/'
+            model_path = 'realm_gc/rgc_control/src/gcbfplus/seed1_20240719162242/'
             ):
         self.min_distance = min_distance
         car_pos = car_pos
@@ -84,10 +82,8 @@ class GCBF_policy(ControlPolicy):
         algo.load(model_path, step)
         act_fn = jax.jit(algo.act)
         params = algo.cbf_train_state.params
-        # qp_fn = jax.jit(ft.partial(algo.get_u_qp_act,params=params))
         qp_fn = jax.jit(ft.partial(algo.get_u_qp_act, params=params, act=act_fn))
         self.act_fn = qp_fn
-        # self.rollout_fn = jax_jit_np(env.rollout_qp_fn(act_fn, 1))
         key=jax.random.PRNGKey(0)
         graph0 = env.reset(key)
         self.env = env
