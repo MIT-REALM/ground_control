@@ -17,7 +17,7 @@ from rgc_control.policies.icra_experiment_policies import (
     create_icra_f1tenth_policy,
 )
 from rgc_control.robot_control import RobotControl
-from rgc_control.policies.gcbf.gcbf_policy import GCBF_policy
+from rgc_control.policies.gcbf_policy import GCBF_policy
 
 
 class F1TenthControl(RobotControl):
