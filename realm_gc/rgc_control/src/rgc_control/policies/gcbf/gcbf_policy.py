@@ -16,8 +16,8 @@ class GCBF_policy(ControlPolicy):
     def __init__(
             self, 
             min_distance: float = 1.0,
-            car_pos: np.ndarray = np.array([0.0, 0.0]),
-            car_goal: np.ndarray = np.array([1.0, 1.0]),
+            car_pos: np.ndarray = np.array([0.0, 0.0, 0.0]),
+            car_goal: np.ndarray = np.array([1.0, 1.0, 0.0, 0.0]),
             obs_pos: np.ndarray = np.array([0.5, 0.5]),
             num_obs: int = 1,
             mov_obs: int = 1,
@@ -89,14 +89,15 @@ class GCBF_policy(ControlPolicy):
         self.env = env
         self.graph0 = graph0
         self.car_goal = car_goal
-        self.graph0 = self.init_graph(car_pos, car_goal, obs_pos)
+        self.graph0 = self.create_graph(car_pos, car_goal, obs_pos)
+        self.obs = obs_pos
         
-    def init_graph(self, car_pos, car_goal, obs_pos, graph=None):
+    def create_graph(self, car_pos, car_goal, obs_pos, graph=None):
         if graph is None:
             graph = self.graph0
         states=graph.states
-        states.agent = jnp.array([car_pos[0], car_pos[1], 0.0, 0.0])
-        states.goal = jnp.array([car_goal[0], car_goal[1], 0.0, 0.0])
+        states.agent = car_pos
+        states.goal = car_goal
         states.mov_obs = jnp.cat([obs_pos[:,0], obs_pos[:,1], jnp.zeros(obs_pos.shape[0]), jnp.zeros(obs_pos.shape[0])], axis=0)
         graph = self.env.get_graph(states)
         return graph
@@ -104,13 +105,15 @@ class GCBF_policy(ControlPolicy):
     def compute_action(
         self,
         car_pos, 
-        obs,
+        obs=None,
         mov_obs_vel=None,
     ) -> F1TenthAction:
         # Brake to avoid collisions based on the average distance to the
         # obstacle in the center of the image
         graph = self.graph0
-        new_graph = self.init_graph(car_pos, self.car_goal, obs)
+        if obs is None:
+            obs = self.obs
+        new_graph = self.create_graph(car_pos, self.car_goal, obs)
         self.graph0 = new_graph
         accel = self.act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel)
         accel = self.env.clip_action(accel)
