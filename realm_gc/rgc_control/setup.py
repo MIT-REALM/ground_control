@@ -5,7 +5,7 @@ from setuptools import setup
 
 # fetch values from package.xml
 setup_args = generate_distutils_setup(
-    packages=["rgc_control", "gcbfplus"],
+    packages=["rgc_control"],
     package_dir={"": "src"},
 )
 
