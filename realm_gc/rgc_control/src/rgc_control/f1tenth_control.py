@@ -25,7 +25,8 @@ class F1TenthControl(RobotControl):
 
         # Publish cmd:[steering angle,acceleration] for state estimation
         self.control_pub = rospy.Publisher(
-            "/vesc/high_level/ackermann_cmd_mux/input/nav_0",
+            # "/vesc/high_level/ackermann_cmd_mux/input/nav_0",
+            "/drive_1",
             F1TenthDriveStamped,
             queue_size=1,
         )
@@ -138,6 +139,8 @@ class F1TenthControl(RobotControl):
 
         msg.drive.mode = 0
         msg.drive.speed = self.desired_speed
+
+        msg.drive.speed = 0.5
     
         self.control_pub.publish(msg)
 

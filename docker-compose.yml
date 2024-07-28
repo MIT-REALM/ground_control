@@ -7,44 +7,12 @@ services:
       context: .
       dockerfile: .docker/Dockerfile
     environment:
-      - ROS_HOSTNAME=192.168.0.166
+      - ROS_HOSTNAME=127.0.0.1
     network_mode: host
     privileged: true
     stdin_open: true # docker run -i
     tty: true # docker run -t
     command: roscore
-
-  vicon_bridge:
-    image: realm_gc:latest
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile
-    environment:
-      - ROS_HOSTNAME=192.168.0.166
-    network_mode: host
-    privileged: true
-    stdin_open: true # docker run -i
-    tty: true # docker run -t
-    depends_on:
-      - roscore
-    command: /bin/bash -c '. /catkin_ws/devel/setup.bash && roslaunch --wait vicon_bridge vicon.launch datastream_hostport:=192.168.0.9'
-
-  foxglove_bridge:
-    image: realm_gc:latest
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile
-    environment:
-      - ROS_HOSTNAME=192.168.0.166
-    volumes:
-      - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
-    network_mode: host
-    privileged: true
-    stdin_open: true # docker run -i
-    tty: true # docker run -t
-    depends_on:
-      - roscore
-    command: /bin/bash -c 'catkin_make && . /catkin_ws/devel/setup.bash && roslaunch --wait --screen foxglove_bridge foxglove_bridge.launch port:=8765'
 
   robots:
     image: realm_gc:latest
@@ -52,7 +20,7 @@ services:
       context: .
       dockerfile: .docker/Dockerfile
     environment:
-      - ROS_HOSTNAME=192.168.0.166
+      - ROS_HOSTNAME=127.0.0.1
     volumes:
       - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
     network_mode: host
@@ -69,7 +37,7 @@ services:
       context: .
       dockerfile: .docker/Dockerfile
     environment:
-      - ROS_HOSTNAME=192.168.0.166
+      - ROS_HOSTNAME=127.0.0.1
       - DISPLAY=${DISPLAY} # allows GUI access
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
@@ -79,3 +47,21 @@ services:
     stdin_open: true # allows you to attach to a shell in this container
     tty: true # allows you to attach to a shell in this container
     command: bash
+
+  simulators:
+    image: realm_gc:latest
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+    environment:
+      - DISPLAY=${DISPLAY} # allows GUI access
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
+      - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
+    network_mode: host
+    privileged: true
+    stdin_open: true # docker run -i
+    tty: true # docker run -t
+    depends_on:
+      - roscore
+    command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc simulator.launch'

@@ -7,7 +7,8 @@
 
     <arg name="T" default="12"/>
 
-    <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
+    <!-- <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/> -->
+    <arg name="position_topic" default="/gt_pose_1"/>
     
     <!-- State estimator -->
     <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_ekf.py" output="screen">

@@ -12,7 +12,8 @@
         <arg name="traj_filepath" default="ego_traj.eqx"/>
         <arg name="mlp_filepath" default="mlp.eqx"/>
 
-        <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
+        <!-- <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/> -->
+        <arg name="position_topic" default="/gt_pose_1"/>
 
         <arg name="T" default="12"/>
     </include>
