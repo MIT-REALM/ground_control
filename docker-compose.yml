@@ -64,4 +64,5 @@ services:
     tty: true # docker run -t
     depends_on:
       - roscore
-    command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc simulator.launch'
+    # command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc simulator.launch'
+    command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc all_simulators.launch'

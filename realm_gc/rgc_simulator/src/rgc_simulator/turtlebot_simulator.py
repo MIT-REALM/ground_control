@@ -18,6 +18,8 @@ class TurtlebotSimulator:
         )
         self.frame_name = rospy.get_param("~frame_name", "realm_turtle0")
 
+        print(self.control_topic, self.position_topic, self.frame_name)
+
         # Initialize the turtlebot state
         self.state = np.array([0.0, 0.0, 0.0])
         self.command = np.array([0.0, 0.0])
@@ -45,7 +47,7 @@ class TurtlebotSimulator:
         while not rospy.is_shutdown():
             # Unpack the command then zero it out
             v, w = self.command
-            self.command = np.array([0.0, 0.0])
+            # self.command = np.array([0.0, 0.0])
 
             # Update the state
             theta = self.state[2]

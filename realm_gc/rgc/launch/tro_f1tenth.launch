@@ -7,8 +7,8 @@
 
     <arg name="T" default="12"/>
 
-    <!-- <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/> -->
-    <arg name="position_topic" default="/gt_pose_1"/>
+    <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
+    <!-- <arg name="position_topic" default="/gt_pose_1"/> -->
     
     <!-- State estimator -->
     <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_ekf.py" output="screen">
@@ -16,7 +16,7 @@
     </node>
 
     <!-- Controller -->
-    <node name="f1tenth_controller" pkg="rgc_control" type="f1tenth_control.py" output="screen">
+    <node name="f1tenth_controller" pkg="rgc_control" type="f1tenth_sim_test.py" output="screen">
         <!-- Info on where to find the saved trajectory file -->
         <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
         <param name="trajectory/filename" type="string" value="$(arg traj_filepath)"/>

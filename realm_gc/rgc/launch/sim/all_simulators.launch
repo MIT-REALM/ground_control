@@ -25,4 +25,7 @@
             <arg name="frame_name" default="realm_turtle2"/>
         </include>
     </group>
+
+    <node name="simple_visualizer" pkg="rgc_simulator" type="simple_visualizer.py" output="screen">
+    </node>
 </launch>

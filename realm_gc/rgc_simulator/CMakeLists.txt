@@ -14,6 +14,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 find_package(OpenCV)
 find_package(Eigen3)
 
+catkin_python_setup()
+
 ######################################
 # Compile the library >
 ######################################
