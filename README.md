@@ -77,3 +77,16 @@ Configure environment variables
 ENV ROS_MASTER_URI=http://localhost:11311
 ENV ROS_IP=192.168.0.166
 ```
+
+## Running simulation
+
+see `realm_gc/rgc/launch/sim/all_simulators.launch` for example
+need to set `visualizer_position_topics` and `visualizer_position_names` in same order
+also make sure in `tro_f1tenth.launch` and `tro_turtlebot.launch` your desired controller is set
+
+the simulation only simulates vicon, no support for vision
+
+now you can run the simulation similarly to the actual experiments (except you don't need to start the cars)
+1. `docker compose -f docker-compose.simulators.yml up`
+2. `docker attach ground_control-bash-1` (in another terminal, or also run the above with the -d option)
+3. `rostopic pub -1 /start_control std_msgs/Empty` to start the simulation

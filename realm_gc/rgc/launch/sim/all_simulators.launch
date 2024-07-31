@@ -3,6 +3,12 @@
 -->
 
 <launch>
+    <arg name="visualizer_position_topics" default="[
+        /vicon/realm_f1tenth/realm_f1tenth,
+        /vicon/realm_turtle_1/realm_turtle_1,
+        /vicon/realm_turtle_2/realm_turtle_2]"/>
+    <arg name="visualizer_position_names" default="[f1tenth,turtle1,turtle2]"/>
+
     <!-- Start the F1Tenth simulator -->
     <include file="$(find rgc)/launch/sim/f1tenth_simulator.launch">
         <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
@@ -27,5 +33,7 @@
     </group>
 
     <node name="simple_visualizer" pkg="rgc_simulator" type="simple_visualizer.py" output="screen">
+        <rosparam param="visualizer_position_topics" subst_value="True">$(arg visualizer_position_topics)</rosparam>
+        <rosparam param="visualizer_position_names" subst_value="True">$(arg visualizer_position_names)</rosparam> 
     </node>
 </launch>

@@ -15,17 +15,25 @@ class VisualizeSimulator:
         # Initialize the node
         rospy.init_node("visualize_simulator")
 
-        self.position_topics = [
+        default_position_topics = [
             "/vicon/realm_f1tenth/realm_f1tenth",
             "/vicon/realm_turtle_1/realm_turtle_1",
             "/vicon/realm_turtle_2/realm_turtle_2"
         ]
 
-        self.position_names = [
+        default_position_names = [
             "f1tenth",
             "turtle1",
             "turtle2"
         ]
+
+        self.position_topics = rospy.get_param(
+            "~visualizer_position_topics", default_position_topics
+        )
+
+        self.position_names = rospy.get_param(
+            "~visualizer_position_names", default_position_names
+        )
 
         self.xy = np.zeros((len(self.position_topics), 2))
 
@@ -36,7 +44,7 @@ class VisualizeSimulator:
     def position_callback(self, msg, idx):
         self.xy[idx,0] = msg.transform.translation.x
         self.xy[idx,1] = msg.transform.translation.y
-        print(idx, self.xy[idx,:])
+        # print(idx, self.xy[idx,:])
 
     def run(self):
         # see https://matplotlib.org/stable/users/explain/animations/blitting.html

@@ -728,37 +728,37 @@ public:
 };
 
 
-class TurtleBot {
-private:
-    // alternative implementation of racecar
-    std::shared_ptr<ros::NodeHandle> n;
+// class TurtleBot {
+// private:
+//     // alternative implementation of racecar
+//     std::shared_ptr<ros::NodeHandle> n;
 
-    // the transformation frames used
-    std::string map_frame, base_frame, scan_frame;
+//     // the transformation frames used
+//     std::string map_frame, base_frame, scan_frame;
 
-    // car state and parameters
+//     // car state and parameters
     
-    // TODO: the rest of the private things
-public:
-    size_t tbid;
+//     // TODO: the rest of the private things
+// public:
+//     size_t tbid;
 
-    // TODO: does turtlebot need lidar sim?
+//     // TODO: does turtlebot need lidar sim?
 
-    // TODO: initialize everything and add to sim
-    TurtleBot(): {}
+//     // TODO: initialize everything and add to sim
+//     TurtleBot(): {}
 
-    // TODO: car interaction scan, how important is this
+//     // TODO: car interaction scan, how important is this
 
-    // * TODO: update pose
+//     // * TODO: update pose
 
-    // TODO: callbacks -- pose, all_pose, pose_rviz, drive, key
-    // TODO: pubs -- pose_transform, (interactoin with rviz?), laser link?, odom?, imu?
+//     // TODO: callbacks -- pose, all_pose, pose_rviz, drive, key
+//     // TODO: pubs -- pose_transform, (interactoin with rviz?), laser link?, odom?, imu?
 
-    // at the end of the day, main things are:
-    // -> model pose updates properly (need to figure out parameters)
-    // -> handle relevant pubs/subs
+//     // at the end of the day, main things are:
+//     // -> model pose updates properly (need to figure out parameters)
+//     // -> handle relevant pubs/subs
     
-}
+// }
 
 
 int Racecar::rcid_counter = 0;
