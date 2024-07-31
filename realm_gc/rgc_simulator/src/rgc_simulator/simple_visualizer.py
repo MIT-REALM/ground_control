@@ -39,6 +39,7 @@ class VisualizeSimulator:
         print(idx, self.xy[idx,:])
 
     def run(self):
+        # see https://matplotlib.org/stable/users/explain/animations/blitting.html
         fig, ax = plt.subplots()
         pts = ax.scatter(self.xy[:,0], self.xy[:,1], animated=True)
         ax.set_xlim(-200, 200)
