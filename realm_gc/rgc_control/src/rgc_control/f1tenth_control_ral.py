@@ -35,6 +35,21 @@ class F1TenthControl(RobotControl):
         self.e = 0.0
         self.theta_e = 0.0
 
+        self.traj_filepath = os.path.join(
+            rospy.get_param("~trajectory/base_path"), 
+            rospy.get_param("~trajectory/filename")
+        )
+        self.v_ref = rospy.get_param("~v_ref", 0.5)        
+        self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.traj_filepath)
+
+        self.goal_x = self.reference_trajectory.cx[-1]
+        self.goal_y = self.reference_trajectory.cy[-1]
+        self.goal_yaw = self.reference_trajectory.cyaw[-1]
+        self.goal_dist = 0.1
+        self.goal_reached = False
+
+        self.target_ind = 0
+
         # Subscribe to state estimation topic from ros param
         self.state = None
         self.state_estimate_topic = rospy.get_param(
@@ -44,12 +59,6 @@ class F1TenthControl(RobotControl):
             self.state_estimate_topic, F1TenthState, self.state_estimate_callback
         )
 
-        self.traj_filepath = os.path.join(
-            rospy.get_param("~trajectory/base_path"), 
-            rospy.get_param("~trajectory/filename")
-        )
-        self.v_ref = rospy.get_param("~v_ref", 0.5)        
-        self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.traj_filepath)
 
         print(self.reference_trajectory.cx[0],self.reference_trajectory.cy[0],self.reference_trajectory.cyaw[0],self.reference_trajectory.cx[-1],self.reference_trajectory.cy[-1])
         # Instantiate control policy using F1Tenth steering policy and reference
@@ -70,19 +79,8 @@ class F1TenthControl(RobotControl):
             self.traj_filepath,
         )
 
-        self.goal_x = self.reference_trajectory.cx[-1]
-        self.goal_y = self.reference_trajectory.cy[-1]
-        self.goal_yaw = self.reference_trajectory.cyaw[-1]
-        self.goal_dist = 0.3
-
-
     def state_estimate_callback(self, msg):
         self.state = msg
-        dx = self.state.x - self.goal_x
-        dy = self.state.y - self.goal_y
-        if math.hypot(dx, dy) <= self.goal_dist:
-            print("goal reached :)")
-            self.reset_control(None)
 
     def reset_control(self, msg=None):
         """Reset the control to stop the experiment and publish the command."""
@@ -139,22 +137,31 @@ class F1TenthControl(RobotControl):
                 v=self.state.speed,
                 e = self.e,
                 theta_e = self.theta_e,
-                t=ind,
+                t=self.target_ind,
             )
 
-            self.control, self.e, self.theta_e, ind = self.control_policy.compute_action(current_state)
+            dx = self.state.x - self.goal_x
+            dy = self.state.y - self.goal_y
+            if math.hypot(dx, dy) <= self.goal_dist:
+                self.goal_reached = True
+            if self.goal_reached:
+                print("goal reached :)")
+                self.reset_control()
+            else:
+                self.control, self.e, self.theta_e, self.target_ind = self.control_policy.compute_action(current_state)
             # self.e,self.theta_e = self.set_e(self.state,self.reference_trajectory.cx[ind],self.reference_trajectory.cy[ind],self.reference_trajectory.cyaw[ind])
             
             # # Stop if the experiment is over
             # if t >= 10.0:
             #     self.control = F1TenthAction(0.0, 0.0)
 
-            print("state:")
-            print(self.state)
-            print("control:")
-            print(self.control)
-            print("goal:")
-            print(ind, self.reference_trajectory.cx[ind], self.reference_trajectory.cy[ind])
+            # print("state:")
+            # print(self.state)
+            # print("control:")
+            # print(self.control)
+            # print("goal:")
+            # ind = self.target_ind
+            # print(ind, self.reference_trajectory.cx[ind], self.reference_trajectory.cy[ind])
 
         elif self.state is None:
             rospy.loginfo("No state estimate available!")
@@ -162,21 +169,22 @@ class F1TenthControl(RobotControl):
         msg = F1TenthDriveStamped()
         #msg.drive.mode = 1
         msg.drive.mode=0
-        if self.control.steering_angle>=np.pi/4:
-            self.control.steering_angle=np.pi/4
-        elif self.control.steering_angle<=-np.pi/4:
-            self.control.steering_angle = -np.pi/4
+        if not self.goal_reached:
+            if self.control.steering_angle>=np.pi/4:
+                self.control.steering_angle=np.pi/4
+            elif self.control.steering_angle<=-np.pi/4:
+                self.control.steering_angle = -np.pi/4
 
-        msg.drive.steering_angle = self.control.steering_angle
-        msg.drive.acceleration = self.control.acceleration
+            msg.drive.steering_angle = self.control.steering_angle
+            msg.drive.acceleration = self.control.acceleration
 
-        # Control speed rather than acceleration directly
-        self.desired_speed += self.dt * self.control.acceleration
-        if self.desired_speed > 0.5:
-            self.desired_speed = 0.5
-        msg.drive.speed = self.desired_speed
-        # print(msg.drive.speed,msg.drive.steering_angle)
-        self.control_pub.publish(msg)
+            # Control speed rather than acceleration directly
+            self.desired_speed += self.dt * self.control.acceleration
+            if self.desired_speed > 0.5:
+                self.desired_speed = 0.5
+            msg.drive.speed = self.desired_speed
+            print(msg.drive.speed,msg.drive.acceleration,msg.drive.steering_angle)
+            self.control_pub.publish(msg)
 
 
 if __name__ == "__main__":

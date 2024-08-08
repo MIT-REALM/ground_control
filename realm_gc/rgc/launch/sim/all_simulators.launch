@@ -8,7 +8,7 @@
     <arg name="visualizer_position_names" default="[f1tenth]"/>
 
     <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
-    <arg name="filename" default="ego_traj_nominal_2.pkl"/>
+    <arg name="filename" default="ego_traj_nominal_1.pkl"/>
 
     <!-- Start the F1Tenth simulator -->
     <include file="$(find rgc)/launch/sim/f1tenth_simulator.launch">
