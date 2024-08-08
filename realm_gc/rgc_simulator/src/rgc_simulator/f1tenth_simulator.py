@@ -4,6 +4,9 @@ import numpy as np
 import rospy
 from f1tenth_msgs.msg import F1TenthDriveStamped
 from geometry_msgs.msg import TransformStamped
+from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
+
+import os
 
 
 class F1TenthSimulator:
@@ -38,6 +41,18 @@ class F1TenthSimulator:
         self.tf_pub = rospy.Publisher(
             self.position_topic, TransformStamped, queue_size=10
         )
+
+        self.traj_filepath = os.path.join(
+            rospy.get_param("~trajectory/base_path"), 
+            rospy.get_param("~trajectory/filename")
+        )
+
+        self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
+
+        self.state[0] = self.ref_traj.cx[0]
+        self.state[1] = self.ref_traj.cy[0]
+        self.state[2] = self.ref_traj.cyaw[0]
+
 
     def cmd_callback(self, msg):
         """Update the saved command."""

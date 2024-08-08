@@ -5,14 +5,16 @@
 
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
+    <arg name="traj_filepath" default="ego_traj_nominal_2.pkl"/>
 
     <!-- Start the F1Tenth stack -->
     <include file="$(find rgc)/launch/tro_f1tenth.launch">
         <arg name="base_path" default="$(arg base_path)"/>
-        <arg name="traj_filepath" default="ego_traj_failure_1.pkl"/>
+        <arg name="traj_filepath" default="$(arg traj_filepath)"/>
 
         <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
 
         <arg name="T" default="12"/>
-    </include>
+        <arg name="v_ref" default="0.5"/>
+    </inclue>
 </launch>

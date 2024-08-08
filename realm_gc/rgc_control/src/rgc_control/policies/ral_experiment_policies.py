@@ -27,7 +27,7 @@ def create_ral_f1tenth_policy(
 
     Args:
         initial_position: The initial 2D position of F1 tenth.
-        traj_csv_path: The path to the trajectory (stored in an CSV file).
+        traj_csv_path: The path to the trajeSplineTrajectory2Dctory (stored in an CSV file).
     """
     # Construct the components of the policy using the parameters they were trained with
 
@@ -61,9 +61,11 @@ def create_ral_f1tenth_policy(
 
     # Make the trajectory tracking policy
     steering_controller = F1TenthSpeedSteeringPolicy(
-        equilibrium_state=desired_equilibrium_state,
-        axle_length=0.28,
+        trajectory=ego_traj,
+        # equilibrium_state=desired_equilibrium_state,
+        wheelbase=0.28,
         dt=0.1,
+        target_speed=v_ref
     )
     ego_tracking_policy = G2CTrajectoryTrackingPolicy(ego_traj, steering_controller)
 

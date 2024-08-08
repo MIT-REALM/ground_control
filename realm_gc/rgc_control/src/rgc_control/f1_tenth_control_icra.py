@@ -94,7 +94,7 @@ class F1TenthControl(RobotControl):
 
         elif self.state is None:
             rospy.loginfo("No state estimate available!")
-    
+        print('Test')
         msg = F1TenthDriveStamped()
         msg.drive.mode = 1
         msg.drive.steering_angle = self.control.steering_angle
