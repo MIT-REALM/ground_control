@@ -49,14 +49,14 @@ class SplineTrajectory2D():
     """
     def __init__(self, v_ref:float, filepath: str):
         #Loads a dictionary with keys 'X' and 'Y' and converts it into spline information
-        file = open(filepath,'rb')
-        self.traj = pickle.load(file) 
-        file.close()
-        self.cx,self.cy,self.cyaw,self.ck = self.calc_spline_course(self.traj)
+        with open(filepath,'rb') as file:
+            self.traj = pickle.load(file) 
+        self.cx,self.cy,self.cyaw,self.ck = self.calc_spline_course()
         self.v_ref = v_ref
         self.v = self.calc_speed_profile(self.v_ref)
 
-    def calc_spline_course(self,trajectory, ds=0.1):
+    def calc_spline_course(self, ds=0.1):
+        trajectory = self.traj
         x = trajectory['X']
         y = trajectory['Y']
         sp = CubicSpline2D(x, y)
