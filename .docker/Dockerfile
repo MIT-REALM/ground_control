@@ -199,6 +199,8 @@ RUN pip3 install seaborn
 # RUN apt install python3-netifaces
 RUN apt install rename
 
+COPY realm_gc/bash_sh.sh /catkin_ws/src/bash_sh.sh
+RUN chmod +x /catkin_ws/src/bash_sh.sh
 # WORKDIR /usr/lib/python3/dist-packages/Cryptodome/Cipher
 # RUN rename 's/38/39/' *.so
 
