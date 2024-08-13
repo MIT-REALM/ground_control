@@ -28,7 +28,7 @@ class GCBF_policy(ControlPolicy):
             min_distance: float = 1.0,
             car_pos: np.ndarray = np.array([3.0, -0.5, 0.0]),
             car_goal: np.ndarray = np.array([1.0, 0.5, 0.0, 0.0]),
-            obs_pos: np.ndarray = np.array([0.5, 0.5]),
+            obs_pos: np.ndarray = np.array([[0.5, 0.5], [0.5, 0.5]]),
             num_obs: int = 1,
             mov_obs: int = 1,
             model_path = 'realm_gc/rgc_control/src/gcbfplus/seed1_20240719162242/'
@@ -108,7 +108,8 @@ class GCBF_policy(ControlPolicy):
         states=graph.states
         states.agent = car_pos
         states.goal = car_goal
-        states.mov_obs = jnp.cat([obs_pos[:,0], obs_pos[:,1], jnp.zeros(obs_pos.shape[0]), jnp.zeros(obs_pos.shape[0])], axis=0)
+        print(obs_pos.shape)
+        states.mov_obs = jnp.concatenate([obs_pos[:,0], obs_pos[:,1], jnp.zeros(obs_pos.shape[0]), jnp.zeros(obs_pos.shape[0])], axis=0)
         graph = self.env.get_graph(states)
         return graph
         

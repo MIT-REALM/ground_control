@@ -62,9 +62,9 @@ class F1TenthControl(RobotControl):
             min_distance=1.0,
             car_pos=np.array([0.0, 0.0, 0.0, 0.0]),
             car_goal=np.array([1.0, 1.0, 0.0, 0.0]),
-            obs_pos=np.array([0.5, 0.5]),
+            obs_pos=np.array([[0.5, 0.5], [0.5, 0.5]]),
             num_obs=1,
-            mov_obs=1,
+            mov_obs=2,
             model_path='/catkin_ws/src/realm_gc/rgc_control/src/gcbfplus/seed1_20240719162242/'
         )
     
