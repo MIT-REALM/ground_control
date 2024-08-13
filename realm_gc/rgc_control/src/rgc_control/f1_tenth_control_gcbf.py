@@ -113,6 +113,8 @@ class F1TenthControl(RobotControl):
 
         # Control speed rather than acceleration directly
         self.desired_speed += self.dt * self.control.acceleration
+        print(self.desired_speed)
+        print(self.desired_speed.shape)
         if self.desired_speed > 1.5:
             self.desired_speed = 1.5
 

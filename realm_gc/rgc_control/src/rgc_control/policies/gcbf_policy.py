@@ -139,12 +139,11 @@ class GCBF_policy(ControlPolicy):
         self.graph0 = new_graph
         accel = self.act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel)
         accel = self.env.clip_action(accel)
-        print('accel: ', accel)
-        print('coming from gcbf')
-
+        print('accel[0]: ', accel[0, 0])
+        print('acce[1]: ', accel[0, 1])
         return F1TenthAction(
-            acceleration=accel,
-            steering_angle=0.0,
+            acceleration=accel[0, 0],
+            steering_angle=accel[0, 1],
         )
     
  

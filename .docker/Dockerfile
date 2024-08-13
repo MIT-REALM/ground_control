@@ -182,25 +182,29 @@ RUN echo "source /catkin_ws/devel/setup.bash" >> /root/.bashrc
 RUN apt-get --purge autoremove python3-pip -y
 RUN apt install python3-pip -y
 RUN pip3 install --upgrade numpy pyyaml
+RUN pip3 install seaborn
 RUN pip3 install "jax[cpu]" rospkg transforms3d equinox scipy matplotlib flax einops colour
 RUN pip3 install optax==0.1.7
 # RUN pip3 install --upgrade typing_extensions
 RUN pip3 install typing_extensions==4.8.0
-RUN pip3 install jaxproxqp@git+https://github.com/realm-robot-ws/jaxproxqp_realm.git
 RUN pip3 install tqdm
-RUN pip3 install jraph
 RUN pip3 install tensorflow-probability
 RUN pip3 install matplotlib --force-reinstall
 RUN export PYTHONPATH="${PYTHONPATH}:/usr/lib/"
 RUN pip3 install opencv-python 
 RUN pip3 install control
-RUN pip3 install seaborn
+RUN pip3 install jraph
+RUN pip3 install jaxproxqp@git+https://github.com/realm-robot-ws/jaxproxqp_realm.git
 # RUN pip3 install docstring
 # RUN apt install python3-netifaces
 RUN apt install rename
 
 COPY realm_gc/bash_sh.sh /catkin_ws/src/bash_sh.sh
 RUN chmod +x /catkin_ws/src/bash_sh.sh
+
+# WORKDIR /catkin_ws/src
+# RUN ./bash_sh.sh
+# RUN ./bash_sh.sh
 # WORKDIR /usr/lib/python3/dist-packages/Cryptodome/Cipher
 # RUN rename 's/38/39/' *.so
 
