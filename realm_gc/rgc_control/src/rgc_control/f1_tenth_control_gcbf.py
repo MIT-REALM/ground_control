@@ -120,7 +120,7 @@ class F1TenthControl(RobotControl):
         msg.drive.speed = self.desired_speed
     
         self.control_pub.publish(msg)
-
+        print('control:', self.control.steering_angle, self.control.acceleration)
 
 if __name__ == "__main__":
     try:

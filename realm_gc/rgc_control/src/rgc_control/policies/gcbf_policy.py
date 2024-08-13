@@ -134,6 +134,7 @@ class GCBF_policy(ControlPolicy):
         graph = self.graph0
         if obs is None:
             obs = self.obs
+        car_pos = jnp.array([car_pos.x, car_pos.y, car_pos.theta, car_pos.v])
         new_graph = self.create_graph(car_pos, self.car_goal, obs)
         self.graph0 = new_graph
         accel = self.act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel)

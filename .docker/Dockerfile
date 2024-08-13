@@ -197,3 +197,16 @@ RUN pip3 install control
 RUN pip3 install seaborn
 # RUN pip3 install docstring
 # RUN apt install python3-netifaces
+RUN apt install rename
+
+# WORKDIR /usr/lib/python3/dist-packages/Cryptodome/Cipher
+# RUN rename 's/38/39/' *.so
+
+# WORKDIR /usr/lib/python3/dist-packages/Cryptodome/Hash
+# RUN rename 's/38/39/' *.so
+
+# WORKDIR /usr/lib/python3/dist-packages/Cryptodome/Util
+# RUN rename 's/38/39/' *.so
+
+# WORKDIR /usr/lib/python3/dist-packages/Cryptodome/Protocol
+# RUN rename 's/38/39/' *.so

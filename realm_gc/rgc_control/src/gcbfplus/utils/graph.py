@@ -57,8 +57,8 @@ class GraphsTuple(tuple, Generic[_State, _EnvState]):
     node_type: Int[Array, "sum_n_node"]  # by default, 0 is agent, -1 is padding
     env_states: _EnvState  # environment state features
     connectivity: Int[Array, "sum_n_node sum_n_node"] = None  # desired connectivity matrix
-    model: Any = None
-    model_data: Any = None
+    # model: Any = None
+    # model_data: Any = None
 
     def __new__(
         cls,
