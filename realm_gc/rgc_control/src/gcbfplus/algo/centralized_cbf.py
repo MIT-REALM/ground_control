@@ -8,7 +8,7 @@ from jaxproxqp.jaxproxqp import JaxProxQP
 from gcbfplus.utils.typing import Action, Params, PRNGKey, Array, State
 from gcbfplus.utils.graph import GraphsTuple
 from gcbfplus.utils.utils import mask2index
-from gcbfplus.trainer.data import Rollout
+# from gcbfplus.trainer.data import Rollout
 from gcbfplus.env.base import MultiAgentEnv
 from .utils import get_pwise_cbf_fn
 from .base import MultiAgentController
@@ -55,7 +55,7 @@ class CentralizedCBF(MultiAgentController):
     def get_cbf(self, graph: GraphsTuple) -> Array:
         return self.cbf(graph)[0]
 
-    def update(self, rollout: Rollout, step: int) -> dict:
+    def update(self, rollout, step: int) -> dict:
         raise NotImplementedError
 
     def act(self, graph: GraphsTuple, params: Optional[Params] = None) -> Action:

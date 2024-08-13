@@ -10,7 +10,7 @@ from matplotlib.collections import LineCollection, PatchCollection
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.pyplot import Axes
 from matplotlib.patches import Polygon
-from mpl_toolkits.mplot3d import proj3d, Axes3D
+# from mpl_toolkits.mplot3d import proj3d
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from typing import List, Optional, Union
 
@@ -215,7 +215,7 @@ def render_video(
         fig, ax = plt.subplots(1, 1, figsize=(10, 10), dpi=dpi)
     else:
         fig = plt.figure(figsize=(10, 10), dpi=dpi)
-        ax: Axes3D = fig.add_subplot(projection='3d')
+        ax = fig.add_subplot(projection='3d')
     ax.set_xlim(0., side_length)
     ax.set_ylim(0., side_length)
     if dim == 3:

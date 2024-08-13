@@ -12,9 +12,11 @@ from ..utils.typing import Action, AgentState, Array, Cost, Done, Info, Pos2d, R
 from ..utils.utils import merge01
 from .base import MultiAgentEnv, RolloutResult
 from .obstacle import Obstacle, Rectangle
-from .plot import render_video
+# from .plot import render_video
 from .utils import get_lidar, inside_obstacles, get_node_goal_rng
 
+def render_video(**args):
+    pass
 
 class DubinsCarAdapt(MultiAgentEnv):
     AGENT = 0
@@ -33,7 +35,7 @@ class DubinsCarAdapt(MultiAgentEnv):
         def n_agent(self) -> int:
             return self.agent.shape[0]
 
-    EnvGraphsTuple = GraphsTuple[State, EnvState]
+    EnvGraphsTuple = GraphsTuple
 
     PARAMS = {
         "car_radius": 0.05,
@@ -260,7 +262,7 @@ class DubinsCarAdapt(MultiAgentEnv):
         return cost
 
     def render_video(
-        self, rollout: RolloutResult, video_path: pathlib.Path, Ta_is_unsafe=None, viz_opts: dict = None, dpi: int = 80, **kwargs
+        rollout, video_path, Ta_is_unsafe=None, viz_opts: dict = None, dpi: int = 80, **kwargs
     ) -> None:
         render_video(
             rollout=rollout,

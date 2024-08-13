@@ -8,7 +8,7 @@ from jaxtyping import Array, Bool, Float, Int, Shaped
 ActFn = Callable[[Array], Array]
 PRGNKey = Float[Array, '2']
 AnyFloat = Float[Array, '*']
-Shape = tuple[int, ...]
+Shape = tuple
 InitFn = Callable[[PRGNKey, Shape, Any], Any]
 HidSizes = Sequence[int]
 
@@ -36,7 +36,7 @@ def get_act_from_str(act_str: ActLiteral) -> ActFn:
     return act_dict[act_str]
 
 
-def signal_last_enumerate(it: Iterable[_Elem]) -> Generator[tuple[bool, int, _Elem], None, None]:
+def signal_last_enumerate(it: Iterable[_Elem]) -> Generator[tuple, None, None]:
     iterable = iter(it)
     count = 0
     ret_var = next(iterable)

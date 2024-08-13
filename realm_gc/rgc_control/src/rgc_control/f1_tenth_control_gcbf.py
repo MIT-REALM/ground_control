@@ -5,7 +5,7 @@ import os
 import cv2
 import numpy as np
 import rospy
-from cv_bridge import CvBridge
+# from cv_bridge import CvBridge
 from f1tenth_msgs.msg import F1TenthDriveStamped
 from rgc_state_estimators.msg import F1TenthState
 from sensor_msgs.msg import Image
@@ -14,7 +14,7 @@ from sensor_msgs.msg import Image
 from rgc_control.policies.common import F1TenthAction
 from rgc_control.policies.icra_experiment_policies import (
     ICRAF1TenthObservation,
-    create_icra_f1tenth_policy,
+    # create_icra_f1tenth_policy,
 )
 from rgc_control.robot_control import RobotControl
 from rgc_control.policies.gcbf_policy import GCBF_policy
@@ -65,8 +65,9 @@ class F1TenthControl(RobotControl):
             obs_pos=np.array([0.5, 0.5]),
             num_obs=1,
             mov_obs=1,
-            model_path='realm_gc/rgc_control/src/gcbfplus/seed1_20240719162242/'
+            model_path='/catkin_ws/src/realm_gc/rgc_control/src/gcbfplus/seed1_20240719162242/'
         )
+    
         
     def state_estimate_callback(self, msg):
         self.state = msg

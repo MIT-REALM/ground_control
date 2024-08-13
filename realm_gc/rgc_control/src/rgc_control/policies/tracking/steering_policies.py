@@ -9,7 +9,7 @@ import math
 from rgc_control.policies.common import F1TenthAction, TurtlebotAction
 from rgc_control.policies.policy import ControlPolicy, Observation
 
-from rgc_control.policies.tracking.trajectory import SplineTrajectory2D, LinearTrajectory2D
+from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
 
 @dataclass
 class Pose2DObservation(Observation):

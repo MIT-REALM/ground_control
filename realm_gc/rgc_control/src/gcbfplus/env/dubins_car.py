@@ -12,7 +12,7 @@ from ..utils.typing import Action, AgentState, Array, Cost, Done, Info, Pos2d, R
 from ..utils.utils import merge01
 from .base import MultiAgentEnv, RolloutResult
 from .obstacle import Obstacle, Rectangle
-from .plot import render_video
+# from .plot import render_video
 from .utils import get_lidar, inside_obstacles, get_node_goal_rng
 
 
@@ -257,23 +257,23 @@ class DubinsCar(MultiAgentEnv):
 
         return cost
 
-    def render_video(
-        self, rollout: RolloutResult, video_path: pathlib.Path, Ta_is_unsafe=None, viz_opts: dict = None, dpi: int = 80, **kwargs
-    ) -> None:
-        render_video(
-            rollout=rollout,
-            video_path=video_path,
-            side_length=self.area_size,
-            dim=2,
-            n_agent=self.num_agents,
-            n_rays=self.params["n_rays"],
-            r=self.params["car_radius"],
-            Ta_is_unsafe=Ta_is_unsafe,
-            viz_opts=viz_opts,
-            dpi=dpi,
-            n_mov_obs=self.params["n_mov_obs"],
-            **kwargs
-        )
+    # def render_video(
+    #     self, rollout: RolloutResult, video_path: pathlib.Path, Ta_is_unsafe=None, viz_opts: dict = None, dpi: int = 80, **kwargs
+    # ) -> None:
+    #     render_video(
+    #         rollout=rollout,
+    #         video_path=video_path,
+    #         side_length=self.area_size,
+    #         dim=2,
+    #         n_agent=self.num_agents,
+    #         n_rays=self.params["n_rays"],
+    #         r=self.params["car_radius"],
+    #         Ta_is_unsafe=Ta_is_unsafe,
+    #         viz_opts=viz_opts,
+    #         dpi=dpi,
+    #         n_mov_obs=self.params["n_mov_obs"],
+    #         **kwargs
+    #     )
 
     def edge_blocks(self, state: EnvState, lidar_data: State) -> list:
         n_hits = self._params["n_rays"] * self.num_agents

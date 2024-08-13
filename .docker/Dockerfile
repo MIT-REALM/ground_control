@@ -90,6 +90,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-dev \
     python3-tk \
+    python3-netifaces \
     ros-noetic-driver-base \
     ros-noetic-sophus \
     ros-noetic-robot-pose-ekf \
@@ -103,7 +104,21 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-interactive-markers \
     ros-noetic-xacro \
     ros-noetic-rviz \
-    ros-noetic-robot-state-publisher
+    ros-noetic-robot-state-publisher \
+    python-netifaces \
+    python3-netifaces
+
+
+# # python dependencies
+RUN apt install software-properties-common -y
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt install python3.9-distutils
+RUN apt-get install -y python3.9
+RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python3.9 2
+RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python3.8 1
+RUN rm /usr/bin/python3 && ln -s /usr/bin/python3.9 /usr/bin/python3
+
+RUN pip3 install --target /opt/ros/noetic/lib/python3/dist-packages/ netifaces
 
 # Install updated cmake
 RUN apt-get update \
@@ -163,22 +178,20 @@ RUN source /opt/ros/noetic/setup.sh && catkin_make
 RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
 RUN echo "source /catkin_ws/devel/setup.bash" >> /root/.bashrc
 
-# python dependencies
-RUN apt install software-properties-common -y
-RUN add-apt-repository ppa:deadsnakes/ppa
-RUN apt install python3.9-distutils
-RUN apt-get install -y python3.9
-RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python3.9 2
-RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python3.8 1
-
-# RUN rm /usr/bin/python3 && ln -s /usr/bin/python3.9 /usr/bin/python3
 
 RUN apt-get --purge autoremove python3-pip -y
 RUN apt install python3-pip -y
 RUN pip3 install --upgrade numpy pyyaml
 RUN pip3 install "jax[cpu]" rospkg transforms3d equinox scipy matplotlib flax einops colour
-RUN pip3 install typing_extensions>=4.5 --upgrade
+RUN pip3 install optax==0.1.7
+# RUN pip3 install --upgrade typing_extensions
+RUN pip3 install typing_extensions==4.8.0
 RUN pip3 install jaxproxqp@git+https://github.com/realm-robot-ws/jaxproxqp_realm.git
 RUN pip3 install tqdm
-
+RUN pip3 install jraph
+RUN pip3 install tensorflow-probability
+RUN pip3 install matplotlib --force-reinstall
+RUN export PYTHONPATH="${PYTHONPATH}:/usr/lib/"
+RUN pip3 install opencv-python 
+# RUN pip3 install docstring
 # RUN apt install python3-netifaces

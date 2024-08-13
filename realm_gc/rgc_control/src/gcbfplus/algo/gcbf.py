@@ -15,13 +15,21 @@ from gcbfplus.utils.typing import Action, Params, PRNGKey, Array
 from gcbfplus.utils.graph import GraphsTuple
 from gcbfplus.utils.utils import merge01, jax_vmap, tree_merge
 # from gcbfplus.trainer.data import Rollout
-from gcbfplus.trainer.buffer import ReplayBuffer
-from gcbfplus.trainer.utils import has_any_nan, compute_norm_and_clip
+# from gcbfplus.trainer.buffer import ReplayBuffer
+# from gcbfplus.trainer.utils import has_any_nan, compute_norm_and_clip
 from gcbfplus.env.base import MultiAgentEnv
 from gcbfplus.algo.module.cbf import CBF
 from gcbfplus.algo.module.policy import DeterministicPolicy
 from .base import MultiAgentController
 
+def ReplayBuffer():
+    pass
+
+def has_any_nan():
+    pass
+
+def compute_norm_and_clip():
+    pass
 
 class GCBF(MultiAgentController):
 

@@ -15,14 +15,32 @@ from jaxproxqp.jaxproxqp import JaxProxQP
 from gcbfplus.utils.typing import Action, Params, PRNGKey, Array, State
 from gcbfplus.utils.graph import GraphsTuple
 from gcbfplus.utils.utils import merge01, jax_vmap, mask2index, tree_merge, tree_stack
-from gcbfplus.trainer.data import Rollout
-from gcbfplus.trainer.buffer import MaskedReplayBuffer
-from gcbfplus.trainer.utils import compute_norm_and_clip, jax2np, tree_copy, empty_grad_tx
+# from gcbfplus.trainer.data import Rollout
+# from gcbfplus.trainer.buffer import MaskedReplayBuffer
+# from gcbfplus.trainer.utils import jax2np, tree_copy, empty_grad_tx
 from gcbfplus.env.base import MultiAgentEnv
 from gcbfplus.algo.module.cbf import CBF
 from gcbfplus.algo.module.policy import DeterministicPolicy
 from .gcbf import GCBF
 
+def compute_norm_and_clip():
+    pass
+
+
+def jax2np(x):
+    return jtu.tree_map(lambda y: np.array(y), x)
+
+def tree_copy(tree):
+    return jtu.tree_map(lambda x: x.copy(), tree)
+
+def empty_grad_tx() -> optax.GradientTransformation:
+    def init_fn(params):
+        return optax.EmptyState()
+
+    def update_fn(updates, state, params=None):
+        return None, None
+
+    return optax.GradientTransformation(init_fn, update_fn)
 
 class Batch(NamedTuple):
     graph: GraphsTuple
@@ -138,8 +156,8 @@ class GCBFPlus(GCBF):
 
         # set up key
         self.key = key
-        self.buffer = MaskedReplayBuffer(size=buffer_size)
-        self.unsafe_buffer = MaskedReplayBuffer(size=buffer_size // 2)
+        # self.buffer = MaskedReplayBuffer(size=buffer_size)
+        # self.unsafe_buffer = MaskedReplayBuffer(size=buffer_size // 2)
         self.rng = np.random.default_rng(seed=seed + 1)
 
     @property

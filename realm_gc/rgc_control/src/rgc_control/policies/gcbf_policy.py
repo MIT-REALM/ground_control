@@ -89,7 +89,7 @@ class GCBF_policy(ControlPolicy):
                 max_grad_norm=2.0,
                 seed=config.seed,
             )
-        algo.load(model_path, step)
+        algo.load(os.path.join(model_path, 'models'), step)
         act_fn = jax.jit(algo.act)
         params = algo.cbf_train_state.params
         qp_fn = jax.jit(ft.partial(algo.get_u_qp_act, params=params, act=act_fn))
