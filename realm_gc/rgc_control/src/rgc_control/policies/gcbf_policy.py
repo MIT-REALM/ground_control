@@ -105,11 +105,21 @@ class GCBF_policy(ControlPolicy):
     def create_graph(self, car_pos, car_goal, obs_pos, graph=None):
         if graph is None:
             graph = self.graph0
-        states=graph.states
-        states.agent = car_pos
-        states.goal = car_goal
-        print(obs_pos.shape)
-        states.mov_obs = jnp.concatenate([obs_pos[:,0], obs_pos[:,1], jnp.zeros(obs_pos.shape[0]), jnp.zeros(obs_pos.shape[0])], axis=0)
+        states=graph.env_states
+        obs = states.obstacle
+        agent_states= car_pos[None, :]
+        goal_states = car_goal[None, :]
+        # mov_obs = jnp.concatenate([obs_pos[:,0], obs_pos[:,1], jnp.zeros(obs_pos.shape[0]), jnp.zeros(obs_pos.shape[0])], axis=0)
+        mov_obs = obs_pos
+        mov_obs = jnp.concatenate([mov_obs, jnp.zeros((mov_obs.shape[0], 2))], axis=1)
+        states = self.env.EnvState(agent=agent_states, goal=goal_states, obstacle=obs, mov_obs=mov_obs)
+
+        # print(type(states))
+        # print(type(states.agent))
+        # states.agent = car_pos
+        # states.goal = car_goal
+        # print(obs_pos.shape)
+        # breakpoint()
         graph = self.env.get_graph(states)
         return graph
         

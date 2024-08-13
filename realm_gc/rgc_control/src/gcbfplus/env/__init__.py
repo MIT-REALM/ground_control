@@ -9,6 +9,7 @@ from .base import MultiAgentEnv
 # from .dubins_car import DubinsCar
 from .dubins_car_adapt import DubinsCarAdapt
 # from .crazyflie import CrazyFlie
+# from .arm import Arm
 
 
 ENV = {
@@ -20,6 +21,7 @@ ENV = {
     # 'DubinsCar': DubinsCar,
     'DubinsCarAdapt': DubinsCarAdapt,
     # 'CrazyFlie': CrazyFlie,
+    # 'Arm': Arm,
 }
 
 DEFAULT_MAX_STEP = 256

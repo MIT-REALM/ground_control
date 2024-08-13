@@ -13,10 +13,10 @@ _EnvState = TypeVar("_EnvState")
 
 
 class EdgeBlock(NamedTuple):
-    edge_feats: Float
-    edge_mask: Bool
-    ids_recv: Int
-    ids_send: Int
+    edge_feats: Float[Array, "n_recv n_send n_edge_feat"]
+    edge_mask: Bool[Array, "n_recv n_send"]
+    ids_recv: Int[Array, "n_recv"]
+    ids_send: Int[Array, "n_send"]
 
     @property
     def n_recv(self):
@@ -32,7 +32,7 @@ class EdgeBlock(NamedTuple):
     def n_edges(self):
         return self.n_recv * self.n_send
 
-    def make_edges(self, pad_id: int, edge_mask = None):
+    def make_edges(self, pad_id: int, edge_mask: Bool[Array, "n_recv n_send"] = None):
         id_recv_rep = ei.repeat(self.ids_recv, "n_recv -> n_recv n_send", n_send=self.n_send)
         id_send_rep = ei.repeat(self.ids_send, "n_send -> n_recv n_send", n_recv=self.n_recv)
         edge_mask = self.edge_mask if edge_mask is None else edge_mask
@@ -45,18 +45,20 @@ class EdgeBlock(NamedTuple):
 
 
 @jtu.register_pytree_with_keys_class
-class GraphsTuple(tuple):
-    n_node: Int  # number of nodes in each subgraph
-    n_edge: Int  # number of edges in each subgraph
+class GraphsTuple(tuple, Generic[_State, _EnvState]):
+    n_node: Int[Array, "n_graph"]  # number of nodes in each subgraph
+    n_edge: Int[Array, "n_graph"]  # number of edges in each subgraph
 
-    nodes: Float  # node features
-    edges: Float  # edge features
+    nodes: Float[Array, "sum_n_node ..."]  # node features
+    edges: Float[Array, "sum_n_edge ..."]  # edge features
     states: _State  # node state features
-    receivers: Int
-    senders: Int
-    node_type: Int  # by default, 0 is agent, -1 is padding
+    receivers: Int[Array, "sum_n_edge"]
+    senders: Int[Array, "sum_n_edge"]
+    node_type: Int[Array, "sum_n_node"]  # by default, 0 is agent, -1 is padding
     env_states: _EnvState  # environment state features
-    connectivity: Int = None  # desired connectivity matrix
+    connectivity: Int[Array, "sum_n_node sum_n_node"] = None  # desired connectivity matrix
+    model: Any = None
+    model_data: Any = None
 
     def __new__(
         cls,
@@ -109,7 +111,7 @@ class GraphsTuple(tuple):
     def batch_shape(self):
         return self.n_node.shape
 
-    def type_nodes(self, type_idx: int, n_type: int) -> Float:
+    def type_nodes(self, type_idx: int, n_type: int) -> Float[Array, "... n_type n_feats"]:
         assert self.nodes.ndim == 2
         n_feats = self.nodes.shape[1]
 
@@ -123,7 +125,7 @@ class GraphsTuple(tuple):
         out = type_feats.reshape(self.batch_shape + (n_type, n_feats))
         return out
 
-    def type_states(self, type_idx: int, n_type: int) -> Float:
+    def type_states(self, type_idx: int, n_type: int) -> Float[Array, "... n_type n_states"]:
         assert self.states.ndim == 2
         n_states = self.states.shape[1]
 
@@ -187,12 +189,12 @@ class GraphsTuple(tuple):
 
 
 class GetGraph(NamedTuple):
-    nodes: Float  # node features
-    node_type: Int  # by default, 0 is agent
-    edge_blocks: Any
+    nodes: Float[Array, "n_nodes n_node_feat"]  # node features
+    node_type: Int[Array, "n_nodes"]  # by default, 0 is agent
+    edge_blocks: list[EdgeBlock]
     env_states: Any
-    states: Float  # node state features
-    connectivity: Int = None  # desired connectivity matrix
+    states: Float[Array, "n_nodes n_state"]  # node state features
+    connectivity: Int[Array, "n_node n_node"] = None  # desired connectivity matrix
 
     @property
     def n_nodes(self):

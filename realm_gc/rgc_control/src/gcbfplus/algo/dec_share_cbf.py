@@ -7,7 +7,7 @@ from jaxproxqp.jaxproxqp import JaxProxQP
 from typing import Optional, Tuple
 
 from gcbfplus.env.base import MultiAgentEnv
-# from gcbfplus.trainer.data import Rollout
+from gcbfplus.trainer.data import Rollout
 from gcbfplus.utils.graph import GraphsTuple
 from gcbfplus.utils.typing import Action, Array, Params, PRNGKey, State
 from gcbfplus.utils.utils import mask2index, jax_vmap
@@ -51,11 +51,11 @@ class DecShareCBF(MultiAgentController):
     def step(self, graph: GraphsTuple, key: PRNGKey, params: Optional[Params] = None) -> Tuple[Action, Array]:
         raise NotImplementedError
 
-    def get_cbf(self, graph: GraphsTuple) -> tuple:
+    def get_cbf(self, graph: GraphsTuple) -> tuple[Array, Array]:
         ak_h0, ak_isobs = self.cbf(graph)
         return ak_h0, ak_isobs
 
-    def update(self, rollout, step: int) -> dict:
+    def update(self, rollout: Rollout, step: int) -> dict:
         raise NotImplementedError
 
     def act(self, graph: GraphsTuple, params: Optional[Params] = None) -> Action:

@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import jax
 import pathlib
+import cv2
+# import mujoco
+# from mujoco import mjx
 
 from colour import hsl2hex
 from matplotlib.animation import FuncAnimation
@@ -14,19 +17,12 @@ from matplotlib.patches import Polygon
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from typing import List, Optional, Union
 
+from ..trainer.utils import centered_norm
 from ..utils.typing import EdgeIndex, Pos2d, Pos3d, Array
 from ..utils.utils import merge01, tree_index, MutablePatchCollection, save_anim
 from .obstacle import Cuboid, Sphere, Obstacle, Rectangle
 from .base import RolloutResult
 
-
-def centered_norm(vmin, vmax):
-    if isinstance(vmin, list):
-        vmin = min(vmin)
-    if isinstance(vmax, list):
-        vmin = max(vmax)
-    halfrange = max(abs(vmin), abs(vmax))
-    return CenteredNorm(0, halfrange)
 
 def plot_graph(
         ax: Axes,
@@ -193,246 +189,279 @@ def get_obs_collection(
     return obs_col
 
 
-def render_video(
-        rollout: RolloutResult,
-        video_path: pathlib.Path,
-        side_length: float,
-        dim: int,
-        n_agent: int,
-        n_rays: int,
-        n_mov_obs: int,
-        r: float,
-        Ta_is_unsafe=None,
-        viz_opts: dict = None,
-        dpi: int = 100,
-        **kwargs
-):
-    assert dim == 2 or dim == 3
+# def render_video(
+#         rollout: RolloutResult,
+#         video_path: pathlib.Path,
+#         side_length: float,
+#         dim: int,
+#         n_agent: int,
+#         n_rays: int,
+#         n_mov_obs: int,
+#         r: float,
+#         Ta_is_unsafe=None,
+#         viz_opts: dict = None,
+#         dpi: int = 100,
+#         **kwargs
+# ):
+#     assert dim == 2 or dim == 3
 
-    # set up visualization option
-    if dim == 2:
-        ax: Axes
-        fig, ax = plt.subplots(1, 1, figsize=(10, 10), dpi=dpi)
-    else:
-        fig = plt.figure(figsize=(10, 10), dpi=dpi)
-        ax = fig.add_subplot(projection='3d')
-    ax.set_xlim(0., side_length)
-    ax.set_ylim(0., side_length)
-    if dim == 3:
-        ax.set_zlim(0., side_length)
-    ax.set(aspect="equal")
-    if dim == 2:
-        plt.axis("off")
+#     # set up visualization option
+#     if dim == 2:
+#         ax: Axes
+#         fig, ax = plt.subplots(1, 1, figsize=(10, 10), dpi=dpi)
+#     else:
+#         fig = plt.figure(figsize=(10, 10), dpi=dpi)
+#         ax = fig.add_subplot(projection='3d')
+#     ax.set_xlim(0., side_length)
+#     ax.set_ylim(0., side_length)
+#     if dim == 3:
+#         ax.set_zlim(0., side_length)
+#     ax.set(aspect="equal")
+#     if dim == 2:
+#         plt.axis("off")
 
-    if viz_opts is None:
-        viz_opts = {}
+#     if viz_opts is None:
+#         viz_opts = {}
 
-    # plot the first frame
-    T_graph = rollout.Tp1_graph
-    graph0 = tree_index(T_graph, 0)
+#     # plot the first frame
+#     T_graph = rollout.Tp1_graph
+#     graph0 = tree_index(T_graph, 0)
 
-    agent_color = "#0068ff"
-    goal_color = "#2fdd00"
-    obs_color = "#8a0000"
-    mov_obs_color = "#ff0000"
-    edge_goal_color = goal_color
+#     agent_color = "#0068ff"
+#     goal_color = "#2fdd00"
+#     obs_color = "#8a0000"
+#     mov_obs_color = "#ff0000"
+#     fast_mov_obs_color = '#3a3a3a'
+#     edge_goal_color = goal_color
 
-    # plot obstacles
-    obs = graph0.env_states.obstacle
-    ax.add_collection(get_obs_collection(obs, obs_color, alpha=0.8))
+#     # plot obstacles
+#     obs = graph0.env_states.obstacle
+#     ax.add_collection(get_obs_collection(obs, obs_color, alpha=0.8))
 
-    # plot agents
-    n_hits = n_agent * n_rays
-    n_color = [agent_color] * n_agent + [goal_color] * n_agent
-    n_pos = graph0.states[:n_agent * 2, :dim]
-    n_radius = np.array([r] * n_agent * 2)
-    if dim == 2:
-        agent_circs = [plt.Circle(n_pos[ii], n_radius[ii], color=n_color[ii], linewidth=0.0)
-                       for ii in range(n_agent * 2)]
-        agent_col = MutablePatchCollection([i for i in reversed(agent_circs)], match_original=True, zorder=6)
-        ax.add_collection(agent_col)
-    else:
-        plot_r = ax.transData.transform([r, 0])[0] - ax.transData.transform([0, 0])[0]
-        agent_col = ax.scatter(n_pos[:, 0], n_pos[:, 1], n_pos[:, 2],
-                               s=plot_r, c=n_color, zorder=5)  # todo: the size of the agent might not be correct
+#     # plot agents
+#     n_hits = n_agent * n_rays
+#     n_color = [agent_color] * n_agent + [goal_color] * n_agent
+#     n_pos = graph0.states[:n_agent * 2, :dim]
+#     n_radius = np.array([r] * n_agent * 2)
+#     if dim == 2:
+#         agent_circs = [plt.Circle(n_pos[ii], n_radius[ii], color=n_color[ii], linewidth=0.0)
+#                        for ii in range(n_agent * 2)]
+#         agent_col = MutablePatchCollection([i for i in reversed(agent_circs)], match_original=True, zorder=6)
+#         ax.add_collection(agent_col)
+#     else:
+#         plot_r = ax.transData.transform([r, 0])[0] - ax.transData.transform([0, 0])[0]
+#         agent_col = ax.scatter(n_pos[:, 0], n_pos[:, 1], n_pos[:, 2],
+#                                s=plot_r, c=n_color, zorder=5)  # todo: the size of the agent might not be correct
 
-    # plot mov obstacles
-    n_radius = np.array([r] * n_mov_obs * 4)
-    mov_obs = graph0.env_states.mov_obs
-    mov_obs_circs = [plt.Circle(mov_obs[ii, :2], n_radius[ii], color=mov_obs_color, alpha=0.8, linewidth=0.0)
-                        for ii in range(n_mov_obs)]
-    mov_obs_col = MutablePatchCollection([i for i in reversed(mov_obs_circs)], match_original=True, zorder=6)
-    ax.add_collection(mov_obs_col)
+#     # plot mov obstacles
+#     n_radius = np.array([r] * n_mov_obs * 4)
+#     mov_obs = graph0.env_states.mov_obs
+#     mov_obs_circs = [plt.Circle(mov_obs[ii, :2], n_radius[ii], color=mov_obs_color, alpha=0.8, linewidth=0.0)
+#                         for ii in range(n_mov_obs // 2)]
+#     mov_obs_circs = mov_obs_circs + [plt.Circle(mov_obs[ii, :2], n_radius[ii], color=fast_mov_obs_color, alpha=0.8, linewidth=0.0)
+#                         for ii in range(n_mov_obs // 2, n_mov_obs)]
+#     mov_obs_col = MutablePatchCollection([i for i in reversed(mov_obs_circs)], match_original=True, zorder=6)
+#     ax.add_collection(mov_obs_col)
     
     
-    # plot edges
-    all_pos = graph0.states[:n_agent * 2 + n_hits + n_mov_obs, :dim]
-    edge_index = np.stack([graph0.senders, graph0.receivers], axis=0)
-    is_pad = np.any(edge_index == n_agent * 2 + n_hits + n_mov_obs, axis=0)
-    e_edge_index = edge_index[:, ~is_pad]
-    e_start, e_end = all_pos[e_edge_index[0, :]], all_pos[e_edge_index[1, :]]
-    e_lines = np.stack([e_start, e_end], axis=1)  # (e, n_pts, dim)
-    e_is_goal = (n_agent <= graph0.senders) & (graph0.senders < n_agent * 2)
-    e_is_goal = e_is_goal[~is_pad]
-    e_colors = [edge_goal_color if e_is_goal[ii] else "0.2" for ii in range(len(e_start))]
-    if dim == 2:
-        edge_col = LineCollection(e_lines, colors=e_colors, linewidths=2, alpha=0.5, zorder=3)
-    else:
-        edge_col = Line3DCollection(e_lines, colors=e_colors, linewidths=2, alpha=0.5, zorder=3)
-    ax.add_collection(edge_col)
+#     # plot edges
+#     all_pos = graph0.states[:n_agent * 2 + n_hits + n_mov_obs, :dim]
+#     edge_index = np.stack([graph0.senders, graph0.receivers], axis=0)
+#     is_pad = np.any(edge_index == n_agent * 2 + n_hits + n_mov_obs, axis=0)
+#     e_edge_index = edge_index[:, ~is_pad]
+#     e_start, e_end = all_pos[e_edge_index[0, :]], all_pos[e_edge_index[1, :]]
+#     e_lines = np.stack([e_start, e_end], axis=1)  # (e, n_pts, dim)
+#     e_is_goal = (n_agent <= graph0.senders) & (graph0.senders < n_agent * 2)
+#     e_is_goal = e_is_goal[~is_pad]
+#     e_colors = [edge_goal_color if e_is_goal[ii] else "0.2" for ii in range(len(e_start))]
+#     if dim == 2:
+#         edge_col = LineCollection(e_lines, colors=e_colors, linewidths=2, alpha=0.5, zorder=3)
+#     else:
+#         edge_col = Line3DCollection(e_lines, colors=e_colors, linewidths=2, alpha=0.5, zorder=3)
+#     ax.add_collection(edge_col)
 
-    # text for cost and reward
-    text_font_opts = dict(
-        size=16,
-        color="k",
-        # family="cursive",
-        weight="normal",
-        transform=ax.transAxes,
-    )
-    if dim == 2:
-        cost_text = ax.text(0.02, 1.04, "Cost: 1.0, Reward: 1.0", va="bottom", **text_font_opts)
-    else:
-        cost_text = ax.text2D(0.02, 1.04, "Cost: 1.0, Reward: 1.0", va="bottom", **text_font_opts)
+#     # text for cost and reward
+#     text_font_opts = dict(
+#         size=16,
+#         color="k",
+#         # family="cursive",
+#         weight="normal",
+#         transform=ax.transAxes,
+#     )
+#     if dim == 2:
+#         cost_text = ax.text(0.02, 1.04, "Cost: 1.0, Reward: 1.0", va="bottom", **text_font_opts)
+#     else:
+#         cost_text = ax.text2D(0.02, 1.04, "Cost: 1.0, Reward: 1.0", va="bottom", **text_font_opts)
 
-    # text for safety
-    safe_text = []
-    if Ta_is_unsafe is not None:
-        if dim == 2:
-            safe_text = [ax.text(0.02, 1.00, "Unsafe: {}", va="bottom", **text_font_opts)]
-        else:
-            safe_text = [ax.text2D(0.02, 1.00, "Unsafe: {}", va="bottom", **text_font_opts)]
+#     # text for safety
+#     safe_text = []
+#     if Ta_is_unsafe is not None:
+#         if dim == 2:
+#             safe_text = [ax.text(0.02, 1.00, "Unsafe: {}", va="bottom", **text_font_opts)]
+#         else:
+#             safe_text = [ax.text2D(0.02, 1.00, "Unsafe: {}", va="bottom", **text_font_opts)]
 
-    # text for time step
-    if dim == 2:
-        kk_text = ax.text(0.99, 0.99, "kk=0", va="top", ha="right", **text_font_opts)
-    else:
-        kk_text = ax.text2D(0.99, 0.99, "kk=0", va="top", ha="right", **text_font_opts)
+#     # text for time step
+#     if dim == 2:
+#         kk_text = ax.text(0.99, 0.99, "kk=0", va="top", ha="right", **text_font_opts)
+#     else:
+#         kk_text = ax.text2D(0.99, 0.99, "kk=0", va="top", ha="right", **text_font_opts)
 
-    # add agent labels
-    label_font_opts = dict(
-        size=20,
-        color="k",
-        # family="cursive",
-        weight="normal",
-        ha="center",
-        va="center",
-        transform=ax.transData,
-        clip_on=True,
-        zorder=7,
-    )
-    agent_labels = []
-    if dim == 2:
-        agent_labels = [ax.text(n_pos[ii, 0], n_pos[ii, 1], f"{ii}", **label_font_opts) for ii in range(n_agent)]
-    else:
-        for ii in range(n_agent):
-            pos2d = proj3d.proj_transform(n_pos[ii, 0], n_pos[ii, 1], n_pos[ii, 2], ax.get_proj())[:2]
-            agent_labels.append(ax.text2D(pos2d[0], pos2d[1], f"{ii}", **label_font_opts))
+#     # add agent labels
+#     label_font_opts = dict(
+#         size=20,
+#         color="k",
+#         # family="cursive",
+#         weight="normal",
+#         ha="center",
+#         va="center",
+#         transform=ax.transData,
+#         clip_on=True,
+#         zorder=7,
+#     )
+#     agent_labels = []
+#     if dim == 2:
+#         agent_labels = [ax.text(n_pos[ii, 0], n_pos[ii, 1], f"{ii}", **label_font_opts) for ii in range(n_agent)]
+#     else:
+#         for ii in range(n_agent):
+#             pos2d = proj3d.proj_transform(n_pos[ii, 0], n_pos[ii, 1], n_pos[ii, 2], ax.get_proj())[:2]
+#             agent_labels.append(ax.text2D(pos2d[0], pos2d[1], f"{ii}", **label_font_opts))
 
-    # plot cbf
-    cnt_col = []
-    if "cbf" in viz_opts:
-        if dim == 3:
-            print('Warning: CBF visualization is not supported in 3D.')
-        else:
-            Tb_xs, Tb_ys, Tbb_h, cbf_num = viz_opts["cbf"]
-            bb_Xs, bb_Ys = np.meshgrid(Tb_xs[0], Tb_ys[0])
-            norm = centered_norm(Tbb_h.min(), Tbb_h.max())
-            levels = np.linspace(norm.vmin, norm.vmax, 15)
+#     # plot cbf
+#     cnt_col = []
+#     if "cbf" in viz_opts:
+#         if dim == 3:
+#             print('Warning: CBF visualization is not supported in 3D.')
+#         else:
+#             Tb_xs, Tb_ys, Tbb_h, cbf_num = viz_opts["cbf"]
+#             bb_Xs, bb_Ys = np.meshgrid(Tb_xs[0], Tb_ys[0])
+#             norm = centered_norm(Tbb_h.min(), Tbb_h.max())
+#             levels = np.linspace(norm.vmin, norm.vmax, 15)
 
-            cmap = get_BuRd().reversed()
-            contour_opts = dict(cmap=cmap, norm=norm, levels=levels, alpha=0.9)
-            cnt = ax.contourf(bb_Xs, bb_Ys, Tbb_h[0], **contour_opts)
+#             cmap = get_BuRd().reversed()
+#             contour_opts = dict(cmap=cmap, norm=norm, levels=levels, alpha=0.9)
+#             cnt = ax.contourf(bb_Xs, bb_Ys, Tbb_h[0], **contour_opts)
 
-            contour_line_opts = dict(levels=[0.0], colors=["k"], linewidths=3.0)
-            cnt_line = ax.contour(bb_Xs, bb_Ys, Tbb_h[0], **contour_line_opts)
+#             contour_line_opts = dict(levels=[0.0], colors=["k"], linewidths=3.0)
+#             cnt_line = ax.contour(bb_Xs, bb_Ys, Tbb_h[0], **contour_line_opts)
 
-            cbar = fig.colorbar(cnt, ax=ax)
-            cbar.add_lines(cnt_line)
-            cbar.ax.tick_params(labelsize=36)#, labelfontfamily="Times New Roman")
+#             cbar = fig.colorbar(cnt, ax=ax)
+#             cbar.add_lines(cnt_line)
+#             cbar.ax.tick_params(labelsize=36)#, labelfontfamily="Times New Roman")
 
-            cnt_col = [*cnt.collections, *cnt_line.collections]
+#             cnt_col = [*cnt.collections, *cnt_line.collections]
 
-            ax.text(0.5, 1.0, "CBF for {}".format(cbf_num), transform=ax.transAxes, va="bottom")
+#             ax.text(0.5, 1.0, "CBF for {}".format(cbf_num), transform=ax.transAxes, va="bottom")
 
-    # init function for animation
-    def init_fn() -> list[plt.Artist]:
-        return [agent_col, mov_obs_col, edge_col, *agent_labels, cost_text, *safe_text, *cnt_col, kk_text]
+#     # init function for animation
+#     def init_fn() -> list[plt.Artist]:
+#         return [agent_col, mov_obs_col, edge_col, *agent_labels, cost_text, *safe_text, *cnt_col, kk_text]
 
-    # update function for animation
-    def update(kk: int) -> list[plt.Artist]:
-        graph = tree_index(T_graph, kk)
-        n_pos_t = graph.states[:-1, :dim]
+#     # update function for animation
+#     def update(kk: int) -> list[plt.Artist]:
+#         graph = tree_index(T_graph, kk)
+#         n_pos_t = graph.states[:-1, :dim]
 
-        # update agent positions
-        if dim == 2:
-            for ii in range(n_agent):
-                agent_circs[ii].set_center(tuple(n_pos_t[ii]))
-        else:
-            agent_col.set_offsets(n_pos_t[:n_agent * 2, :2])
-            agent_col.set_3d_properties(n_pos_t[:n_agent * 2, 2], zdir='z')
+#         # update agent positions
+#         if dim == 2:
+#             for ii in range(n_agent):
+#                 agent_circs[ii].set_center(tuple(n_pos_t[ii]))
+#         else:
+#             agent_col.set_offsets(n_pos_t[:n_agent * 2, :2])
+#             agent_col.set_3d_properties(n_pos_t[:n_agent * 2, 2], zdir='z')
 
-        # update mov obstacles
-        mov_obs_t = graph.env_states.mov_obs
-        # mov_obs_col.set_offsets(mov_obs_t[:, :2])
-        for ii in range(n_mov_obs):
-            mov_obs_circs[ii].set_center(tuple(mov_obs_t[ii, :2]))
-        # breakpoint()
+#         # update mov obstacles
+#         mov_obs_t = graph.env_states.mov_obs
+#         # mov_obs_col.set_offsets(mov_obs_t[:, :2])
+#         for ii in range(n_mov_obs):
+#             mov_obs_circs[ii].set_center(tuple(mov_obs_t[ii, :2]))
+#         # breakpoint()
         
-        # update edges
-        e_edge_index_t = np.stack([graph.senders, graph.receivers], axis=0)
-        is_pad_t = np.any(e_edge_index_t == n_agent * 2 + n_hits + n_mov_obs, axis=0)
-        e_edge_index_t = e_edge_index_t[:, ~is_pad_t]
-        e_start_t, e_end_t = n_pos_t[e_edge_index_t[0, :]], n_pos_t[e_edge_index_t[1, :]]
-        e_is_goal_t = (n_agent <= graph.senders) & (graph.senders < n_agent * 2)
-        e_is_goal_t = e_is_goal_t[~is_pad_t]
-        e_colors_t = [edge_goal_color if e_is_goal_t[ii] else "0.2" for ii in range(len(e_start_t))]
-        e_lines_t = np.stack([e_start_t, e_end_t], axis=1)
-        edge_col.set_segments(e_lines_t)
-        edge_col.set_colors(e_colors_t)
+#         # update edges
+#         e_edge_index_t = np.stack([graph.senders, graph.receivers], axis=0)
+#         is_pad_t = np.any(e_edge_index_t == n_agent * 2 + n_hits + n_mov_obs, axis=0)
+#         e_edge_index_t = e_edge_index_t[:, ~is_pad_t]
+#         e_start_t, e_end_t = n_pos_t[e_edge_index_t[0, :]], n_pos_t[e_edge_index_t[1, :]]
+#         e_is_goal_t = (n_agent <= graph.senders) & (graph.senders < n_agent * 2)
+#         e_is_goal_t = e_is_goal_t[~is_pad_t]
+#         e_colors_t = [edge_goal_color if e_is_goal_t[ii] else "0.2" for ii in range(len(e_start_t))]
+#         e_lines_t = np.stack([e_start_t, e_end_t], axis=1)
+#         edge_col.set_segments(e_lines_t)
+#         edge_col.set_colors(e_colors_t)
 
-        # update agent labels
-        for ii in range(n_agent):
-            if dim == 2:
-                agent_labels[ii].set_position(n_pos_t[ii])
-            else:
-                text_pos = proj3d.proj_transform(n_pos_t[ii, 0], n_pos_t[ii, 1], n_pos_t[ii, 2], ax.get_proj())[:2]
-                agent_labels[ii].set_position(text_pos)
+#         # update agent labels
+#         for ii in range(n_agent):
+#             if dim == 2:
+#                 agent_labels[ii].set_position(n_pos_t[ii])
+#             else:
+#                 text_pos = proj3d.proj_transform(n_pos_t[ii, 0], n_pos_t[ii, 1], n_pos_t[ii, 2], ax.get_proj())[:2]
+#                 agent_labels[ii].set_position(text_pos)
 
-        # update cost and safe labels
-        if kk < len(rollout.T_cost):
-            cost_text.set_text("Cost: {:5.4f}, Reward: {:5.4f}".format(rollout.T_cost[kk], rollout.T_reward[kk]))
-        else:
-            cost_text.set_text("")
-        if kk < len(Ta_is_unsafe):
-            a_is_unsafe = Ta_is_unsafe[kk]
-            unsafe_idx = np.where(a_is_unsafe)[0]
-            safe_text[0].set_text("Unsafe: {}".format(unsafe_idx))
-        else:
-            safe_text[0].set_text("Unsafe: {}")
+#         # update cost and safe labels
+#         if kk < len(rollout.T_cost):
+#             cost_text.set_text("Cost: {:5.4f}, Reward: {:5.4f}".format(rollout.T_cost[kk], rollout.T_reward[kk]))
+#         else:
+#             cost_text.set_text("")
+#         if kk < len(Ta_is_unsafe):
+#             a_is_unsafe = Ta_is_unsafe[kk]
+#             unsafe_idx = np.where(a_is_unsafe)[0]
+#             safe_text[0].set_text("Unsafe: {}".format(unsafe_idx))
+#         else:
+#             safe_text[0].set_text("Unsafe: {}")
 
-        # Update the contourf.
-        nonlocal cnt, cnt_line
-        if "cbf" in viz_opts and dim == 2:
-            for c in cnt.collections:
-                c.remove()
-            for c in cnt_line.collections:
-                c.remove()
+#         # Update the contourf.
+#         nonlocal cnt, cnt_line
+#         if "cbf" in viz_opts and dim == 2:
+#             for c in cnt.collections:
+#                 c.remove()
+#             for c in cnt_line.collections:
+#                 c.remove()
 
-            bb_Xs_t, bb_Ys_t = np.meshgrid(Tb_xs[kk], Tb_ys[kk])
-            cnt = ax.contourf(bb_Xs_t, bb_Ys_t, Tbb_h[kk], **contour_opts)
-            cnt_line = ax.contour(bb_Xs_t, bb_Ys_t, Tbb_h[kk], **contour_line_opts)
+#             bb_Xs_t, bb_Ys_t = np.meshgrid(Tb_xs[kk], Tb_ys[kk])
+#             cnt = ax.contourf(bb_Xs_t, bb_Ys_t, Tbb_h[kk], **contour_opts)
+#             cnt_line = ax.contour(bb_Xs_t, bb_Ys_t, Tbb_h[kk], **contour_line_opts)
 
-            cnt_col_t = [*cnt.collections, *cnt_line.collections]
-        else:
-            cnt_col_t = []
+#             cnt_col_t = [*cnt.collections, *cnt_line.collections]
+#         else:
+#             cnt_col_t = []
 
-        kk_text.set_text("kk={:04}".format(kk))
+#         kk_text.set_text("kk={:04}".format(kk))
 
-        return [agent_col, mov_obs_col, edge_col, *agent_labels, cost_text, *safe_text, *cnt_col_t, kk_text]
+#         return [agent_col, mov_obs_col, edge_col, *agent_labels, cost_text, *safe_text, *cnt_col_t, kk_text]
 
-    fps = 30.0
-    spf = 1 / fps
-    mspf = 1_000 * spf
-    anim_T = len(T_graph.n_node)
-    ani = FuncAnimation(fig, update, frames=anim_T, init_func=init_fn, interval=mspf, blit=True)
-    save_anim(ani, video_path)
+#     fps = 30.0
+#     spf = 1 / fps
+#     mspf = 1_000 * spf
+#     anim_T = len(T_graph.n_node)
+#     ani = FuncAnimation(fig, update, frames=anim_T, init_func=init_fn, interval=mspf, blit=True)
+#     save_anim(ani, video_path)
+    
+
+# def render_video_arm(
+#         rollout: RolloutResult,
+#         video_path: pathlib.Path,
+#         mj_model=None,
+#         **kwargs
+# ):
+#     T_graph = rollout.Tp1_graph
+#     graph0 = tree_index(T_graph, 0)
+#     mjx_data = graph0.model_data
+#     renderer = mujoco.Renderer(mj_model)
+#     scene_option = mujoco.MjvOption()
+#     scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
+#     mj_data = mjx.get_data(mj_model, mjx_data)
+#     anim_T = len(T_graph.n_node)
+#     frames = []
+#     for i in range(anim_T):
+#         graph_i = tree_index(T_graph, i)
+#         mjx_data = graph_i.model_data
+#         mj_data = mjx.get_data(mj_model, mjx_data)
+#         renderer.update_scene(mj_data, scene_option=scene_option)
+#         pixels = renderer.render()
+#         frames.append(pixels)
+    
+#     out = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*'mp4v'), 60, (frames[0].shape[1], frames[0].shape[0]))
+    
+#     for frame in frames:
+#         out.write(frame)
+#     out.release()

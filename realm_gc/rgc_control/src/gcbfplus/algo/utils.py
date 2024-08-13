@@ -6,12 +6,11 @@ import jax.numpy as jnp
 from typing import Tuple
 
 from ..env.base import MultiAgentEnv
-# from ..env.double_integrator import DoubleIntegrator
+from ..env.double_integrator import DoubleIntegrator
 from ..env.dubins_car import DubinsCar
-from ..env.dubins_car_adapt import DubinsCarAdapt
-# from ..env.linear_drone import LinearDrone
-# from ..env.single_integrator import SingleIntegrator
-# from ..env.crazyflie import CrazyFlie
+from ..env.linear_drone import LinearDrone
+from ..env.single_integrator import SingleIntegrator
+from ..env.crazyflie import CrazyFlie
 from ..utils.graph import GraphsTuple
 from ..utils.typing import Array, Done, Reward
 
@@ -412,29 +411,29 @@ def pwise_cbf_cfhl(graph: GraphsTuple, r: float, n_agent: int, n_rays: int, k: i
 
 
 def get_pwise_cbf_fn(env: MultiAgentEnv, k: int = 3):
-    # if isinstance(env, SingleIntegrator):
-    #     n_agent = env.num_agents
-    #     n_rays = env.params["n_rays"]
-    #     r = env.params["car_radius"]
-    #     return ft.partial(pwise_cbf_single_integrator, r=r, n_agent=n_agent, n_rays=n_rays, k=k)
-    # elif isinstance(env, DoubleIntegrator):
-    #     n_agent = env.num_agents
-    #     n_rays = env.params["n_rays"]
-    #     r = env.params["car_radius"]
-    #     return ft.partial(pwise_cbf_double_integrator, r=r, n_agent=n_agent, n_rays=n_rays, k=k)
-    if isinstance(env, DubinsCar) or isinstance(env, DubinsCarAdapt):
+    if isinstance(env, SingleIntegrator):
+        n_agent = env.num_agents
+        n_rays = env.params["n_rays"]
+        r = env.params["car_radius"]
+        return ft.partial(pwise_cbf_single_integrator, r=r, n_agent=n_agent, n_rays=n_rays, k=k)
+    elif isinstance(env, DoubleIntegrator):
+        n_agent = env.num_agents
+        n_rays = env.params["n_rays"]
+        r = env.params["car_radius"]
+        return ft.partial(pwise_cbf_double_integrator, r=r, n_agent=n_agent, n_rays=n_rays, k=k)
+    elif isinstance(env, DubinsCar):
         r = env.params["car_radius"]
         n_agent = env.num_agents
         n_rays = env.params["n_rays"]
         return ft.partial(pwise_cbf_dubins_car, r=r, n_agent=n_agent, n_rays=n_rays, k=k)
-    # elif isinstance(env, CrazyFlie):
-    #     return ft.partial(pwise_cbf_crazyflie, r=env.params["drone_radius"], n_agent=env.num_agents, n_rays=env.n_rays,
-    #                       k=k)
-    # elif isinstance(env, LinearDrone):
-    #     return ft.partial(pwise_cbf_linear_drone, r=env.params["drone_radius"], n_agent=env.num_agents,
-    #                       n_rays=env.n_rays, k=k)
-    # elif isinstance(env, CrazyFlie):
-    #     return ft.partial(pwise_cbf_cfhl, r=env.params["drone_radius"], n_agent=env.num_agents,
-                        #   n_rays=env.n_rays, k=k)
+    elif isinstance(env, CrazyFlie):
+        return ft.partial(pwise_cbf_crazyflie, r=env.params["drone_radius"], n_agent=env.num_agents, n_rays=env.n_rays,
+                          k=k)
+    elif isinstance(env, LinearDrone):
+        return ft.partial(pwise_cbf_linear_drone, r=env.params["drone_radius"], n_agent=env.num_agents,
+                          n_rays=env.n_rays, k=k)
+    elif isinstance(env, CrazyFlie):
+        return ft.partial(pwise_cbf_cfhl, r=env.params["drone_radius"], n_agent=env.num_agents,
+                          n_rays=env.n_rays, k=k)
 
     raise NotImplementedError("")

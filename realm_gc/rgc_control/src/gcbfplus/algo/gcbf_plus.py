@@ -7,6 +7,8 @@ import functools as ft
 import jax.tree_util as jtu
 import numpy as np
 import einops as ei
+import os
+import pickle
 
 from typing import Optional, Tuple, NamedTuple
 from flax.training.train_state import TrainState
@@ -15,32 +17,14 @@ from jaxproxqp.jaxproxqp import JaxProxQP
 from gcbfplus.utils.typing import Action, Params, PRNGKey, Array, State
 from gcbfplus.utils.graph import GraphsTuple
 from gcbfplus.utils.utils import merge01, jax_vmap, mask2index, tree_merge, tree_stack
-# from gcbfplus.trainer.data import Rollout
-# from gcbfplus.trainer.buffer import MaskedReplayBuffer
-# from gcbfplus.trainer.utils import jax2np, tree_copy, empty_grad_tx
+from gcbfplus.trainer.data import Rollout
+from gcbfplus.trainer.buffer import MaskedReplayBuffer
+from gcbfplus.trainer.utils import compute_norm_and_clip, jax2np, tree_copy, empty_grad_tx
 from gcbfplus.env.base import MultiAgentEnv
 from gcbfplus.algo.module.cbf import CBF
 from gcbfplus.algo.module.policy import DeterministicPolicy
 from .gcbf import GCBF
 
-def compute_norm_and_clip():
-    pass
-
-
-def jax2np(x):
-    return jtu.tree_map(lambda y: np.array(y), x)
-
-def tree_copy(tree):
-    return jtu.tree_map(lambda x: x.copy(), tree)
-
-def empty_grad_tx() -> optax.GradientTransformation:
-    def init_fn(params):
-        return optax.EmptyState()
-
-    def update_fn(updates, state, params=None):
-        return None, None
-
-    return optax.GradientTransformation(init_fn, update_fn)
 
 class Batch(NamedTuple):
     graph: GraphsTuple
@@ -156,8 +140,8 @@ class GCBFPlus(GCBF):
 
         # set up key
         self.key = key
-        # self.buffer = MaskedReplayBuffer(size=buffer_size)
-        # self.unsafe_buffer = MaskedReplayBuffer(size=buffer_size // 2)
+        self.buffer = MaskedReplayBuffer(size=buffer_size)
+        self.unsafe_buffer = MaskedReplayBuffer(size=buffer_size // 2)
         self.rng = np.random.default_rng(seed=seed + 1)
 
     @property
@@ -222,7 +206,7 @@ class GCBFPlus(GCBF):
         u_qp, _ = self.get_qp_action_test(graph=graph, prev_graph=prev_graph, cbf_params=params, act=act,mov_obs_vel=mov_obs_vel)
         return u_qp
     
-    def update_nets(self, rollout, safe_mask, unsafe_mask):
+    def update_nets(self, rollout: Rollout, safe_mask, unsafe_mask):
         update_info = {}
 
         # Compute b_u_qp.
@@ -262,7 +246,7 @@ class GCBFPlus(GCBF):
 
         return update_info
 
-    def sample_batch(self, rollout, safe_mask, unsafe_mask):
+    def sample_batch(self, rollout: Rollout, safe_mask, unsafe_mask):
         if self.buffer.length > self.batch_size:
             # sample from memory
             memory, safe_mask_memory, unsafe_mask_memory = self.buffer.sample(rollout.length)
@@ -307,7 +291,7 @@ class GCBFPlus(GCBF):
 
         return rollout_batch, safe_mask_batch, unsafe_mask_batch
 
-    def update(self, rollout, step: int) -> dict:
+    def update(self, rollout: Rollout, step: int) -> dict:
         key, self.key = jr.split(self.key)
 
         # (n_collect, T)
@@ -358,13 +342,18 @@ class GCBFPlus(GCBF):
         if mov_obs_vel is None:
             mov_obs_vel = (mov_obs - mov_obs_prev) / self._env.dt
         
-        h_mov_obs = jax.jacobian(h_obs)(mov_obs).squeeze(1)[:, :, :2]
-        Lfh_mov_obs = ei.einsum(h_mov_obs, mov_obs_vel[:, :2], "agent_i n_mov_obs nx, n_mov_obs nx -> agent_i")
+        # h_mov_obs = h_obs(mov_obs)[:, 0, ...]
+        Lh_mov_obs = jax.jacobian(h_obs)(mov_obs)[:, 0, ...]
+        
+        Lfh_mov_obs = ei.einsum(Lh_mov_obs, mov_obs_vel, "agent_i n_mov_obs nx, n_mov_obs nx -> agent_i")
         
         agent_state = graph.type_states(type_idx=0, n_type=self.n_agents)
-        h = h_aug(agent_state).squeeze(-1)
-        h_x = jax.jacobian(h_aug)(agent_state).squeeze(1)
-
+        h_ = h_aug(agent_state)
+        
+        h = h_[:, 0, ...]
+        alpha = h_[:, 1, ...]
+        
+        h_x = jax.jacobian(h_aug)(agent_state)[:, 0, ...]
         dyn_f, dyn_g = self._env.control_affine_dyn(agent_state)
         Lf_h = ei.einsum(h_x, dyn_f, "agent_i agent_j nx, agent_j nx -> agent_i")
         Lf_h = Lf_h + Lfh_mov_obs
@@ -385,7 +374,7 @@ class GCBFPlus(GCBF):
         H = H.at[-self.n_agents:, -self.n_agents:].set(H[-self.n_agents:, -self.n_agents:] * 10.0)
         g = jnp.concatenate([-u_ref, relax_penalty * jnp.ones(self.n_agents)])
         C = -jnp.concatenate([Lg_h, jnp.eye(self.n_agents)], axis=1)
-        b = Lf_h + self.alpha * 0.1 * h
+        b = Lf_h + alpha * 0.1 * h
 
         r_lb = jnp.array([0.] * self.n_agents, dtype=jnp.float32)
         r_ub = jnp.array([jnp.inf] * self.n_agents, dtype=jnp.float32)
@@ -476,9 +465,11 @@ class GCBFPlus(GCBF):
                 cbf_fn = jax_vmap(ft.partial(self.cbf.get_cbf, cbf_params))
                 cbf_fn_no_grad = jax_vmap(ft.partial(self.cbf.get_cbf, jax.lax.stop_gradient(cbf_params)))
                 # (minibatch_size, n_agents)
-                h = cbf_fn(minibatch.graph).squeeze(-1)
+                h = cbf_fn(minibatch.graph)[..., 0]
+                alpha = cbf_fn(minibatch.graph)[..., 1]
                 # (minibatch_size * n_agents,)
                 h = merge01(h)
+                alpha = merge01(alpha)
 
                 # unsafe region h(x) < 0
                 unsafe_data_ratio = jnp.mean(unsafe_mask_batch)
@@ -502,17 +493,17 @@ class GCBFPlus(GCBF):
                 # get next graph
                 forward_fn = jax_vmap(self._env.forward_graph)
                 next_graph = forward_fn(minibatch.graph, action)
-                h_next = merge01(cbf_fn(next_graph).squeeze(-1))
+                h_next = merge01(cbf_fn(next_graph)[..., 0])
                 h_dot = (h_next - h) / self._env.dt
 
                 # stop gradient and get next graph
                 h_no_grad = jax.lax.stop_gradient(h)
-                h_next_no_grad = merge01(cbf_fn_no_grad(next_graph).squeeze(-1))
+                h_next_no_grad = merge01(cbf_fn_no_grad(next_graph)[..., 0])
                 h_dot_no_grad = (h_next_no_grad - h_no_grad) / self._env.dt
 
                 # h_dot + alpha * h > 0 (backpropagate to action, and backpropagate to h when labeled)
                 labeled_mask = jnp.logical_or(unsafe_mask_batch, safe_mask_batch)
-                max_val_h_dot = jax.nn.relu(-h_dot - self.alpha * h + self.eps)
+                max_val_h_dot = jax.nn.relu(-h_dot - alpha * h + self.eps)
                 max_val_h_dot_no_grad = jax.nn.relu(-h_dot_no_grad - self.alpha * h + self.eps)
                 max_val_h_dot = jnp.where(labeled_mask, max_val_h_dot, max_val_h_dot_no_grad)
                 loss_h_dot = jnp.mean(max_val_h_dot)
@@ -555,3 +546,25 @@ class GCBFPlus(GCBF):
         # get training info of the last PPO epoch
         info = jtu.tree_map(lambda x: x[-1], info)
         return cbf_train_state, actor_train_state, info
+    
+    def save(self, save_dir: str, step: int):
+        model_dir = os.path.join(save_dir, str(step))
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
+        pickle.dump(self.actor_train_state.params, open(os.path.join(model_dir, 'actor.pkl'), 'wb'))
+        pickle.dump(self.cbf_train_state.params, open(os.path.join(model_dir, 'cbf.pkl'), 'wb'))
+        pickle.dump(self.cbf_tgt.params, open(os.path.join(model_dir, 'cbf_tgt.pkl'), 'wb'))
+
+    def load(self, load_dir: str, step: int):
+        path = os.path.join(load_dir, str(step))
+
+        self.actor_train_state = \
+            self.actor_train_state.replace(params=pickle.load(open(os.path.join(path, 'actor.pkl'), 'rb')))
+        # self.cbf_train_state = \
+        #     self.cbf_train_state.replace(params=pickle.load(open(os.path.join(path, 'cbf.pkl'), 'rb')))
+        if os.path.exists(os.path.join(path, 'cbf_tgt.pkl')):
+            self.cbf_train_state = \
+                self.cbf_train_state.replace(params=pickle.load(open(os.path.join(path, 'cbf_tgt.pkl'), 'rb')))
+        else:
+            self.cbf_train_state = \
+                self.cbf_train_state.replace(params=pickle.load(open(os.path.join(path, 'cbf.pkl'), 'rb')))

@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 
 from gcbfplus.utils.typing import Action, Params, PRNGKey, Array
 from gcbfplus.utils.graph import GraphsTuple
-# from gcbfplus.trainer.data import Rollout
+from gcbfplus.trainer.data import Rollout
 from gcbfplus.env.base import MultiAgentEnv
 
 
@@ -57,9 +57,9 @@ class MultiAgentController(ABC):
     def step(self, graph: GraphsTuple, key: PRNGKey, params: Optional[Params] = None) -> Tuple[Action, Array]:
         pass
 
-    # @abstractmethod
-    # def update(self, rollout: Rollout, step: int) -> dict:
-    #     pass
+    @abstractmethod
+    def update(self, rollout: Rollout, step: int) -> dict:
+        pass
 
     @abstractmethod
     def save(self, save_dir: str, step: int):

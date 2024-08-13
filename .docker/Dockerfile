@@ -193,5 +193,7 @@ RUN pip3 install tensorflow-probability
 RUN pip3 install matplotlib --force-reinstall
 RUN export PYTHONPATH="${PYTHONPATH}:/usr/lib/"
 RUN pip3 install opencv-python 
+RUN pip3 install control
+RUN pip3 install seaborn
 # RUN pip3 install docstring
 # RUN apt install python3-netifaces

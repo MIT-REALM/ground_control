@@ -15,7 +15,7 @@ from .obstacle import Obstacle, Rectangle
 # from .plot import render_video
 from .utils import get_lidar, inside_obstacles, get_node_goal_rng
 
-def render_video(**args):
+def render_video(**kwargs):
     pass
 
 class DubinsCarAdapt(MultiAgentEnv):
@@ -35,7 +35,7 @@ class DubinsCarAdapt(MultiAgentEnv):
         def n_agent(self) -> int:
             return self.agent.shape[0]
 
-    EnvGraphsTuple = GraphsTuple
+    EnvGraphsTuple = GraphsTuple[State, EnvState]
 
     PARAMS = {
         "car_radius": 0.05,
@@ -198,12 +198,20 @@ class DubinsCarAdapt(MultiAgentEnv):
         mov_obs_min_x_mask = mov_obstacles[:, 0] <= 0
         mov_obs_min_y_mask = mov_obstacles[:, 1] <= 0
         
-        mov_obstacles = mov_obstacles.at[:, 2].set(jnp.where(mov_obs_max_x_mask, -mov_obstacles[:, 2], mov_obstacles[:, 2]))
+        # mov_obstacles = mov_obstacles.at[:, 2].set(jnp.where(mov_obs_max_x_mask, -mov_obstacles[:, 2], mov_obstacles[:, 2]))
         mov_obstacles = mov_obstacles.at[:, 3].set(jnp.where(mov_obs_max_y_mask, -mov_obstacles[:, 3], mov_obstacles[:, 3]))
-        mov_obstacles = mov_obstacles.at[:, 2].set(jnp.where(mov_obs_min_x_mask, -mov_obstacles[:, 2], mov_obstacles[:, 2]))
+        # mov_obstacles = mov_obstacles.at[:, 2].set(jnp.where(mov_obs_min_x_mask, -mov_obstacles[:, 2], mov_obstacles[:, 2]))
         mov_obstacles = mov_obstacles.at[:, 3].set(jnp.where(mov_obs_min_y_mask, -mov_obstacles[:, 3], mov_obstacles[:, 3]))
         
-        next_mov_obstacles = mov_obstacles.at[:, :2].set(mov_obstacles[:, :2] + mov_obstacles[:, 2:] * self.dt)
+        # mov_obs_vel = mov_obstacles[:, 2:]
+        # mov_obs_vel = jnp.concatenate([jnp.sin(mov_obstacles[:, 2, None]), jnp.cos(mov_obstacles[:, 2, None])], axis=-1) * mov_obstacles[:, 3]
+        next_mov_obstacles = mov_obstacles.at[:, 0].set(mov_obstacles[:, 0] + jnp.sin(mov_obstacles[:, 2]) * self.dt * mov_obstacles[:, 3] * 2)
+        next_mov_obstacles = next_mov_obstacles.at[:, 1].set(mov_obstacles[:, 1] + jnp.cos(mov_obstacles[:, 2]) * self.dt * mov_obstacles[:, 3] * 2)
+        
+        next_mov_obstacles = next_mov_obstacles.at[:, 2].set(mov_obstacles[:, 2] + 1 * self.dt)
+        
+        
+        # next_mov_obstacles = mov_obstacles.at[:, :2].set(mov_obstacles[:, :2] + mov_obs_vel * self.dt)
 
         action = self.clip_action(action)
 
@@ -262,7 +270,7 @@ class DubinsCarAdapt(MultiAgentEnv):
         return cost
 
     def render_video(
-        rollout, video_path, Ta_is_unsafe=None, viz_opts: dict = None, dpi: int = 80, **kwargs
+        self, rollout: RolloutResult, video_path: pathlib.Path, Ta_is_unsafe=None, viz_opts: dict = None, dpi: int = 80, **kwargs
     ) -> None:
         render_video(
             rollout=rollout,
@@ -279,7 +287,7 @@ class DubinsCarAdapt(MultiAgentEnv):
             **kwargs
         )
 
-    def edge_blocks(self, state: EnvState, lidar_data: State):
+    def edge_blocks(self, state: EnvState, lidar_data: State) -> list[EdgeBlock]:
         n_hits = self._params["n_rays"] * self.num_agents
 
         # agent - agent connection
@@ -298,6 +306,7 @@ class DubinsCarAdapt(MultiAgentEnv):
 
         # agent - goal connection
         agent_goal_edges = []
+        
         agent_goal_pos_diff = state.agent[:, :2] - state.goal[:, :2]
         agent_goal_v_diff = agent_v
         agent_goal_edge_feats = jnp.concatenate([agent_goal_pos_diff, agent_goal_v_diff], axis=-1)
@@ -329,6 +338,7 @@ class DubinsCarAdapt(MultiAgentEnv):
         # agent - mov obs connection
         id_mov_obs = jnp.arange(self.num_agents * 2 + n_hits, self.num_agents * 2 + n_hits + self._params["n_mov_obs"])
         agent_mov_obs_edges = []
+        
         mov_obs_pos = state.mov_obs[:, :2]
         # mov_obs_vel = self.mov_obs_vel_pred(state=state.mov_obs)
         # mov_obs_vel = self.mov_obs_vel[:, :2]
