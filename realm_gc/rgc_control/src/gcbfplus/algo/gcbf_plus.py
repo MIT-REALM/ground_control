@@ -204,7 +204,7 @@ class GCBFPlus(GCBF):
         u_qp, _ = self.get_qp_action_test(graph=graph, prev_graph=prev_graph, cbf_params=params, act=act,mov_obs_vel=mov_obs_vel)
         return u_qp
     
-    def update_nets(self, rollout: Rollout, safe_mask, unsafe_mask):
+    def update_nets(self, rollout, safe_mask, unsafe_mask):
         update_info = {}
 
         # Compute b_u_qp.
@@ -244,7 +244,7 @@ class GCBFPlus(GCBF):
 
         return update_info
 
-    def sample_batch(self, rollout: Rollout, safe_mask, unsafe_mask):
+    def sample_batch(self, rollout, safe_mask, unsafe_mask):
         if self.buffer.length > self.batch_size:
             # sample from memory
             memory, safe_mask_memory, unsafe_mask_memory = self.buffer.sample(rollout.length)
@@ -289,7 +289,7 @@ class GCBFPlus(GCBF):
 
         return rollout_batch, safe_mask_batch, unsafe_mask_batch
 
-    def update(self, rollout: Rollout, step: int) -> dict:
+    def update(self, rollout, step: int) -> dict:
         key, self.key = jr.split(self.key)
 
         # (n_collect, T)

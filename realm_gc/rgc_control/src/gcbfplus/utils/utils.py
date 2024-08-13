@@ -9,7 +9,8 @@ import numpy as np
 import functools as ft
 
 from datetime import timedelta
-from typing import Any, Callable, Iterable, ParamSpec, Sequence, TypeVar, Tuple, List, NamedTuple
+from typing import Any, Callable, Iterable, Sequence, TypeVar, Tuple, List, NamedTuple
+from typing_extensions import ParamSpec
 
 from jax import numpy as jnp, tree_util as jtu
 from jax._src.lib import xla_client as xc
@@ -30,7 +31,7 @@ _Fn = Callable[_P, _R]
 _PyTree = TypeVar("_PyTree")
 
 
-def jax_vmap(fn: _Fn, in_axes: int | Sequence[Any] = 0, out_axes: Any = 0) -> _Fn:
+def jax_vmap(fn: _Fn, in_axes, out_axes: Any = 0) -> _Fn:
     return jax.vmap(fn, in_axes, out_axes)
 
 
@@ -78,10 +79,10 @@ def mask2index(mask: jnp.ndarray, n_true: int) -> jnp.ndarray:
 
 def jax_jit_np(
         fn: _Fn,
-        static_argnums: int | Sequence[int] | None = None,
-        static_argnames: str | Iterable[str] | None = None,
-        donate_argnums: int | Sequence[int] = (),
-        device: xc.Device = None,
+        static_argnums = None,
+        static_argnames= None,
+        donate_argnums = (),
+        device = None,
         *args,
         **kwargs,
 ) -> _Fn:

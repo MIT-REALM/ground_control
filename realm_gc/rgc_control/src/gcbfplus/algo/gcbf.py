@@ -14,7 +14,7 @@ from flax.training.train_state import TrainState
 from gcbfplus.utils.typing import Action, Params, PRNGKey, Array
 from gcbfplus.utils.graph import GraphsTuple
 from gcbfplus.utils.utils import merge01, jax_vmap, tree_merge
-from gcbfplus.trainer.data import Rollout
+# from gcbfplus.trainer.data import Rollout
 from gcbfplus.trainer.buffer import ReplayBuffer
 from gcbfplus.trainer.utils import has_any_nan, compute_norm_and_clip
 from gcbfplus.env.base import MultiAgentEnv
@@ -214,7 +214,7 @@ class GCBF(MultiAgentController):
             params = self.cbf_train_state.params
         return self.cbf.get_cbf(params, graph)
 
-    def update(self, rollout: Rollout, step: int) -> dict:
+    def update(self, rollout, step: int) -> dict:
         key, self.key = jr.split(self.key)
 
         if self.buffer.length > self.batch_size:
@@ -254,7 +254,7 @@ class GCBF(MultiAgentController):
 
     @ft.partial(jax.jit, static_argnums=(0,), donate_argnums=(1, 2))
     def update_inner(
-            self, cbf_train_state: TrainState, actor_train_state: TrainState, rollout: Rollout, batch_idx: Array
+            self, cbf_train_state: TrainState, actor_train_state: TrainState, rollout, batch_idx: Array
     ) -> Tuple[TrainState, TrainState, dict]:
 
         def update_fn(carry, idx):

@@ -14,12 +14,19 @@ from mpl_toolkits.mplot3d import proj3d, Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from typing import List, Optional, Union
 
-from ..trainer.utils import centered_norm
 from ..utils.typing import EdgeIndex, Pos2d, Pos3d, Array
 from ..utils.utils import merge01, tree_index, MutablePatchCollection, save_anim
 from .obstacle import Cuboid, Sphere, Obstacle, Rectangle
 from .base import RolloutResult
 
+
+def centered_norm(vmin, vmax):
+    if isinstance(vmin, list):
+        vmin = min(vmin)
+    if isinstance(vmax, list):
+        vmin = max(vmax)
+    halfrange = max(abs(vmin), abs(vmax))
+    return CenteredNorm(0, halfrange)
 
 def plot_graph(
         ax: Axes,

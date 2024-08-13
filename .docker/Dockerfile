@@ -80,6 +80,7 @@
 # from sim branch in main repo
 
 FROM osrf/ros:noetic-desktop-full
+ARG PYTHON_VERSION=3.9
 
 # Install packages
 RUN apt-get update && apt-get install -y \
@@ -103,11 +104,6 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-xacro \
     ros-noetic-rviz \
     ros-noetic-robot-state-publisher
-
-    
-
-RUN pip3 install numpy "jax[cpu]" pyyaml rospkg transforms3d equinox scipy matplotlib
-RUN pip3 install --upgrade numpy
 
 # Install updated cmake
 RUN apt-get update \
@@ -166,3 +162,23 @@ RUN source /opt/ros/noetic/setup.sh && catkin_make
 # Add lines to the bashrc file that source ROS
 RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
 RUN echo "source /catkin_ws/devel/setup.bash" >> /root/.bashrc
+
+# python dependencies
+RUN apt install software-properties-common -y
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt install python3.9-distutils
+RUN apt-get install -y python3.9
+RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python3.9 2
+RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python3.8 1
+
+# RUN rm /usr/bin/python3 && ln -s /usr/bin/python3.9 /usr/bin/python3
+
+RUN apt-get --purge autoremove python3-pip -y
+RUN apt install python3-pip -y
+RUN pip3 install --upgrade numpy pyyaml
+RUN pip3 install "jax[cpu]" rospkg transforms3d equinox scipy matplotlib flax einops colour
+RUN pip3 install typing_extensions>=4.5 --upgrade
+RUN pip3 install jaxproxqp@git+https://github.com/realm-robot-ws/jaxproxqp_realm.git
+RUN pip3 install tqdm
+
+# RUN apt install python3-netifaces

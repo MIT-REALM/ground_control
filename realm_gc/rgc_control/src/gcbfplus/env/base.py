@@ -4,7 +4,7 @@ import pathlib
 import jax
 import jax.lax as lax
 import jax.numpy as jnp
-import tqdm
+# import tqdm
 
 from scipy.interpolate import CubicSpline
 
@@ -306,7 +306,7 @@ class MultiAgentEnv(ABC):
             is_finishes.append(is_finish_fn(graph0))
             graph0 = jax2np(graph0)
 
-            for kk in tqdm.trange(rollout_length, ncols=80):
+            for kk in range(rollout_length, ncols=80):
                 graph, output = jit_body(graph, None)
 
                 is_unsafes.append(is_unsafe_fn(graph))

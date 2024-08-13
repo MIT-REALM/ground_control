@@ -1,25 +1,25 @@
 from typing import Optional
 
 from .base import MultiAgentEnv
-from .single_integrator import SingleIntegrator
-from .single_integrator_adapt import SingleIntegratorAdapt
-from .single_integrator_adapt_edge import SingleIntegratorAdaptEdge
-from .double_integrator import DoubleIntegrator
-from .linear_drone import LinearDrone
-from .dubins_car import DubinsCar
+# from .single_integrator import SingleIntegrator
+# from .single_integrator_adapt import SingleIntegratorAdapt
+# from .single_integrator_adapt_edge import SingleIntegratorAdaptEdge
+# from .double_integrator import DoubleIntegrator
+# from .linear_drone import LinearDrone
+# from .dubins_car import DubinsCar
 from .dubins_car_adapt import DubinsCarAdapt
-from .crazyflie import CrazyFlie
+# from .crazyflie import CrazyFlie
 
 
 ENV = {
-    'SingleIntegrator': SingleIntegrator,
-    'SingleIntegratorAdapt': SingleIntegratorAdapt,
-    'SingleIntegratorAdaptEdge': SingleIntegratorAdaptEdge,
-    'DoubleIntegrator': DoubleIntegrator,
-    'LinearDrone': LinearDrone,
-    'DubinsCar': DubinsCar,
+    # 'SingleIntegrator': SingleIntegrator,
+    # 'SingleIntegratorAdapt': SingleIntegratorAdapt,
+    # 'SingleIntegratorAdaptEdge': SingleIntegratorAdaptEdge,
+    # 'DoubleIntegrator': DoubleIntegrator,
+    # 'LinearDrone': LinearDrone,
+    # 'DubinsCar': DubinsCar,
     'DubinsCarAdapt': DubinsCarAdapt,
-    'CrazyFlie': CrazyFlie,
+    # 'CrazyFlie': CrazyFlie,
 }
 
 DEFAULT_MAX_STEP = 256

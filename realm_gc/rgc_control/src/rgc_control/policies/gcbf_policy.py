@@ -26,8 +26,8 @@ class GCBF_policy(ControlPolicy):
     def __init__(
             self, 
             min_distance: float = 1.0,
-            car_pos: np.ndarray = np.array([0.0, 0.0, 0.0]),
-            car_goal: np.ndarray = np.array([1.0, 1.0, 0.0, 0.0]),
+            car_pos: np.ndarray = np.array([3.0, -0.5, 0.0]),
+            car_goal: np.ndarray = np.array([1.0, 0.5, 0.0, 0.0]),
             obs_pos: np.ndarray = np.array([0.5, 0.5]),
             num_obs: int = 1,
             mov_obs: int = 1,
@@ -127,6 +127,9 @@ class GCBF_policy(ControlPolicy):
         self.graph0 = new_graph
         accel = self.act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel)
         accel = self.env.clip_action(accel)
+        print('accel: ', accel)
+        print('coming from gcbf')
+
         return F1TenthAction(
             acceleration=accel,
             steering_angle=0.0,

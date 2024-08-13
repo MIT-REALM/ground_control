@@ -189,7 +189,7 @@ class GraphsTuple(tuple, Generic[_State, _EnvState]):
 class GetGraph(NamedTuple):
     nodes: Float[Array, "n_nodes n_node_feat"]  # node features
     node_type: Int[Array, "n_nodes"]  # by default, 0 is agent
-    edge_blocks: list[EdgeBlock]
+    edge_blocks: Any
     env_states: Any
     states: Float[Array, "n_nodes n_state"]  # node state features
     connectivity: Int[Array, "n_node n_node"] = None  # desired connectivity matrix

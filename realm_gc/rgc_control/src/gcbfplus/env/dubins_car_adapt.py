@@ -277,7 +277,7 @@ class DubinsCarAdapt(MultiAgentEnv):
             **kwargs
         )
 
-    def edge_blocks(self, state: EnvState, lidar_data: State) -> list[EdgeBlock]:
+    def edge_blocks(self, state: EnvState, lidar_data: State):
         n_hits = self._params["n_rays"] * self.num_agents
 
         # agent - agent connection
