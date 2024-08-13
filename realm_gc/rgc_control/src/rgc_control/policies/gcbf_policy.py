@@ -26,7 +26,7 @@ class GCBF_policy(ControlPolicy):
     def __init__(
             self, 
             min_distance: float = 1.0,
-            car_pos: np.ndarray = np.array([3.0, -0.5, 0.0]),
+            car_pos: np.ndarray = np.array([3.0, -0.5, 0.0, 0,0]),
             car_goal: np.ndarray = np.array([1.0, 0.5, 0.0, 0.0]),
             obs_pos: np.ndarray = np.array([[0.5, 0.5], [0.5, 0.5]]),
             num_obs: int = 1,
@@ -51,8 +51,8 @@ class GCBF_policy(ControlPolicy):
             num_obs=num_obs,
             num_mov_obs=mov_obs,
             mov_obs_speed=max(config.mov_obs_speed,mov_obs_speed),
-            mov_obs_at_infty=False if not 'mov_obs_at_infty' in config else config.mov_obs_at_infty,
-            station_obs_at_infty=False if 'station_obs_at_infty' not in config else config.station_obs_at_infty,
+            mov_obs_at_infty=True, # if not 'mov_obs_at_infty' in config else config.mov_obs_at_infty,
+            station_obs_at_infty=True, #if 'station_obs_at_infty' not in config else config.station_obs_at_infty,
             area_size=4,
             max_step=1024,
             max_travel=10,
@@ -91,9 +91,9 @@ class GCBF_policy(ControlPolicy):
             )
         algo.load(os.path.join(model_path, 'models'), step)
         act_fn = jax.jit(algo.act)
-        params = algo.cbf_train_state.params
-        qp_fn = jax.jit(ft.partial(algo.get_u_qp_act, params=params, act=act_fn))
-        self.act_fn = qp_fn
+        # params = algo.cbf_train_state.params
+        # qp_fn = jax.jit(ft.partial(algo.get_u_qp_act, params=params, act=act_fn))
+        self.act_fn = act_fn
         key=jax.random.PRNGKey(0)
         graph0 = env.reset(key)
         self.env = env
@@ -137,7 +137,8 @@ class GCBF_policy(ControlPolicy):
         car_pos = jnp.array([car_pos.x, car_pos.y, car_pos.theta, car_pos.v])
         new_graph = self.create_graph(car_pos, self.car_goal, obs)
         self.graph0 = new_graph
-        accel = self.act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel)
+        # accel = self.act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel)
+        accel = self.act_fn(new_graph)
         accel = self.env.clip_action(accel)
         print('accel[0]: ', accel[0, 0])
         print('acce[1]: ', accel[0, 1])

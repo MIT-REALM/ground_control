@@ -49,9 +49,9 @@ class F1TenthSimulator:
 
         self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
 
-        self.state[0] = self.ref_traj.cx[0]
-        self.state[1] = self.ref_traj.cy[0]
-        self.state[2] = self.ref_traj.cyaw[0]
+        #self.state[0] = self.ref_traj.cx[0]
+        #self.state[1] = self.ref_traj.cy[0]
+        #self.state[2] = self.ref_traj.cyaw[0]
 
 
     def cmd_callback(self, msg):

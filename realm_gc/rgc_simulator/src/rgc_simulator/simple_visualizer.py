@@ -78,10 +78,14 @@ class VisualizeSimulator:
         annos = [ax.annotate(name, xy=self.xy[idx,:], animated=True) 
                  for idx, name in enumerate(self.position_names)]
         
-        plt.plot(self.ref_traj.cx, self.ref_traj.cy)
-        plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
+        ref_x = [0.0, 0.5, 1.0]
+        ref_y = [0.0, 0.5, 1.0]
+        
+        #plt.plot(self.ref_traj.cx, self.ref_traj.cy)
+        #plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
+        plt.scatter(ref_x,ref_y)
 
-        plt.show()
+        plt.show(block=False)
         plt.pause(0.1)
 
         bg = fig.canvas.copy_from_bbox(fig.bbox)
