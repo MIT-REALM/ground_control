@@ -3,25 +3,50 @@
 -->
 
 <launch>
-    <arg name="visualizer_position_topics" default="[
-        /vicon/realm_f1tenth/realm_f1tenth]"/>
-    <arg name="visualizer_position_names" default="[f1tenth]"/>
+    <arg name="viz/position_topics" default="[
+        /vicon/realm_f1tenth/realm_f1tenth,
+        /vicon/realm_turtle_1/realm_turtle_1,
+        /vicon/realm_turtle_2/realm_turtle_2]"/>
 
+    <arg name="viz/position_labels" default="[
+        f1tenth,
+        turtle1,
+        turtle2]"/>
+
+    <arg name="trajectory/base_path" default="$(find rgc_control)/saved_policies/base"/>
+    <arg name="trajectory/filename" default="ego_traj_nominal_1.pkl"/>
+
+    <arg name="draw_traj" default="false"/>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
     <arg name="filename" default="ego_traj_nominal_1.pkl"/>
+
+    <arg name="viz/x_min" default="-5.0"/>
+    <arg name="viz/x_max" default="5.0"/>
+    <arg name="viz/y_min" default="-5.0"/>
+    <arg name="viz/y_max" default="5.0"/>
+
+    <!-- add all the simulators you need here! -->
 
     <!-- Start the F1Tenth simulator -->
     <include file="$(find rgc)/launch/sim/f1tenth_simulator.launch">
         <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
         <arg name="control_topic" default="/vesc/high_level/ackermann_cmd_mux/input/nav_0"/>
-        <arg name="base_path" default="$(arg base_path)"/>
-        <arg name="filename" default="$(arg filename)"/>
+        <arg name="base_path" default="$(arg trajectory/base_path)"/>
+        <arg name="filename" default="$(arg trajectory/filename)"/>
     </include>
 
-    <node name="simple_visualizer" pkg="rgc_simulator" type="simple_visualizer.py" output="screen">
-        <rosparam param="visualizer_position_topics" subst_value="True">$(arg visualizer_position_topics)</rosparam>
-        <rosparam param="visualizer_position_names" subst_value="True">$(arg visualizer_position_names)</rosparam> 
-        <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
-        <param name="trajectory/filename" type="string" value="$(arg filename)"/>
-    </node>
+    <!-- Start the simple visualizer -->
+    <include file="$(find rgc)/launch/sim/simple_visualizer.launch">
+        <arg name="position_topics" default="$(arg viz/position_topics)"/>
+        <arg name="position_labels" default="$(arg viz/position_labels)"/>
+        
+        <arg name="draw_traj" default="$(arg trajectory/draw_traj)"/>
+        <arg name="base_path" default="$(arg trajectory/base_path)"/>
+        <arg name="filename" default="$(arg trajectory/filename)"/>
+
+        <arg name="x_min" default="$(arg viz/x_min)"/>
+        <arg name="x_max" default="$(arg viz/x_max)"/>
+        <arg name="y_min" default="$(arg viz/y_min)"/>
+        <arg name="y_max" default="$(arg viz/y_max)"/>
+    </include>
 </launch>

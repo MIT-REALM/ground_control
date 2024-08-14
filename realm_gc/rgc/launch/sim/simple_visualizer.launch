@@ -1,0 +1,37 @@
+<!-- This launch file starts the simple visualizer -->
+
+<launch>
+    <arg name="position_topics" default="[
+        /vicon/realm_f1tenth/realm_f1tenth,
+        /vicon/realm_turtle_1/realm_turtle_1,
+        /vicon/realm_turtle_2/realm_turtle_2]"/>
+        
+    <arg name="position_labels" default="[
+        f1tenth,
+        turtle1,
+        turtle2]"/>
+    
+    <arg name="draw_traj" default="false"/>
+    <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
+    <arg name="filename" default="ego_traj_nominal_1.pkl"/>
+
+    <arg name="x_min" default="-5.0"/>
+    <arg name="x_max" default="5.0"/>
+    <arg name="y_min" default="-5.0"/>
+    <arg name="y_max" default="5.0"/>
+    
+    <node name="simple_visualizer" pkg="rgc_simulator" type="simple_visualizer.py" output="screen">
+        <rosparam param="position_topics" subst_value="True">$(arg position_topics)</rosparam>
+        <rosparam param="position_labels" subst_value="True">$(arg position_labels)</rosparam> 
+
+        <param name="draw_traj" type="bool" value="$(arg draw_trajectory)"/>
+        <param name="base_path" type="string" value="$(arg base_path)"/>
+        <param name="filename" type="string" value="$(arg filename)"/>
+
+        <!-- these are only used if draw_trajectory is false -->
+        <param name="x_min", type="double" value="$(arg x_min)"/>
+        <param name="x_max", type="double" value="$(arg x_max)"/>
+        <param name="y_min", type="double" value="$(arg y_min)"/>
+        <param name="y_max", type="double" value="$(arg y_max)"/>
+    </node>
+</launch>

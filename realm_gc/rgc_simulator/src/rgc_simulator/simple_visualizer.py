@@ -17,7 +17,7 @@ class VisualizeSimulator:
     def __init__(self):
         """Initialize the simulator."""
         # Initialize the node
-        rospy.init_node("visualize_simulator")
+        rospy.init_node("simple_visualizer")
 
         default_position_topics = [
             "/vicon/realm_f1tenth/realm_f1tenth",
@@ -25,18 +25,18 @@ class VisualizeSimulator:
             "/vicon/realm_turtle_2/realm_turtle_2"
         ]
 
-        default_position_names = [
+        default_position_labels = [
             "f1tenth",
             "turtle1",
             "turtle2"
         ]
 
         self.position_topics = rospy.get_param(
-            "~visualizer_position_topics", default_position_topics
+            "~position_topics", default_position_topics
         )
 
-        self.position_names = rospy.get_param(
-            "~visualizer_position_names", default_position_names
+        self.position_labels = rospy.get_param(
+            "~position_labels", default_position_labels
         )
 
         self.xy = np.zeros((len(self.position_topics), 2))
@@ -45,15 +45,27 @@ class VisualizeSimulator:
             topic, TransformStamped, lambda msg, i=idx: self.position_callback(msg, i)
         ) for idx, topic in enumerate(self.position_topics)]
 
+        self.draw_traj = rospy.get_param("~draw_traj", False)
+
         self.traj_filepath = os.path.join(
-            rospy.get_param("~trajectory/base_path"), 
-            rospy.get_param("~trajectory/filename")
+            rospy.get_param("~base_path"), 
+            rospy.get_param("~filename")
         )
 
-        self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
-        print(self.ref_traj.cx)
-        print(self.ref_traj.cy)
+        if self.draw_traj:
+            self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
+            self.x_min = min(self.ref_traj.cx)
+            self.x_max = max(self.ref_traj.cx)
+            self.y_min = min(self.ref_traj.cy)
+            self.y_max = max(self.ref_traj.cy)
+        else:
+            self.ref_traj = None
+            self.x_min = rospy.get_param("x_min", -5)
+            self.x_max = rospy.get_param("x_max",  5)
+            self.y_min = rospy.get_param("y_min", -5)
+            self.y_max = rospy.get_param("y_max",  5)
 
+        self.grace = rospy.get_param("grace",  2)
 
 
     def position_callback(self, msg, idx):
@@ -66,20 +78,15 @@ class VisualizeSimulator:
         fig, ax = plt.subplots(figsize=(10, 10))
         pts = ax.scatter(self.xy[:,0], self.xy[:,1], animated=True)
 
-        x_min = min(self.ref_traj.cx)
-        x_max = max(self.ref_traj.cx)
-        y_min = min(self.ref_traj.cy)
-        y_max = max(self.ref_traj.cy)
-        grace = 2
-
-        ax.set_xlim(x_min-grace, x_max+grace)
-        ax.set_ylim(y_min-grace, y_max+grace)
+        ax.set_xlim(self.x_min-self.grace, self.x_max+self.grace)
+        ax.set_ylim(self.y_min-self.grace, self.y_max+self.grace)
 
         annos = [ax.annotate(name, xy=self.xy[idx,:], animated=True) 
-                 for idx, name in enumerate(self.position_names)]
+                 for idx, name in enumerate(self.position_labels)]
         
-        plt.plot(self.ref_traj.cx, self.ref_traj.cy)
-        plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
+        if self.draw_traj:
+            plt.plot(self.ref_traj.cx, self.ref_traj.cy)
+            plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
 
         plt.show(block=False)
         plt.pause(0.1)
