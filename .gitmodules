@@ -3,4 +3,4 @@
 	url = git@github.com:MIT-REALM/f1tenth_system.git
 [submodule "realm_gc/roslaunch2"]
 	path = submodules/roslaunch2
-	url = https://github.com/CodeFinder2/roslaunch2
+	url = git@github.com:CodeFinder2/roslaunch2.git
