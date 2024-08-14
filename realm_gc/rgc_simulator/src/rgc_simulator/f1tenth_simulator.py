@@ -43,11 +43,11 @@ class F1TenthSimulator:
         )
 
         self.traj_filepath = os.path.join(
-            rospy.get_param("~trajectory/base_path"), 
-            rospy.get_param("~trajectory/filename")
+            rospy.get_param("~base_path"), 
+            rospy.get_param("~filename")
         )
 
-        self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
+        self.ref_traj = SplineTrajectory2D(0.5, self.traj_filepath)
 
         self.state[0] = self.ref_traj.cx[0]
         self.state[1] = self.ref_traj.cy[0]

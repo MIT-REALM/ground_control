@@ -1,26 +1,273 @@
 #!/usr/bin/env python
 
 from roslaunch2 import *
+import roslaunch2.launch
+import os
+import abc
 
-# so we need to launch: controllers, possible simulators and visualizer
+# currently mirrors launch structure of main repo, so some things may be a little weird?
+
+
+class RGCGroup(Group):
+
+    def __init__(
+            self,
+            ns,
+            controller_name,
+            controller_type,
+            state_estimator_name,
+            state_estimator_type,
+            simulator_name,
+            simulator_type,
+            output,
+            position_topic,
+            control_topic
+    ):
+        super(RGCGroup, self).__init__(ns)
+
+        self.rgc_control = Package('rgc_control', True)
+        self.rgc_simulator = Package('rgc_simulator', True)
+        self.rgc_state_estimators = Package('rgc_state_estimators', True)
+
+        self.controller_name = controller_name
+        self.controller_type = controller_type
+
+        self.state_estimator_name = state_estimator_name
+        self.state_estimator_type = state_estimator_type
+        self.state_estimate_topic = f"{self.state_estimator_name}/estimate"
+
+        self.simulator_name = simulator_name
+        self.simulator_type = simulator_type
+
+        self.output = output
+
+        self.position_topic = position_topic
+        self.control_topic = control_topic
+
+    def add_controller(self):
+        raise NotImplementedError
+    
+    def add_state_estimator(self):
+        raise NotImplementedError
+    
+    def add_simulator(self):
+        raise NotImplementedError
+    
+    def add_all_nodes_to_launch(self, root, sim=False):
+        self.add_controller()
+        self.add_state_estimator()
+        if sim:
+            self.add_simulator()
+        root.add(self)
+
+
+
+class TurtlebotGroup(RGCGroup):
+
+    def __init__(
+            self,
+            ns,
+
+            controller_name="turtlebot_controller",
+            controller_type="turtlebot_control.py",
+
+            state_estimator_name="turtlebot_state_estimator",
+            state_estimator_type="turtlebot_ekf.py",
+
+            simulator_name="turtlebot_simulator",
+            simulator_type="turtlebot_simulator.py",
+
+            output=Output.Screen,
+
+            trajectory_base_path=None,
+            trajectory_filename="non_ego_traj_0.eqx",
+
+            position_topic="/vicon/realm_turtle_1/realm_turtle_1",
+            control_topic="/turtle1/cmd_vel",
+
+            T="12.0",
+            randomize_trajectory="true",
+            frame_name="realm_turtle1"
+    ):
+        super(TurtlebotGroup, self).__init__(
+            ns,
+            controller_name,
+            controller_type,
+            state_estimator_name,
+            state_estimator_type,
+            simulator_name,
+            simulator_type,
+            output,
+            position_topic,
+            control_topic
+        )
+
+        default_base_path = os.path.join(
+            self.rgc_control.get_path(), "saved_policies/v1/base")
+        if trajectory_base_path is None:
+            trajectory_base_path = default_base_path
+        
+        self.base_path = trajectory_base_path
+        self.filename = trajectory_filename
+
+        self.T = T
+        self.randomize_trajectory = randomize_trajectory
+        self.frame_name = frame_name
+
+    def add_controller(self):
+        if self.rgc_control.has_node(self.controller_type, False):
+            n = Node(pkg=self.rgc_control, 
+                    node_type=self.controller_type,
+                    name=self.controller_name,
+                    output=self.output)
+            
+            n += FileParameter(param="trajectory/base_path", value=self.base_path)
+            n += FileParameter(param="trajectory/filename", value=self.filename)
+            n += FileParameter(param="state_estimate_topic", value=self.state_estimate_topic)
+            n += FileParameter(param="randomize_trajectory", value=self.randomize_trajectory)
+            n += FileParameter(param="T", value=self.T)
+
+            self.add(n)
+
+    def add_state_estimator(self):
+        if self.rgc_state_estimators.has_node(self.state_estimator_type, False):
+            n = Node(pkg=self.rgc_state_estimators, 
+                    node_type=self.state_estimator_type,
+                    name=self.state_estimator_name,
+                    output=self.output)
+            
+            n += FileParameter(param="position_topic", value=self.position_topic)
+            n += FileParameter(param="obs_noise_cov", value="0.1")
+            n += FileParameter(param="process_noise_cov", value="0.1")
+
+            self.add(n)
+
+    def add_simulator(self):
+        if self.rgc_simulator.has_node(self.simulator_type, False):
+            n = Node(pkg=self.rgc_simulator,
+                     node_type=self.simulator_type,
+                     name=self.simulator_name,
+                     output=self.output)
+
+            n += FileParameter(param="position_topic", value=self.position_topic)
+            n += FileParameter(param="control_topic", value=self.control_topic)
+            n += FileParameter(param="frame_name", value=self.frame_name)
+
+            self.add(n)
+
+
+
+class F1TenthGroup(RGCGroup):
+
+    def __init__(
+            self, 
+            ns="f1tenth",
+
+            controller_name="f1tenth_controller",
+            controller_type="f1tenth_control.py",
+
+            state_estimator_name="f1tenth_state_estimator",
+            state_estimator_type="f1tenth_ekf.py",
+
+            simulator_name="f1tenth_simulator",
+            simulator_type="f1tenth_simulator.py",
+
+            output=Output.Screen,
+
+            trajectory_base_path=None,
+            trajectory_filename="ego_traj_nominal_3.pkl",
+
+            position_topic="/vicon/realm_f1tenth/realm_f1tenth",
+            control_topic="/vesc/high_level/ackermann_cmd_mux/input/nav_0",
+
+            T="12.0"
+    ):
+        super(F1TenthGroup, self).__init__(
+            ns,
+            controller_name,
+            controller_type,
+            state_estimator_name,
+            state_estimator_type,
+            simulator_name,
+            simulator_type,
+            output,
+            position_topic,
+            control_topic
+        )
+
+        default_base_path = os.path.join(
+            self.rgc_control.get_path(), "saved_policies/base")
+        if trajectory_base_path is None:
+            trajectory_base_path = default_base_path
+
+        self.base_path=trajectory_base_path
+        self.filename=trajectory_filename
+
+        self.T = T
+
+    def add_controller(self):
+        if self.rgc_control.has_node(self.controller_type, False):
+            n = Node(pkg=self.rgc_control, 
+                    node_type=self.controller_type,
+                    name=self.controller_name,
+                    output=self.output)
+            
+            n += FileParameter(param="trajectory/base_path", value=self.base_path)
+            n += FileParameter(param="trajectory/filename", value=self.filename)
+            n += FileParameter(param="state_estimate_topic", value=self.state_estimate_topic)
+            n += FileParameter(param="T", value=self.T)
+
+            self.add(n)
+
+    def add_state_estimator(self):
+        if self.rgc_state_estimators.has_node(self.state_estimator_type, False):
+            n = Node(pkg=self.rgc_state_estimators, 
+                    node_type=self.state_estimator_type,
+                    name=self.state_estimator_name,
+                    output=self.output)
+                        
+            n += FileParameter(param="position_topic", value=self.position_topic)
+
+            self.add(n)
+
+    def add_simulator(self):
+        if self.rgc_simulator.has_node(self.simulator_type, False):
+            n = Node(pkg=self.rgc_simulator, 
+                    node_type=self.simulator_type,
+                    name=self.simulator_name,
+                    output=self.output)
+            
+            n += FileParameter(param="position_topic", value=self.position_topic)
+            n += FileParameter(param="control_topic", value=self.control_topic)
+            n += FileParameter(param="base_path", value=self.base_path)
+            n += FileParameter(param="filename", value=self.filename)
+
+            self.add(n)
+
+
+         
+class RGCLaunch(Launch):
+
+    def __init__(self):
+        super(RGCLaunch, self).__init__()
+
 
 def main(**kwargs):  # contains the entire code to launch
-    cfg = Launch()  # root object of the launch hierarchy
-    # Process arguments (not command line arguments) for this launch module:
-    ns = kwargs['namespace'] if 'namespace' in kwargs else str()
 
-    g = Group(ns)  # possibly empty namespace group
+    sim = True
+    viz = True
 
-    # Create a (cached) package reference:
-    pkg = Package('fake_localization', True)
-    if pkg and pkg.has_node('fake_localization', True):  # only add if it exists
-        n = Node(pkg)
-	Helpers.enable_gdb(n)  # if you want to debug this node
-        # Set coodinate frame IDs (on the ROS parameter server):
-        n += ServerParameter('global_frame_id', 'map')
-        n += ServerParameter('odom_frame_id', tf_join(ns, 'odom'))
-        n += ServerParameter('base_frame_id', tf_join(ns, 'base_link'))
-        g += n  # move node to namespace 'ns'
+    root = RGCLaunch()
 
-    cfg += g
-    return cfg
+    f1tenth = F1TenthGroup(controller_type="f1tenth_control_ral.py")
+    f1tenth.add_all_nodes_to_launch(root, sim)
+
+    turtle1 = TurtlebotGroup("turtle1")
+    turtle1.add_all_nodes_to_launch(root, sim)
+
+    # groups = [f1tenth, turtle1]
+
+    # for g in groups:
+    #     print(g.position_topic)
+
+    return root

@@ -106,7 +106,7 @@ RUN apt-get update && apt-get install -y \
 
     
 
-RUN pip3 install numpy "jax[cpu]" pyyaml rospkg transforms3d equinox scipy matplotlib
+RUN pip3 install numpy "jax[cpu]" pyyaml rospkg transforms3d equinox scipy matplotlib torch
 RUN pip3 install --upgrade numpy
 
 # Install updated cmake
@@ -125,7 +125,23 @@ RUN apt-get update \
 # Make a ROS workspace
 RUN mkdir -p /catkin_ws/src
 WORKDIR /catkin_ws
-SHELL ["/bin/bash", "-c"]  # so we can use `source`
+SHELL ["/bin/bash", "-c"]  
+# so we can use `source`ots:
+  #   image: realm_gc:latest
+  #   build:
+  #     context: .
+  #     dockerfile: .docker/Dockerfile
+  #   environment:
+  #     - ROS_HOSTNAME=127.0.0.1
+  #   volumes:
+  #     - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
+  #   network_mode: host
+  #   privileged: true
+  #   stdin_open: true # docker run -i
+  #   tty: true # docker run -t
+  #   depends_on:
+  #     - roscore
+  #   command: /bin/bash -c 'catkin_
 RUN source /opt/ros/noetic/setup.sh && catkin_init_workspace src
 
 # Clone the vicon bridge
@@ -157,15 +173,21 @@ RUN touch CATKIN_IGNORE
 WORKDIR /catkin_ws/src/f1tenth_system/vesc/vesc
 RUN touch CATKIN_IGNORE
 
-# Clone roslaunch2
-
-COPY submodules/roslaunch2 /catkin_ws/src/roslaunch2
-
-
 # Build
 WORKDIR /catkin_ws
 RUN apt-get update && apt-get install -y 
 RUN rosdep install --from-paths src --ignore-src --rosdistro noetic -y
+RUN source /opt/ros/noetic/setup.sh && catkin_make
+
+# Clone roslaunch2
+WORKDIR /catkin_ws/src
+COPY submodules/roslaunch2 /catkin_ws/src/roslaunch2
+# Build
+WORKDIR /catkin_ws
+RUN rosdep update
+RUN apt-get install -y python3-pyro4
+RUN rosdep install --from-paths src --ignore-src --rosdistro noetic -y
+RUN pip3 install --upgrade lxml
 RUN source /opt/ros/noetic/setup.sh && catkin_make
 
 # Add lines to the bashrc file that source ROS
