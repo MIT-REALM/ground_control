@@ -136,14 +136,16 @@ class GCBF_policy(ControlPolicy):
             obs = self.obs
         car_pos = jnp.array([car_pos.x, car_pos.y, car_pos.theta, car_pos.v])
 
-        print('new pos from sim: ', car_pos)
-        new_graph = self.create_graph(car_pos, self.car_goal, obs)
+        
+        new_graph = self.create_graph(car_pos, self.car_goal, obs, graph)
         self.graph0 = new_graph
+        print('graph state before step: ', new_graph.env_states.agent)
         accel = self.act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel)
         # accel = self.act_fn(new_graph)
         accel = self.env.clip_action(accel)
         new_graph_step, _, _, _, _ = self.env.step(new_graph, accel)
-        print('new state from graph: ', new_graph_step.env_states.agent)
+        print('accel: ', accel)
+        print('graph state after step: ', new_graph_step.env_states.agent)
 
         return F1TenthAction(
             acceleration=accel[0, 1],

@@ -29,7 +29,7 @@ class F1TenthSimulator:
         self.command = np.array([0.0, 0.0, 0.0])
 
         # Set the simulation rate
-        self.rate_hz = rospy.get_param("~rate", 33.0)
+        self.rate_hz = rospy.get_param("~rate", 10.0)
         self.rate = rospy.Rate(self.rate_hz)
 
         # Subscribe to cmd_vel
@@ -68,6 +68,8 @@ class F1TenthSimulator:
             #     v = 0
             # if v_des > 1.5:
             #     v_des = 1.5
+            # print('state before sim: ', self.state)
+            # print('command: ', self.command)
             dq_dt = np.array(
                 [
                     v * np.cos(theta),
@@ -77,8 +79,8 @@ class F1TenthSimulator:
                     a,
                 ]
             )
-            self.state += dq_dt / self.rate_hz
-
+            self.state += dq_dt / self.rate_hz / 3
+            # print('state after sim: ', self.state)
             # print('state: ', self.state)
             # Publish the transform
             tf = TransformStamped()
