@@ -157,6 +157,76 @@ class TurtlebotGroup(RGCGroup):
 
 
 
+class ObstacleGroup(RGCGroup):
+
+    def __init__(
+            self,
+            ns,
+
+            state_estimator_name="obstacle_state_estimator",
+            state_estimator_type="obstacle_maf.py",
+
+            simulator_name="obstacle_simulator",
+            simulator_type="obstacle_simulator.py",
+
+            output=Output.Screen,
+
+            position_topic="/vicon/realm_obstacle_0/realm_obstacle_0",
+            frame_name="obstacle_0",
+
+            x_pos="0.0",
+            y_pos="0.0",
+            theta="0.0"
+    ):
+        super(TurtlebotGroup, self).__init__(
+            ns,
+            None,
+            None,
+            state_estimator_name,
+            state_estimator_type,
+            simulator_name,
+            simulator_type,
+            output,
+            position_topic,
+            None
+        )
+
+        self.frame_name = frame_name
+        self.x_pos = x_pos
+        self.y_pos = y_pos
+        self.theta = theta
+
+    def add_controller(self):
+        return
+
+    def add_state_estimator(self):
+        if self.rgc_state_estimators.has_node(self.state_estimator_type, False):
+            n = Node(pkg=self.rgc_state_estimators, 
+                    node_type=self.state_estimator_type,
+                    name=self.state_estimator_name,
+                    output=self.output)
+            
+            n += FileParameter(param="position_topic", value=self.position_topic)
+
+            self.add(n)
+
+    def add_simulator(self):
+        if self.rgc_simulator.has_node(self.simulator_type, False):
+            n = Node(pkg=self.rgc_simulator,
+                     node_type=self.simulator_type,
+                     name=self.simulator_name,
+                     output=self.output)
+
+            n += FileParameter(param="position_topic", value=self.position_topic)
+            n += FileParameter(param="frame_name", value=self.frame_name)
+            n += FileParameter(param="x_pos", value=self.x_pos)
+            n += FileParameter(param="y_pos", value=self.x_pos)
+            n += FileParameter(param="theta", value=self.theta)
+
+            self.add(n)
+
+
+
 class F1TenthGroup(RGCGroup):
 
     def __init__(
@@ -245,7 +315,6 @@ class F1TenthGroup(RGCGroup):
             self.add(n)
 
 
-         
 class RGCLaunch(Launch):
 
     def __init__(self):
@@ -262,8 +331,16 @@ def main(**kwargs):  # contains the entire code to launch
     f1tenth = F1TenthGroup(controller_type="f1tenth_control_ral.py")
     f1tenth.add_all_nodes_to_launch(root, sim)
 
-    turtle1 = TurtlebotGroup("turtle1")
-    turtle1.add_all_nodes_to_launch(root, sim)
+    # turtle1 = TurtlebotGroup("turtle1")
+    # turtle1.add_all_nodes_to_launch(root, sim)
+
+    obstacle1 = ObstacleGroup(
+        ns="obstacle1",
+        x_pos="2.0",
+        y_pos="2.0",
+        theta="0.0")
+    obstacle1.add_all_nodes_to_launch(root, sim)
+    
 
     # groups = [f1tenth, turtle1]
 
