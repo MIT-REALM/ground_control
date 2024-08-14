@@ -51,8 +51,8 @@ class VisualizeSimulator:
         )
 
         self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
-        print(self.ref_traj.cx)
-        print(self.ref_traj.cy)
+        # print(self.ref_traj.cx)
+        # print(self.ref_traj.cy)
 
 
 
@@ -85,7 +85,7 @@ class VisualizeSimulator:
         #plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
         plt.scatter(ref_x,ref_y)
 
-        plt.show(block=False)
+        plt.show()
         plt.pause(0.1)
 
         bg = fig.canvas.copy_from_bbox(fig.bbox)

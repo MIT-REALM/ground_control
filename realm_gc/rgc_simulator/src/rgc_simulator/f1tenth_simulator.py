@@ -26,10 +26,10 @@ class F1TenthSimulator:
 
         # Initialize the f1tenth state
         self.state = np.array([0.0, 0.0, 0.0, 0.0])
-        self.command = np.array([0.0, 0.0])
+        self.command = np.array([0.0, 0.0, 0.0])
 
         # Set the simulation rate
-        self.rate_hz = rospy.get_param("~rate", 10.0)
+        self.rate_hz = rospy.get_param("~rate", 33.0)
         self.rate = rospy.Rate(self.rate_hz)
 
         # Subscribe to cmd_vel
@@ -56,24 +56,30 @@ class F1TenthSimulator:
 
     def cmd_callback(self, msg):
         """Update the saved command."""
-        self.command = np.array([msg.drive.steering_angle, msg.drive.acceleration])
+        self.command = np.array([msg.drive.steering_angle, msg.drive.acceleration, msg.drive.speed])
 
     def run(self):
         """Run the simulation."""
         while not rospy.is_shutdown():
             # Update the state
             x, y, theta, v = self.state
-            delta, a = self.command
+            delta, a, v_des= self.command
+            # if v_des <= 0:
+            #     v = 0
+            # if v_des > 1.5:
+            #     v_des = 1.5
             dq_dt = np.array(
                 [
                     v * np.cos(theta),
                     v * np.sin(theta),
-                    (v / self.axle_length) * np.tan(delta),
+                    # (v / self.axle_length) * np.tan(delta),
+                    delta * 20, 
                     a,
                 ]
             )
             self.state += dq_dt / self.rate_hz
 
+            # print('state: ', self.state)
             # Publish the transform
             tf = TransformStamped()
             tf.header.stamp = rospy.Time.now()

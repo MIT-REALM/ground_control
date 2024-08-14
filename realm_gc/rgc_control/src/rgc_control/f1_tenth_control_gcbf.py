@@ -58,10 +58,12 @@ class F1TenthControl(RobotControl):
         #     np.array([self.state.x, self.state.y, self.state.theta, self.state.speed]),
         #     self.eqx_filepath,
         # )
+        goal = np.array([1.0, 1.0, 0.0, 0.0])
+        self.goal = goal
         self.control_policy = GCBF_policy(
             min_distance=1.0,
             car_pos=np.array([0.0, 0.0, 0.0, 0.0]),
-            car_goal=np.array([1.0, 1.0, 0.0, 0.0]),
+            car_goal=goal,
             obs_pos=np.array([[4.5, 4.5], [4.5, 4.5]]),
             num_obs=1,
             mov_obs=2,
@@ -103,7 +105,7 @@ class F1TenthControl(RobotControl):
             self.control = self.control_policy.compute_action(current_state)
 
             # Stop if the experiment is over
-            if t >= 1.0:
+            if t >= 10.0:
                 self.control = F1TenthAction(0.0, 0.0)
 
         elif self.state is None:
@@ -116,16 +118,26 @@ class F1TenthControl(RobotControl):
 
         # Control speed rather than acceleration directly
         self.desired_speed += self.dt * self.control.acceleration
-        print(self.desired_speed)
-        print(self.desired_speed.shape)
+        
         if self.desired_speed > 1.5:
             self.desired_speed = 1.5
+            msg.drive.acceleration = 0.0
+        elif self.desired_speed < 0.0:
+            self.desired_speed = -0.0001
+            msg.drive.acceleration = 0.0
 
         msg.drive.mode = 0
         msg.drive.speed = self.desired_speed
     
         self.control_pub.publish(msg)
         print('control:', self.control.steering_angle, self.control.acceleration)
+        print('speed:', self.desired_speed)
+        dist_goal = np.sqrt((current_state.x - self.goal[0])**2 + (current_state.y - self.goal[1])**2)
+        print('distance to goal:', dist_goal)
+        if dist_goal < 0.1:
+            print('Goal reached')
+            self.reset_control()
+            rospy.signal_shutdown('Goal reached')
 
 if __name__ == "__main__":
     try:

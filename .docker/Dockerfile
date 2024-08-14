@@ -181,6 +181,7 @@ RUN echo "source /catkin_ws/devel/setup.bash" >> /root/.bashrc
 
 RUN apt-get --purge autoremove python3-pip -y
 RUN apt install python3-pip -y
+RUN python3 -m pip install --upgrade pip
 RUN pip3 install --upgrade numpy pyyaml
 RUN pip3 install seaborn
 RUN pip3 install "jax[cpu]" rospkg transforms3d equinox scipy matplotlib flax einops colour
