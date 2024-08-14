@@ -157,6 +157,11 @@ RUN touch CATKIN_IGNORE
 WORKDIR /catkin_ws/src/f1tenth_system/vesc/vesc
 RUN touch CATKIN_IGNORE
 
+# Clone roslaunch2
+
+COPY submodules/roslaunch2 /catkin_ws/src/roslaunch2
+
+
 # Build
 WORKDIR /catkin_ws
 RUN apt-get update && apt-get install -y 

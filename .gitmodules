@@ -2,5 +2,5 @@
 	path = submodules/f1tenth_system
 	url = git@github.com:MIT-REALM/f1tenth_system.git
 [submodule "realm_gc/roslaunch2"]
-	path = realm_gc/roslaunch2
+	path = submodules/roslaunch2
 	url = https://github.com/CodeFinder2/roslaunch2
