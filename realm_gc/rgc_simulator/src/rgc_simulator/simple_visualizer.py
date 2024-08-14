@@ -10,7 +10,6 @@ import os
 from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
 
 
-
 class VisualizeSimulator:
     """simple visualizer"""
 
@@ -19,25 +18,26 @@ class VisualizeSimulator:
         # Initialize the node
         rospy.init_node("simple_visualizer")
 
-        default_position_topics = [
-            "/vicon/realm_f1tenth/realm_f1tenth",
-            "/vicon/realm_turtle_1/realm_turtle_1",
-            "/vicon/realm_turtle_2/realm_turtle_2"
-        ]
+        # default_position_topics = [
+        #     "/vicon/realm_f1tenth/realm_f1tenth",
+        #     "/vicon/realm_turtle_1/realm_turtle_1",
+        #     "/vicon/realm_turtle_2/realm_turtle_2"
+        # ]
 
-        default_position_labels = [
-            "f1tenth",
-            "turtle1",
-            "turtle2"
-        ]
+        # default_position_labels = [
+        #     "f1tenth",
+        #     "turtle1",
+        #     "turtle2"
+        # ]
 
-        self.position_topics = rospy.get_param(
-            "~position_topics", default_position_topics
-        )
+        delimiter = rospy.get_param("~delimiter", None)
 
-        self.position_labels = rospy.get_param(
-            "~position_labels", default_position_labels
-        )
+        if delimiter is None:
+            self.position_topics = rospy.get_param("~position_topics")
+            self.position_labels = rospy.get_param("~position_labels")
+        else:
+            self.position_topics = rospy.get_param("~position_topics").split(delimiter)
+            self.position_labels = rospy.get_param("~position_labels").split(delimiter)
 
         self.xy = np.zeros((len(self.position_topics), 2))
 
@@ -47,18 +47,18 @@ class VisualizeSimulator:
 
         self.draw_traj = rospy.get_param("~draw_traj", False)
 
-        self.traj_filepath = os.path.join(
-            rospy.get_param("~base_path"), 
-            rospy.get_param("~filename")
-        )
-
         if self.draw_traj:
+            self.traj_filepath = os.path.join(
+                rospy.get_param("~base_path"), 
+                rospy.get_param("~filename")
+            )
             self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
             self.x_min = min(self.ref_traj.cx)
             self.x_max = max(self.ref_traj.cx)
             self.y_min = min(self.ref_traj.cy)
             self.y_max = max(self.ref_traj.cy)
         else:
+            self.traj_filepath = None
             self.ref_traj = None
             self.x_min = rospy.get_param("x_min", -5)
             self.x_max = rospy.get_param("x_max",  5)

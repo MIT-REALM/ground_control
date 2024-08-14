@@ -178,7 +178,7 @@ class ObstacleGroup(RGCGroup):
             y_pos="0.0",
             theta="0.0"
     ):
-        super(TurtlebotGroup, self).__init__(
+        super(ObstacleGroup, self).__init__(
             ns,
             None,
             None,
@@ -315,6 +315,83 @@ class F1TenthGroup(RGCGroup):
             self.add(n)
 
 
+class VisualizerGroup(Group):
+
+    def __init__(
+            self,
+            ns="visualizer",
+            output=Output.Screen,
+            groups={},
+            draw_traj="false",
+
+            x_min="-5.0",
+            x_max="5.0",
+            y_min="-5.0",
+            y_max="5.0",
+            grace="2.0"
+    ):
+        super(VisualizerGroup, self).__init__(ns)
+
+        self.rgc_simulator = Package('rgc_simulator', True)
+
+        self.visualizer_name = "simple_visualizer"
+        self.visualizer_type = "simple_visualizer.py"
+
+        self.output = output
+        self.groups = groups
+        self.draw_traj = draw_traj
+
+        self.x_min = x_min
+        self.x_max = x_max
+        self.y_min = y_min
+        self.y_max = y_max
+        self.grace = grace
+    
+    def add_visualizer(self):
+        if self.rgc_simulator.has_node(self.visualizer_type, False):
+            n = Node(pkg=self.rgc_simulator, 
+                    node_type=self.visualizer_type,
+                    name=self.visualizer_name,
+                    output=self.output)
+            
+            n += FileParameter(param="x_min", value=self.x_min)
+            n += FileParameter(param="x_max", value=self.x_max)
+            n += FileParameter(param="y_min", value=self.y_min)
+            n += FileParameter(param="y_max", value=self.y_max)
+            n += FileParameter(param="grace", value=self.grace)
+            
+            # TODO: handle draw_traj stuff
+
+            delimiter = "__DELIMITER__" # can't use this in topics or labels
+            
+            position_topics = []
+            position_labels = []
+            
+            for label, group in self.groups.items():
+                print(label, group)
+                position_labels.append(label)
+                position_topics.append(group.position_topic)
+
+            position_labels_str = delimiter.join(position_labels)
+            position_topics_str = delimiter.join(position_topics)
+
+            n += FileParameter(param="delimiter", value=delimiter)
+            n += FileParameter(param="position_labels", value=position_labels_str)
+            n += FileParameter(param="position_topics", value=position_topics_str)
+
+            # print(position_labels)
+
+            # n += FileParameter(param="position_labels", value=position_labels)
+            # n += FileParameter(param="position_topics", value=position_topics)
+
+            self.add(n)
+
+    def add_visualizer_to_launch(self, root):
+        self.add_visualizer()
+        root.add(self)
+
+
+
 class RGCLaunch(Launch):
 
     def __init__(self):
@@ -342,9 +419,11 @@ def main(**kwargs):  # contains the entire code to launch
     obstacle1.add_all_nodes_to_launch(root, sim)
     
 
-    # groups = [f1tenth, turtle1]
+    groups = {
+        "f1/10": f1tenth, 
+        "obs1": obstacle1}
 
-    # for g in groups:
-    #     print(g.position_topic)
+    viz = VisualizerGroup(groups=groups)
+    viz.add_visualizer_to_launch(root)
 
     return root

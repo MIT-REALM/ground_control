@@ -15,14 +15,14 @@ class ObstacleSimulator:
 
         self.x_pos = rospy.get_param("~y_pos", 0.0)
         self.y_pos = rospy.get_param("~x_pos", 0.0)
-        self.theta = rospy.get_param("~angle", 0.0)
+        self.theta = rospy.get_param("~theta", 0.0)
 
         self.position_topic = rospy.get_param(
             "~position_topic", "/vicon/realm_obstacle0/realm_obstacle0"
         )
         self.frame_name = rospy.get_param("~frame_name", "realm_obstacle0")
 
-        print(self.x_pos, self.y_pos, self.angle, self.position_topic, self.frame_name)
+        print(self.x_pos, self.y_pos, self.theta, self.position_topic, self.frame_name)
 
         # Initialize the obstacle state
         self.state = np.array([self.x_pos, self.y_pos, self.theta])
