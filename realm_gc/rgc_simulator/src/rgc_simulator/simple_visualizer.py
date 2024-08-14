@@ -18,26 +18,22 @@ class VisualizeSimulator:
         # Initialize the node
         rospy.init_node("simple_visualizer")
 
-        # default_position_topics = [
-        #     "/vicon/realm_f1tenth/realm_f1tenth",
-        #     "/vicon/realm_turtle_1/realm_turtle_1",
-        #     "/vicon/realm_turtle_2/realm_turtle_2"
-        # ]
-
-        # default_position_labels = [
-        #     "f1tenth",
-        #     "turtle1",
-        #     "turtle2"
-        # ]
-
+        autosize = rospy.get_param("~autosize", None)
         delimiter = rospy.get_param("~delimiter", None)
 
         if delimiter is None:
             self.position_topics = rospy.get_param("~position_topics")
             self.position_labels = rospy.get_param("~position_labels")
+            self.draw_traj = rospy.get_param("~draw_traj")
+            self.base_paths = rospy.get_param("~base_paths")
+            self.filenames = rospy.get_param("~filenames")
         else:
             self.position_topics = rospy.get_param("~position_topics").split(delimiter)
             self.position_labels = rospy.get_param("~position_labels").split(delimiter)
+            self.draw_traj = rospy.get_param("~draw_traj").split(delimiter)
+            self.draw_traj = [s == 'True' for s in self.draw_traj]
+            self.base_paths = rospy.get_param("~base_paths").split(delimiter)
+            self.filenames = rospy.get_param("~filenames").split(delimiter)
 
         self.xy = np.zeros((len(self.position_topics), 2))
 
@@ -45,21 +41,34 @@ class VisualizeSimulator:
             topic, TransformStamped, lambda msg, i=idx: self.position_callback(msg, i)
         ) for idx, topic in enumerate(self.position_topics)]
 
-        self.draw_traj = rospy.get_param("~draw_traj", False)
+        self.ref_trajs = {}
 
-        if self.draw_traj:
-            self.traj_filepath = os.path.join(
-                rospy.get_param("~base_path"), 
-                rospy.get_param("~filename")
-            )
-            self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
-            self.x_min = min(self.ref_traj.cx)
-            self.x_max = max(self.ref_traj.cx)
-            self.y_min = min(self.ref_traj.cy)
-            self.y_max = max(self.ref_traj.cy)
+        if any(self.draw_traj):
+            self.x_min = float('inf')
+            self.x_max = float('-inf')
+            self.y_min = float('inf')
+            self.y_max = float('-inf')
+
+            self.ref_traj = {}
+            for idx, label in enumerate(self.position_labels):
+                if self.draw_traj[idx]:
+
+                    traj_filepath = os.path.join(
+                        self.base_paths[idx], 
+                        self.filenames[idx],
+                    )
+
+                    traj = SplineTrajectory2D(0.5,traj_filepath)
+                    self.x_min = min(self.x_min, min(traj.cx))
+                    self.x_max = max(self.x_max, max(traj.cx))
+                    self.y_min = min(self.y_min, min(traj.cy))
+                    self.y_max = max(self.y_max, max(traj.cy))
+
+                    self.ref_traj[label] = traj
         else:
-            self.traj_filepath = None
             self.ref_traj = None
+
+        if not autosize or not any(self.draw_traj):
             self.x_min = rospy.get_param("x_min", -5)
             self.x_max = rospy.get_param("x_max",  5)
             self.y_min = rospy.get_param("y_min", -5)
@@ -84,9 +93,10 @@ class VisualizeSimulator:
         annos = [ax.annotate(name, xy=self.xy[idx,:], animated=True) 
                  for idx, name in enumerate(self.position_labels)]
         
-        if self.draw_traj:
-            plt.plot(self.ref_traj.cx, self.ref_traj.cy)
-            plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
+        if self.ref_traj is not None:
+            for label, ref_traj in self.ref_traj.items():
+                plt.plot(ref_traj.cx, ref_traj.cy)
+                plt.scatter(ref_traj.traj['X'], ref_traj.traj['Y'])
 
         plt.show(block=False)
         plt.pause(0.1)

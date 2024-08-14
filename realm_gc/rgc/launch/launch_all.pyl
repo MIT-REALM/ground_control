@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
 from roslaunch2 import *
-import roslaunch2.launch
 import os
-import abc
+# import abc
 
 # currently mirrors launch structure of main repo, so some things may be a little weird?
-
 
 class RGCGroup(Group):
 
@@ -21,7 +19,9 @@ class RGCGroup(Group):
             simulator_type,
             output,
             position_topic,
-            control_topic
+            control_topic,
+            has_trajectory,
+            draw_trajectory
     ):
         super(RGCGroup, self).__init__(ns)
 
@@ -43,6 +43,9 @@ class RGCGroup(Group):
 
         self.position_topic = position_topic
         self.control_topic = control_topic
+
+        self.has_trajectory = has_trajectory
+        self.draw_trajectory = draw_trajectory
 
     def add_controller(self):
         raise NotImplementedError
@@ -79,6 +82,8 @@ class TurtlebotGroup(RGCGroup):
 
             output=Output.Screen,
 
+            has_trajectory=True,
+            draw_trajectory=False,
             trajectory_base_path=None,
             trajectory_filename="non_ego_traj_0.eqx",
 
@@ -172,11 +177,11 @@ class ObstacleGroup(RGCGroup):
             output=Output.Screen,
 
             position_topic="/vicon/realm_obstacle_0/realm_obstacle_0",
-            frame_name="obstacle_0",
+            frame_name=None,
 
             x_pos="0.0",
             y_pos="0.0",
-            theta="0.0"
+            theta="0.0",
     ):
         super(ObstacleGroup, self).__init__(
             ns,
@@ -188,13 +193,19 @@ class ObstacleGroup(RGCGroup):
             simulator_type,
             output,
             position_topic,
-            None
+            None,
+            False,
+            False
         )
 
-        self.frame_name = frame_name
+        self.frame_name = ns if frame_name is None else frame_name
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.theta = theta
+
+        self.base_path = "NOTHING"
+        self.filename = "NOTHING"
+
 
     def add_controller(self):
         return
@@ -244,6 +255,8 @@ class F1TenthGroup(RGCGroup):
 
             output=Output.Screen,
 
+            has_trajectory=True,
+            draw_trajectory=False,
             trajectory_base_path=None,
             trajectory_filename="ego_traj_nominal_3.pkl",
 
@@ -262,7 +275,9 @@ class F1TenthGroup(RGCGroup):
             simulator_type,
             output,
             position_topic,
-            control_topic
+            control_topic,
+            has_trajectory,
+            draw_trajectory
         )
 
         default_base_path = os.path.join(
@@ -328,7 +343,9 @@ class VisualizerGroup(Group):
             x_max="5.0",
             y_min="-5.0",
             y_max="5.0",
-            grace="2.0"
+            grace="2.0",
+
+            autosize="true"
     ):
         super(VisualizerGroup, self).__init__(ns)
 
@@ -346,6 +363,7 @@ class VisualizerGroup(Group):
         self.y_min = y_min
         self.y_max = y_max
         self.grace = grace
+        self.autosize = autosize
     
     def add_visualizer(self):
         if self.rgc_simulator.has_node(self.visualizer_type, False):
@@ -359,6 +377,7 @@ class VisualizerGroup(Group):
             n += FileParameter(param="y_min", value=self.y_min)
             n += FileParameter(param="y_max", value=self.y_max)
             n += FileParameter(param="grace", value=self.grace)
+            n += FileParameter(param="autosize", value=self.autosize)
             
             # TODO: handle draw_traj stuff
 
@@ -366,18 +385,30 @@ class VisualizerGroup(Group):
             
             position_topics = []
             position_labels = []
+            draw_traj = []
+            base_paths = []
+            filenames = []
             
             for label, group in self.groups.items():
                 print(label, group)
                 position_labels.append(label)
                 position_topics.append(group.position_topic)
+                draw_traj.append(str(group.draw_trajectory and group.has_trajectory))
+                base_paths.append(group.base_path)
+                filenames.append(group.filename)
 
             position_labels_str = delimiter.join(position_labels)
             position_topics_str = delimiter.join(position_topics)
+            draw_traj_str = delimiter.join(draw_traj)
+            base_paths_str = delimiter.join(base_paths)
+            filenames_str = delimiter.join(filenames)
 
             n += FileParameter(param="delimiter", value=delimiter)
             n += FileParameter(param="position_labels", value=position_labels_str)
             n += FileParameter(param="position_topics", value=position_topics_str)
+            n += FileParameter(param="draw_traj", value=draw_traj_str)
+            n += FileParameter(param="base_paths", value=base_paths_str)
+            n += FileParameter(param="filenames", value=filenames_str)
 
             # print(position_labels)
 
@@ -386,7 +417,7 @@ class VisualizerGroup(Group):
 
             self.add(n)
 
-    def add_visualizer_to_launch(self, root):
+    def add_all_nodes_to_launch(self, root):
         self.add_visualizer()
         root.add(self)
 
@@ -398,6 +429,7 @@ class RGCLaunch(Launch):
         super(RGCLaunch, self).__init__()
 
 
+
 def main(**kwargs):  # contains the entire code to launch
 
     sim = True
@@ -405,25 +437,51 @@ def main(**kwargs):  # contains the entire code to launch
 
     root = RGCLaunch()
 
-    f1tenth = F1TenthGroup(controller_type="f1tenth_control_ral.py")
+    # important parameters for f1tenth are mainly:
+    # -> controller_type
+    # -> position_topic, control_topic (if not default)
+    # -> trajectory_filename (if applicable)
+
+    f1tenth = F1TenthGroup(
+        controller_type="f1tenth_control_ral.py",
+        trajectory_filename="ego_traj_nominal_3.pkl",
+        draw_trajectory=True)
     f1tenth.add_all_nodes_to_launch(root, sim)
 
     # turtle1 = TurtlebotGroup("turtle1")
     # turtle1.add_all_nodes_to_launch(root, sim)
 
-    obstacle1 = ObstacleGroup(
-        ns="obstacle1",
-        x_pos="2.0",
-        y_pos="2.0",
-        theta="0.0")
-    obstacle1.add_all_nodes_to_launch(root, sim)
+    # important parameters for obstacles are mainly:
+    # -> ns (namespace)
+    # -> position_topic
+    # -> x_pos, y_pos (only needed for sim)
     
+    obstacle1 = ObstacleGroup(
+        ns="obstacle_1",
+        position_topic="/vicon/realm_obstacle_1/realm_obstacle_1",
+        x_pos="2.0",
+        y_pos="1.0")
+    obstacle1.add_all_nodes_to_launch(root, sim)
+
+    obstacle2 = ObstacleGroup(
+        ns="obstacle_2",
+        position_topic="/vicon/realm_obstacle_2/realm_obstacle_2",
+        x_pos="-1.0",
+        y_pos="-2.0")
+    obstacle2.add_all_nodes_to_launch(root, sim)
+
+    # set up groups and labels for visualization
 
     groups = {
         "f1/10": f1tenth, 
-        "obs1": obstacle1}
+        "obs1": obstacle1,
+        "obs2": obstacle2
+    }
 
-    viz = VisualizerGroup(groups=groups)
-    viz.add_visualizer_to_launch(root)
+    if viz:
+        visualizer = VisualizerGroup(
+            groups=groups,
+            autosize="false")
+        visualizer.add_all_nodes_to_launch(root)
 
     return root
