@@ -70,6 +70,7 @@ class F1TenthControl(RobotControl):
         self.obs1 = None
         self.obs_state_topic = rospy.get_param(
             "~position_topic1", "/vicon/realm_f1tenth/realm_obs")
+        
         self.obs_state_sub = rospy.Subscriber(
             self.obs_state_topic, TransformStamped, self.obs_state_callback
         )
@@ -90,7 +91,19 @@ class F1TenthControl(RobotControl):
             )
             rospy.sleep(1.0)
 
-        rospy.sleep(2.0)  # additional waiting for state to converge
+        while self.obs1 is None:
+            rospy.loginfo(
+                "Waiting for obs1 state estimate to converge to instantiate control policy"
+            )
+            rospy.sleep(1.0)
+        
+        while self.obs2 is None:
+            rospy.loginfo(
+                "Waiting for obs2 state estimate to converge to instantiate control policy"
+            )
+            rospy.sleep(1.0)
+
+        # rospy.sleep(2.0)  # additional waiting for state to converge
         rospy.loginfo("State estimate has converged. Instantiating control policy.")
 
         # self.control_policy = create_icra_f1tenth_policy(
@@ -102,7 +115,7 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/base_path"), 
             rospy.get_param("~trajectory/filename")
         )
-        self.v_ref = rospy.get_param("~v_ref", 0.5)        
+        self.v_ref = rospy.get_param("~v_ref", 2.5)        
         self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.traj_filepath)
 
         self.goal_x = self.reference_trajectory.cx[-1]
@@ -116,11 +129,12 @@ class F1TenthControl(RobotControl):
         self.goal = goal
         car_pos = np.array([self.reference_trajectory.cx[0], self.reference_trajectory.cy[0], self.reference_trajectory.cyaw[0], 0.0])
 
+        obs_pos = np.array([[self.obs1[0], self.obs1[1]], [self.obs2[0], self.obs2[1]]])
         self.control_policy = GCBF_policy(
             min_distance=1.0,
             car_pos=car_pos,
             car_goal=goal,
-            obs_pos=np.array([[0.0, -0.5], [5.5, 4.5]]),
+            obs_pos=obs_pos,
             num_obs=1,
             mov_obs=2,
             model_path='/catkin_ws/src/realm_gc/rgc_control/src/gcbfplus/seed1_20240719162242/'
@@ -244,8 +258,8 @@ class F1TenthControl(RobotControl):
         # Control speed rather than acceleration directly
         self.desired_speed += self.dt * self.control.acceleration
         
-        if self.desired_speed > 1.5:
-            self.desired_speed = 1.5
+        if self.desired_speed > 2.5:
+            self.desired_speed = 2.5
             msg.drive.acceleration = 0.0
         elif self.desired_speed < 0.0:
             self.desired_speed = -0.0001

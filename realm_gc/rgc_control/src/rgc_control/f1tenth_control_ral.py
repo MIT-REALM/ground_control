@@ -39,7 +39,7 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/base_path"), 
             rospy.get_param("~trajectory/filename")
         )
-        self.v_ref = rospy.get_param("~v_ref", 0.5)        
+        self.v_ref = rospy.get_param("~v_ref", 2.5)        
         self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.traj_filepath)
 
         self.goal_x = self.reference_trajectory.cx[-1]
@@ -180,8 +180,8 @@ class F1TenthControl(RobotControl):
 
             # Control speed rather than acceleration directly
             self.desired_speed += self.dt * self.control.acceleration
-            if self.desired_speed > 0.5:
-                self.desired_speed = 0.5
+            if self.desired_speed > 2.5:
+                self.desired_speed = 2.5
             msg.drive.speed = self.desired_speed
             print(msg.drive.speed,msg.drive.acceleration,msg.drive.steering_angle)
             self.control_pub.publish(msg)

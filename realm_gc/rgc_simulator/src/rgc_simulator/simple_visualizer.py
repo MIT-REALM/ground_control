@@ -37,14 +37,16 @@ class VisualizeSimulator:
 
         default_position_topics = [
             "/vicon/realm_f1tenth/realm_f1tenth",
-            "/vicon/realm_turtle_1/realm_turtle_1",
-            "/vicon/realm_turtle_2/realm_turtle_2"
+            # "/vicon/realm_turtle_1/realm_turtle_1",
+            # "/vicon/realm_turtle_2/realm_turtle_2",
+            "/vicon/realm_f1tenth/realm_obs",
+            "/vicon/realm_f1tenth/realm_obs2"
         ]
 
         default_position_names = [
             "f1tenth",
             "turtle1",
-            "turtle2"
+            "turtle2",
         ]
 
         self.position_topics = rospy.get_param(
@@ -84,9 +86,9 @@ class VisualizeSimulator:
     def run(self):
         # see https://matplotlib.org/stable/users/explain/animations/blitting.html
         fig, ax = plt.subplots(figsize=(10, 10))
-        pts = ax.scatter(self.xy[:,0], self.xy[:,1], animated=True, s=100)
+        pts = ax.scatter(self.xy[:, 0], self.xy[:, 1], animated=True, s=100, c=['b', 'r', 'r'])
 
-        lines = ax.plot(self.xy, self.xy + 0.1*np.array([np.cos(self.theta), np.sin(self.theta)]).T, animated=True, linewidth=2)
+        # lines = ax.plot(self.xy, self.xy + 0.1*np.array([np.cos(self.theta), np.sin(self.theta)]).T, animated=True, linewidth=2)
         
         x_min = -2
         x_max = 5

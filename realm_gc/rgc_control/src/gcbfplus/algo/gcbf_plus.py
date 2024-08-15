@@ -203,8 +203,16 @@ class GCBFPlus(GCBF):
     
     # @ft.partial(jax.jit, static_argnums=(0,))
     def get_u_qp_act(self, graph: GraphsTuple, prev_graph: GraphsTuple, params, act=None, mov_obs_vel=None, ref_in=None) -> Action:
+        # u_ref, flag = self.get_qp_action_ref_test(graph=graph, prev_graph=prev_graph, cbf_params=params, act=act,mov_obs_vel=mov_obs_vel, ref_in=ref_in)
+        # if flag == 1:
+        #     return u_ref
+        # else:
         u_qp, _ = self.get_qp_action_test(graph=graph, prev_graph=prev_graph, cbf_params=params, act=act,mov_obs_vel=mov_obs_vel, ref_in=ref_in)
         return u_qp
+    
+    def ref_check(self, graph: GraphsTuple, prev_graph: GraphsTuple, params, act=None, mov_obs_vel=None, ref_in=None) -> Action:
+        u_ref, flag = self.get_qp_action_ref_test(graph=graph, prev_graph=prev_graph, cbf_params=params, act=act,mov_obs_vel=mov_obs_vel, ref_in=ref_in)
+        return u_ref, flag
     
     def update_nets(self, rollout: Rollout, safe_mask, unsafe_mask):
         update_info = {}
@@ -308,6 +316,72 @@ class GCBFPlus(GCBF):
 
         return update_info
     
+    def get_qp_action_ref_test(
+            self,
+            graph: GraphsTuple,
+            prev_graph: GraphsTuple,
+            cbf_params=None,
+            act=None,
+            mov_obs_vel = None,
+            ref_in=None,
+    ) -> [Action, Array]:
+        assert graph.is_single  # consider single graph
+        agent_node_mask = graph.node_type == 0
+        agent_node_id = mask2index(agent_node_mask, self.n_agents)
+        
+        mov_obs_node_mask = jnp.logical_or(graph.node_type == 3, graph.node_type == 4)
+        # graph.node_type == 3  graph.node_type == 4
+        
+        mov_obs_node_id = mask2index(mov_obs_node_mask, self._env.params["n_mov_obs"])
+
+        def h_aug(new_agent_state: State) -> Array:
+            new_state = graph.states.at[agent_node_id].set(new_agent_state)
+            new_graph = self._env.add_edge_feats(graph, new_state)
+            return self.get_cbf(new_graph, params=cbf_params)
+
+        def h_obs(mov_obs) -> Array:
+            new_state = graph.states.at[mov_obs_node_id].set(mov_obs)
+            new_graph = self._env.add_edge_feats(graph, new_state)
+            return self.get_cbf(new_graph, params=cbf_params)
+        
+        mov_obs = graph.env_states.mov_obs        
+        mov_obs_prev = prev_graph.env_states.mov_obs
+        if mov_obs_vel is None:
+            mov_obs_vel = (mov_obs - mov_obs_prev) / self._env.dt
+        
+        # h_mov_obs = h_obs(mov_obs)[:, 0, ...]
+        Lh_mov_obs = jax.jacobian(h_obs)(mov_obs)[:, 0, ...]
+        
+        Lfh_mov_obs = ei.einsum(Lh_mov_obs, mov_obs_vel, "agent_i n_mov_obs nx, n_mov_obs nx -> agent_i")
+        
+        agent_state = graph.type_states(type_idx=0, n_type=self.n_agents)
+        h_ = h_aug(agent_state)
+        
+        h = h_[:, 0, ...]
+        alpha = h_[:, 1, ...]
+        
+        h_x = jax.jacobian(h_aug)(agent_state)[:, 0, ...]
+        dyn_f, dyn_g = self._env.control_affine_dyn(agent_state)
+        Lf_h = ei.einsum(h_x, dyn_f, "agent_i agent_j nx, agent_j nx -> agent_i")
+        Lf_h = Lf_h + Lfh_mov_obs
+        Lg_h = ei.einsum(h_x, dyn_g, "agent_i agent_j nx, agent_j nx nu -> agent_i agent_j nu")
+        Lg_h = Lg_h.reshape((self.n_agents, -1))
+        
+        u_lb, u_ub = self._env.action_lim()
+        u_lb = u_lb[None, :].repeat(self.n_agents, axis=0).reshape(-1)
+        u_ub = u_ub[None, :].repeat(self.n_agents, axis=0).reshape(-1)
+        if ref_in is None:
+            if act is not None:
+                u_ref = act(graph).reshape(-1)
+            else:
+                u_ref = self._env.u_ref(graph).reshape(-1)
+        else:
+            u_ref = ref_in.reshape(-1)
+        
+        u = jnp.where(ei.einsum(Lg_h, u_ref, "agent_i nu, nu -> agent_i") + Lf_h + alpha * 0.1 * h.squeeze() >= 0, u_ref, 100 * jnp.ones_like(u_ref))
+        flag = jnp.where(jnp.linalg.norm(u - u_ref) < 1e-5, 1, 0)
+        return u, flag
+        
     def get_qp_action_test(
             self,
             graph: GraphsTuple,
@@ -360,7 +434,7 @@ class GCBFPlus(GCBF):
         Lf_h = Lf_h + Lfh_mov_obs
         Lg_h = ei.einsum(h_x, dyn_g, "agent_i agent_j nx, agent_j nx nu -> agent_i agent_j nu")
         Lg_h = Lg_h.reshape((self.n_agents, -1))
-
+        
         u_lb, u_ub = self._env.action_lim()
         u_lb = u_lb[None, :].repeat(self.n_agents, axis=0).reshape(-1)
         u_ub = u_ub[None, :].repeat(self.n_agents, axis=0).reshape(-1)

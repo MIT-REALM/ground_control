@@ -36,8 +36,8 @@ class F1TenthSimulator:
 
         # Initialize the f1tenth state
         self.state = np.array([0.0, 0.0, 0.0, 0.0])
-        self.obs = np.array([1.0, 5.0, 0.0, 0.0])
-        self.obs2 = np.array([4.0, 3.0, 0.0, 0.0])
+        self.obs = np.array([0.0, -0.5, 0.0, 0.0])
+        self.obs2 = np.array([0.0, 1.0, 0.0, 0.0])
         self.command = np.array([0.0, 0.0, 0.0])
 
         # Set the simulation rate

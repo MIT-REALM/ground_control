@@ -93,6 +93,7 @@ class GCBF_policy(ControlPolicy):
         act_fn = jax.jit(algo.act)
         params = algo.cbf_train_state.params
         qp_fn = jax.jit(ft.partial(algo.get_u_qp_act, params=params, act=act_fn))
+        self.ref_check_fn = jax.jit(ft.partial(algo.ref_check, params=params, act=act_fn))
         self.act_fn = act_fn
         self.qp_act_fn = qp_fn
         key=jax.random.PRNGKey(0)
@@ -150,11 +151,15 @@ class GCBF_policy(ControlPolicy):
         else:
             ref_vel = None
 
-        accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+        ref_accel, flag = self.ref_check_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+        if flag == 1:
+            accel = ref_accel[None, :]
+        else:
+            accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
         # accel = self.act_fn(new_graph)
         accel = self.env.clip_action(accel)
         # print('graph state before step: ', new_graph.env_states.agent)
-        new_graph_step, _, _, _, _ = self.env.step(new_graph, accel)
+        # new_graph_step, _, _, _, _ = self.env.step(new_graph, accel)
         # print('accel: ', accel)
         # print('graph state after step: ', new_graph_step.env_states.agent)
 

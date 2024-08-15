@@ -4,8 +4,8 @@
 
 <launch>
     <arg name="visualizer_position_topics" default="[
-        /vicon/realm_f1tenth/realm_f1tenth]"/>
-    <arg name="visualizer_position_names" default="[f1tenth]"/>
+        /vicon/realm_f1tenth/realm_f1tenth,/vicon/realm_f1tenth/realm_obs,/vicon/realm_f1tenth/realm_obs2]"/>
+    <arg name="visualizer_position_names" default="[f1tenth, turtle1, turtle2]"/>
 
     <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
     <arg name="filename" default="ego_traj_nominal_1.pkl"/>
