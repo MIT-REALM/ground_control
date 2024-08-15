@@ -10,9 +10,9 @@ from rgc_control.policies.tracking.steering_policies import (
 from rgc_control.policies.tracking.tracking_policies import (
     TimedG2CPose2DObservation,
     G2CTrajectoryTrackingPolicy,
-    TrajectoryTrackingPolicy,
+    # TrajectoryTrackingPolicy,
 )
-from rgc_control.policies.tracking.trajectory import SplineTrajectory2D, LinearTrajectory2D
+from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
 
 
 @dataclass

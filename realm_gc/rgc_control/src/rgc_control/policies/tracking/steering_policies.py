@@ -170,6 +170,21 @@ class F1TenthSteeringPolicy(ControlPolicy):
 
         return A, B
 
+    def set_eq(self, eq = None):
+        if eq is not None:
+            self.equilibrium_state = eq
+            A, B = self.get_AB(self.equilibrium_state, 0.0, 0.0)
+
+            # Compute the LQR controller about the equilibrium
+            Q = np.eye(4)
+            R = np.eye(2)
+            try:
+                X = np.matrix(scipy.linalg.solve_discrete_are(A, B, Q, R))
+                self.K = np.matrix(scipy.linalg.inv(B.T * X * B + R) * (B.T * X * A))
+                print('using new K')
+            except:
+                print('cannot find new K, using previous one')
+
     def compute_action(self, observation: SteeringObservation) -> F1TenthAction:
         """Takes in an observation and returns a control action."""
         state = np.array(

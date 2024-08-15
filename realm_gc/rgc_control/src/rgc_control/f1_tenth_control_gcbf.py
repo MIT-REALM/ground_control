@@ -17,9 +17,17 @@ from rgc_control.policies.icra_experiment_policies import (
     ICRAF1TenthObservation,
     # create_icra_f1tenth_policy,
 )
+
+from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
+
+from rgc_control.policies.tracking.steering_policies import F1TenthSteeringPolicy, SteeringObservation, Pose2DObservation
+
 from rgc_control.robot_control import RobotControl
 from rgc_control.policies.gcbf_policy import GCBF_policy
 
+from rgc_control.policies.ral_experiment_policies import (
+    create_ral_f1tenth_policy,RALF1tenthObservation
+)
 
 class F1TenthControl(RobotControl):
     def __init__(self):
@@ -39,16 +47,34 @@ class F1TenthControl(RobotControl):
         self.state_estimate_topic = rospy.get_param(
             "~state_estimate_topic", f"{rospy.get_name()}/estimate"
         )
+        self.sim_state = None
+        self.position_topic = rospy.get_param(
+            "~position_topic", "/vicon/realm_f1tenth/realm_f1tenth"
+        )
+
+        self.sim_position_topic = rospy.get_param(
+            "~position_topic_sim", "/vicon/realm_f1tenth/realm_f1tenth_sim"
+        )
+
+        self.position_sub = rospy.Subscriber(
+            self.position_topic, TransformStamped, self.pos_callback
+        )
+
+        self.sim_position_sub = rospy.Subscriber(
+            self.sim_position_topic, F1TenthState, self.sim_pos_callback
+        )
+
         self.estimate_sub = rospy.Subscriber(
             self.state_estimate_topic, F1TenthState, self.state_estimate_callback
         )
-
+        self.obs1 = None
         self.obs_state_topic = rospy.get_param(
             "~position_topic1", "/vicon/realm_f1tenth/realm_obs")
         self.obs_state_sub = rospy.Subscriber(
             self.obs_state_topic, TransformStamped, self.obs_state_callback
         )
-
+        
+        self.obs2 = None
         self.obs_state_topic = rospy.get_param("~position_topic2",
             "/vicon/realm_f1tenth/realm_obs2")
         
@@ -71,24 +97,66 @@ class F1TenthControl(RobotControl):
         #     np.array([self.state.x, self.state.y, self.state.theta, self.state.speed]),
         #     self.eqx_filepath,
         # )
-        goal = np.array([2.0, 2.0, 0.0, 0.0])
+
+        self.traj_filepath = os.path.join(
+            rospy.get_param("~trajectory/base_path"), 
+            rospy.get_param("~trajectory/filename")
+        )
+        self.v_ref = rospy.get_param("~v_ref", 0.5)        
+        self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.traj_filepath)
+
+        self.goal_x = self.reference_trajectory.cx[-1]
+        self.goal_y = self.reference_trajectory.cy[-1]
+        self.goal_yaw = self.reference_trajectory.cyaw[-1]
+        self.e = 0.0
+        self.theta_e = 0.0
+        self.target_ind = 0
+
+        goal = np.array([self.goal_x, self.goal_y, self.goal_yaw, 0.0])
         self.goal = goal
+        car_pos = np.array([self.reference_trajectory.cx[0], self.reference_trajectory.cy[0], self.reference_trajectory.cyaw[0], 0.0])
+
         self.control_policy = GCBF_policy(
             min_distance=1.0,
-            car_pos=np.array([0.0, 0.0, 0.0, 0.0]),
+            car_pos=car_pos,
             car_goal=goal,
-            obs_pos=np.array([[4.5, 4.5], [4.5, 4.5]]),
+            obs_pos=np.array([[0.0, -0.5], [5.5, 4.5]]),
             num_obs=1,
             mov_obs=2,
             model_path='/catkin_ws/src/realm_gc/rgc_control/src/gcbfplus/seed1_20240719162242/'
         )
+
+        self.reference_control = F1TenthSteeringPolicy(equilibrium_state=car_pos + np.array([0.1, -0.2, -0.2, 0.1]), axle_length=0.28, dt=0.03)
+
+        self.current_pose = None
+        self.goal_pose= Pose2DObservation(
+            goal[0],
+            goal[1],
+            goal[2],
+            goal[3]
+        )
+        self.obs= None
+
+        self.control_policy_ral = create_ral_f1tenth_policy(
+            np.array([self.state.x, self.state.y, self.state.theta, self.state.speed,self.e,self.theta_e]),
+            self.v_ref,
+            self.traj_filepath,
+        )
+        
+    def pos_callback(self, msg):
+        self.actual_state = np.array([msg.transform.translation.x, msg.transform.translation.y, 0.0, 0.0])
     
+    def sim_pos_callback(self, msg):
+        self.sim_state = msg
+        # print('actual_state:', msg.transform.translation.x, msg.transform.translation
     def obs_state_callback(self, msg):
-        print('obs_state:', msg.transform.translation.x, msg.transform.translation.y)
+        self.obs1 = np.array([msg.transform.translation.x, msg.transform.translation.y, 0.0, 0.0])
+        # print('obs_state:', msg.transform.translation.x, msg.transform.translation.y)
 
     def obs_state_callback2(self, msg):
-        print('obs_state:', msg.transform.translation.x, msg.transform.translation.y)
-
+        self.obs2 = np.array([msg.transform.translation.x, msg.transform.translation.y, 0.0, 0.0])
+        # print('obs_state:', msg.transform.translation.x, msg.transform.translation.y)
+    
     def state_estimate_callback(self, msg):
         self.state = msg
 
@@ -106,6 +174,7 @@ class F1TenthControl(RobotControl):
         Update and publish the control.
         This function implements and calls the control prediction and update steps.
         """
+        self.state = self.sim_state
         if self.state is not None:
             # Pack [x,y,theta,v] from state message into TimedPose2DObservation instance
             # Make sure to normalize the time
@@ -118,6 +187,7 @@ class F1TenthControl(RobotControl):
                 v=self.state.speed,
                 t=t,
             )
+
             # current_state = ICRAF1TenthObservation(
             #     x=self.state.transform.translation.x,
             #     y=self.state.transform.translation.y,
@@ -127,8 +197,37 @@ class F1TenthControl(RobotControl):
             # )
             # print(current_state.x)
             # print(current_state.y)
+
+            current_state_timed = RALF1tenthObservation(
+                x=self.state.x,
+                y=self.state.y,
+                theta=self.state.theta,
+                v=self.state.speed,
+                e = self.e,
+                theta_e = self.theta_e,
+                t=self.target_ind,
+            )
+
+            reference_control, self.e, self.theta_e, self.target_ind = self.control_policy_ral.compute_action(current_state_timed)
             
-            self.control = self.control_policy.compute_action(current_state)
+            
+            # self.current_pose = Pose2DObservation(
+            #     self.state.x,
+            #     self.state.y,
+            #     self.state.theta, 
+            #     self.state.speed,
+            # )
+            # self.obs= SteeringObservation(
+            #     pose=self.current_pose,
+            #     goal = self.goal_pose
+            # )
+            # current_state_np = np.array([self.state.x, self.state.y, self.state.theta, self.state.speed]) 
+
+            # self.reference_control.set_eq(current_state_np)
+            
+            # reference_control = self.reference_control.compute_action(self.obs)
+
+            self.control = self.control_policy.compute_action(current_state, reference_control)
 
             # Stop if the experiment is over
             if t >= 10.0:
@@ -145,12 +244,12 @@ class F1TenthControl(RobotControl):
         # Control speed rather than acceleration directly
         self.desired_speed += self.dt * self.control.acceleration
         
-        # if self.desired_speed > 1.5:
-        #     self.desired_speed = 1.5
-        #     msg.drive.acceleration = 0.0
-        # elif self.desired_speed < 0.0:
-        #     self.desired_speed = -0.0001
-        #     msg.drive.acceleration = 0.0
+        if self.desired_speed > 1.5:
+            self.desired_speed = 1.5
+            msg.drive.acceleration = 0.0
+        elif self.desired_speed < 0.0:
+            self.desired_speed = -0.0001
+            msg.drive.acceleration = 0.0
 
         # msg.drive.mode = 0
         msg.drive.speed = self.desired_speed

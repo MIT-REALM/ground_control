@@ -3,12 +3,28 @@
 import numpy as np
 import rospy
 from geometry_msgs.msg import TransformStamped, Twist
+# import tkinter
+# import matplotlib
+from matplotlib.animation import FuncAnimation
+# matplotlib.use('TkAgg')
+# gui_env = ['TKAgg','GTKAgg','Qt4Agg','WXAgg']
+# for gui in gui_env:
+#     try:
+#         print("testing", gui)
+#         matplotlib.use(gui,warn=False, force=True)
+#         from matplotlib import pyplot as plt
+#         break
+#     except:
+#         print('Failed to set:',gui)
+#         continue
+
+# print("Using:",matplotlib.get_backend())
+
 import matplotlib.pyplot as plt
-import matplotlib
+
 
 import os
 from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
-
 
 
 class VisualizeSimulator:
@@ -40,6 +56,7 @@ class VisualizeSimulator:
         )
 
         self.xy = np.zeros((len(self.position_topics), 2))
+        self.theta = np.zeros(len(self.position_topics))
 
         self.position_subs = [rospy.Subscriber(
             topic, TransformStamped, lambda msg, i=idx: self.position_callback(msg, i)
@@ -59,17 +76,26 @@ class VisualizeSimulator:
     def position_callback(self, msg, idx):
         self.xy[idx,0] = msg.transform.translation.x
         self.xy[idx,1] = msg.transform.translation.y
+        z = msg.transform.rotation.z
+        w = msg.transform.rotation.w
+        self.theta[idx] = np.arctan2(2*(w*z), 1-2*z**2)
         # print(idx, self.xy[idx,:])
 
     def run(self):
         # see https://matplotlib.org/stable/users/explain/animations/blitting.html
         fig, ax = plt.subplots(figsize=(10, 10))
-        pts = ax.scatter(self.xy[:,0], self.xy[:,1], animated=True)
+        pts = ax.scatter(self.xy[:,0], self.xy[:,1], animated=True, s=100)
 
-        x_min = min(self.ref_traj.cx)
-        x_max = max(self.ref_traj.cx)
-        y_min = min(self.ref_traj.cy)
-        y_max = max(self.ref_traj.cy)
+        lines = ax.plot(self.xy, self.xy + 0.1*np.array([np.cos(self.theta), np.sin(self.theta)]).T, animated=True, linewidth=2)
+        
+        x_min = -2
+        x_max = 5
+        y_min = -2
+        y_max = 5
+        # x_min = min(self.ref_traj.cx)
+        # x_max = max(self.ref_traj.cx)
+        # y_min = min(self.ref_traj.cy)
+        # y_max = max(self.ref_traj.cy)
         grace = 2
 
         ax.set_xlim(x_min-grace, x_max+grace)
@@ -78,12 +104,12 @@ class VisualizeSimulator:
         annos = [ax.annotate(name, xy=self.xy[idx,:], animated=True) 
                  for idx, name in enumerate(self.position_names)]
         
-        ref_x = [0.0, 0.5, 1.0]
-        ref_y = [0.0, 0.5, 1.0]
+        # ref_x = np.linspace(0, 2.0, 10)
+        # ref_y = np.linspace(0, 5.0, 10)
         
-        #plt.plot(self.ref_traj.cx, self.ref_traj.cy)
-        #plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
-        plt.scatter(ref_x,ref_y)
+        plt.plot(self.ref_traj.cx, self.ref_traj.cy)
+        # plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
+        # plt.scatter(ref_x,ref_y)
 
         plt.show(block=False)
         plt.pause(0.1)
@@ -100,10 +126,18 @@ class VisualizeSimulator:
                 anno.set_position(self.xy[idx,:])
                 # anno.xy = self.xy[idx,:]
                 ax.draw_artist(anno)
+                # draw orientation as straight line
+                # ax.plot([self.xy[idx,0], self.xy[idx,0] + 0.1*np.cos(self.theta[idx])], 
+                #         [self.xy[idx,1], self.xy[idx,1] + 0.1*np.sin(self.theta[idx])])
+                
             ax.draw_artist(pts)
+            # ax.draw_artist(lines)
+            ax.plot(self.xy, self.xy + 0.1*np.array([np.cos(self.theta), np.sin(self.theta)]).T, animated=True, linewidth=2)
             fig.canvas.blit(fig.bbox)
             fig.canvas.flush_events()
-            # plt.pause(0.01)
+            
+            
+            
 
 
 if __name__ == "__main__":

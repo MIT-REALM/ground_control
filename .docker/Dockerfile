@@ -184,13 +184,13 @@ RUN apt install python3-pip -y
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install --upgrade numpy pyyaml
 RUN pip3 install seaborn
-RUN pip3 install "jax[cpu]" rospkg transforms3d equinox scipy matplotlib flax einops colour
+RUN pip3 install "jax[cpu]" rospkg transforms3d equinox scipy flax einops colour
 RUN pip3 install optax==0.1.7
 # RUN pip3 install --upgrade typing_extensions
 RUN pip3 install typing_extensions==4.8.0
 RUN pip3 install tqdm
 RUN pip3 install tensorflow-probability
-RUN pip3 install matplotlib --force-reinstall
+
 RUN export PYTHONPATH="${PYTHONPATH}:/usr/lib/"
 RUN pip3 install opencv-python 
 RUN pip3 install control
@@ -198,13 +198,22 @@ RUN pip3 install jraph
 RUN pip3 install jaxproxqp@git+https://github.com/realm-robot-ws/jaxproxqp_realm.git
 # RUN pip3 install docstring
 # RUN apt install python3-netifaces
+# RUN pip3 uninstall matplotlib -y
+# RUN pip3 install matplotlib --force-reinstall
+RUN pip3 install PySide2
 RUN apt install rename
 
+RUN apt remove python3-matplotlib -y
+RUN pip3 uninstall matplotlib -y
+RUN pip3 install matplotlib --upgrade
 COPY realm_gc/bash_sh.sh /catkin_ws/src/bash_sh.sh
 RUN chmod +x /catkin_ws/src/bash_sh.sh
 
 RUN echo "alias run_ros='rostopic pub /start_control std_msgs/Empty' " >> /root/.bashrc
 RUN /catkin_ws/src/bash_sh.sh
+
+RUN export DISPLAY=localhost:0.0
+# RUN pip3 install tkinter
 # WORKDIR /catkin_ws/src
 # RUN ./bash_sh.sh
 # RUN ./bash_sh.sh

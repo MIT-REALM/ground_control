@@ -5,7 +5,7 @@ import rospy
 from f1tenth_msgs.msg import F1TenthDriveStamped
 from geometry_msgs.msg import TransformStamped
 from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
-
+from rgc_state_estimators.msg import F1TenthState
 import os
 
 
@@ -20,6 +20,10 @@ class F1TenthSimulator:
         self.control_topic = rospy.get_param(
             "~control_topic", "/vesc/high_level/ackermann_cmd_mux/input/nav_0"
         )
+        self.sim_position_topic = rospy.get_param(
+            "~position_topic_sim", "/vicon/realm_f1tenth/realm_f1tenth_sim"
+        )
+
         self.position_topic = rospy.get_param(
             "~position_topic", "/vicon/realm_f1tenth/realm_f1tenth"
         )
@@ -37,7 +41,7 @@ class F1TenthSimulator:
         self.command = np.array([0.0, 0.0, 0.0])
 
         # Set the simulation rate
-        self.rate_hz = rospy.get_param("~rate", 100.0)
+        self.rate_hz = rospy.get_param("~rate", 30.0)
         self.rate = rospy.Rate(self.rate_hz)
 
         # Subscribe to cmd_vel
@@ -45,6 +49,9 @@ class F1TenthSimulator:
             self.control_topic, F1TenthDriveStamped, self.cmd_callback
         )
 
+        self.sim_f1tenth_pub = rospy.Publisher(
+            self.sim_position_topic, F1TenthState, queue_size=10)
+            
         # Publish the transform of the f1tenth
         self.tf_pub = rospy.Publisher(
             self.position_topic, TransformStamped, queue_size=10
@@ -65,9 +72,9 @@ class F1TenthSimulator:
 
         self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
 
-        #self.state[0] = self.ref_traj.cx[0]
-        #self.state[1] = self.ref_traj.cy[0]
-        #self.state[2] = self.ref_traj.cyaw[0]
+        self.state[0] = self.ref_traj.cx[0]
+        self.state[1] = self.ref_traj.cy[0]
+        self.state[2] = self.ref_traj.cyaw[0]
 
 
     def cmd_callback(self, msg):
@@ -92,7 +99,7 @@ class F1TenthSimulator:
                     v * np.cos(theta),
                     v * np.sin(theta),
                     # (v / self.axle_length) * np.tan(delta),
-                    delta * 20, 
+                    delta, 
                     a,
                 ]
             )
@@ -100,8 +107,8 @@ class F1TenthSimulator:
             # print('a in sim: ', a)
 
             self.state += dq_dt / self.rate_hz
-            self.state[3] = max(0, self.state[3])
-            # self.state[2] = self.state[2] % (2 * np.pi)
+            # self.state[3] = max(0, self.state[3])
+            self.state[2] = self.state[2] % (2 * np.pi)
             # print('state after sim: ', self.state)
             # print('state: ', self.state)
             # Publish the transform
@@ -141,6 +148,12 @@ class F1TenthSimulator:
             tf_obs2.transform.rotation.z = 0.0
             tf_obs2.transform.rotation.w = 0.0
 
+            sim_state = F1TenthState()
+            sim_state.x = self.state[0]
+            sim_state.y = self.state[1]
+            sim_state.theta = self.state[2]
+            sim_state.speed = self.state[3]
+
 
             # tf.header.stamp = rospy.Time.now()
             # tf.header.frame_id = "world"
@@ -156,8 +169,9 @@ class F1TenthSimulator:
             self.tf_pub.publish(tf)
             self.tf_pub1.publish(tf_obs)
             self.tf_pub2.publish(tf_obs2)
-
+            self.sim_f1tenth_pub.publish(sim_state)
             # Sleep
+            self.rate.sleep()
             self.rate.sleep()
             # rospy.spin()
 

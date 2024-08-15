@@ -202,8 +202,8 @@ class GCBFPlus(GCBF):
         return b_u_qp
     
     # @ft.partial(jax.jit, static_argnums=(0,))
-    def get_u_qp_act(self, graph: GraphsTuple, prev_graph: GraphsTuple, params, act=None, mov_obs_vel=None) -> Action:
-        u_qp, _ = self.get_qp_action_test(graph=graph, prev_graph=prev_graph, cbf_params=params, act=act,mov_obs_vel=mov_obs_vel)
+    def get_u_qp_act(self, graph: GraphsTuple, prev_graph: GraphsTuple, params, act=None, mov_obs_vel=None, ref_in=None) -> Action:
+        u_qp, _ = self.get_qp_action_test(graph=graph, prev_graph=prev_graph, cbf_params=params, act=act,mov_obs_vel=mov_obs_vel, ref_in=ref_in)
         return u_qp
     
     def update_nets(self, rollout: Rollout, safe_mask, unsafe_mask):
@@ -317,6 +317,7 @@ class GCBFPlus(GCBF):
             qp_settings: JaxProxQP.Settings = None,
             act=None,
             mov_obs_vel = None,
+            ref_in=None,
     ) -> [Action, Array]:
         assert graph.is_single  # consider single graph
         agent_node_mask = graph.node_type == 0
@@ -363,11 +364,13 @@ class GCBFPlus(GCBF):
         u_lb, u_ub = self._env.action_lim()
         u_lb = u_lb[None, :].repeat(self.n_agents, axis=0).reshape(-1)
         u_ub = u_ub[None, :].repeat(self.n_agents, axis=0).reshape(-1)
-        if act is not None:
-            u_ref = act(graph).reshape(-1)
+        if ref_in is None:
+            if act is not None:
+                u_ref = act(graph).reshape(-1)
+            else:
+                u_ref = self._env.u_ref(graph).reshape(-1)
         else:
-            u_ref = self._env.u_ref(graph).reshape(-1)
-        
+            u_ref = ref_in.reshape(-1)
         
         # construct QP: min x^T H x + g^T x, s.t. Cx <= b
         H = jnp.eye(self._env.action_dim * self.n_agents + self.n_agents, dtype=jnp.float32)

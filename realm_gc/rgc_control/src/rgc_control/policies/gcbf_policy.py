@@ -30,7 +30,7 @@ class GCBF_policy(ControlPolicy):
             car_goal: np.ndarray = np.array([1.0, 0.5, 0.0, 0.0]),
             obs_pos: np.ndarray = np.array([[0.5, 0.5], [0.5, 0.5]]),
             num_obs: int = 1,
-            mov_obs: int = 1,
+            mov_obs: int = 2,
             model_path = 'realm_gc/rgc_control/src/gcbfplus/seed1_20240719162242/'
             ):
         self.min_distance = min_distance
@@ -50,8 +50,8 @@ class GCBF_policy(ControlPolicy):
             num_agents=num_agents,
             num_obs=num_obs,
             num_mov_obs=mov_obs,
-            mov_obs_speed=max(config.mov_obs_speed,mov_obs_speed),
-            mov_obs_at_infty=True, # if not 'mov_obs_at_infty' in config else config.mov_obs_at_infty,
+            mov_obs_speed=0.0, #max(config.mov_obs_speed,mov_obs_speed),
+            mov_obs_at_infty=False, # if not 'mov_obs_at_infty' in config else config.mov_obs_at_infty,
             station_obs_at_infty=True, #if 'station_obs_at_infty' not in config else config.station_obs_at_infty,
             area_size=4,
             max_step=1024,
@@ -93,7 +93,8 @@ class GCBF_policy(ControlPolicy):
         act_fn = jax.jit(algo.act)
         params = algo.cbf_train_state.params
         qp_fn = jax.jit(ft.partial(algo.get_u_qp_act, params=params, act=act_fn))
-        self.act_fn = qp_fn
+        self.act_fn = act_fn
+        self.qp_act_fn = qp_fn
         key=jax.random.PRNGKey(0)
         graph0 = env.reset(key)
         self.env = env
@@ -125,22 +126,31 @@ class GCBF_policy(ControlPolicy):
         
     def compute_action(
         self,
-        car_pos, 
+        car_pos,
+        ref_inp=None, 
         obs=None,
         mov_obs_vel=None,
+        goal=None,
     ) -> F1TenthAction:
         # Brake to avoid collisions based on the average distance to the
         # obstacle in the center of the image
         graph = self.graph0
         if obs is None:
             obs = self.obs
+        if goal is None:
+            goal = self.car_goal
 
         car_pos = jnp.array([car_pos.x, car_pos.y, car_pos.theta, car_pos.v])
         
-        new_graph = self.create_graph(car_pos, self.car_goal, obs, graph)
+        new_graph = self.create_graph(car_pos, goal, obs, graph)
         self.graph0 = new_graph
-        # print('graph state before step: ', new_graph.env_states.agent)
-        accel = self.act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel)
+        print('graph state before step: ', new_graph.env_states.agent)
+        if ref_inp is not None:
+            ref_vel = jnp.array([ref_inp.steering_angle, ref_inp.acceleration])
+        else:
+            ref_vel = None
+
+        accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
         # accel = self.act_fn(new_graph)
         accel = self.env.clip_action(accel)
         # print('graph state before step: ', new_graph.env_states.agent)

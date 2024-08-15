@@ -8,6 +8,7 @@
     <arg name="v_ref" default="0.5"/>
 
     <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
+    <arg name="position_topic_sim" default="/vicon/realm_f1tenth/realm_f1tenth_sim"/>
     <arg name="position_topic1" default="/vicon/realm_f1tenth/realm_obs"/>
     <arg name="position_topic2" default="/vicon/realm_f1tenth/realm_obs2"/>
     
