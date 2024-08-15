@@ -18,7 +18,7 @@ class F1TenthEulerStateEstimator(StateEstimator):
         super(F1TenthEulerStateEstimator, self).__init__()
 
         # Fetch additional parameters
-        #self.decay_rate = rospy.get_param("~decay_rate", 0.75)
+        self.decay_rate = rospy.get_param("~decay_rate", 0.75)
         self.position_topic = rospy.get_param(
             "~position_topic", "/vicon/realm_f1tenth/realm_f1tenth"
         )
@@ -93,6 +93,7 @@ class F1TenthEulerStateEstimator(StateEstimator):
  
             # Update the filter state
             self.state = measured_state
+            self.last_pose = measured_pose
 
             self.last_position_msg = None
 

@@ -85,7 +85,7 @@ class VisualizeSimulator:
         #plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
         plt.scatter(ref_x,ref_y)
 
-        plt.show()
+        plt.show(block=False)
         plt.pause(0.1)
 
         bg = fig.canvas.copy_from_bbox(fig.bbox)

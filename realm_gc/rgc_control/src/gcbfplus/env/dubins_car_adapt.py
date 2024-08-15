@@ -179,6 +179,8 @@ class DubinsCarAdapt(MultiAgentEnv):
             (action[:, 0] * 20.)[:, None],
             (action[:, 1])[:, None]
         ], axis=1)
+        # print('delta in step: ', action[:, 0])
+        # print('accel in step: ', action[:, 1])
         assert x_dot.shape == (self.num_agents, self.state_dim)
         return x_dot
 
@@ -213,7 +215,7 @@ class DubinsCarAdapt(MultiAgentEnv):
         
         # next_mov_obstacles = mov_obstacles.at[:, :2].set(mov_obstacles[:, :2] + mov_obs_vel * self.dt)
 
-        action = self.clip_action(action)
+        # action = self.clip_action(action)
 
         assert action.shape == (self.num_agents, self.action_dim)
         assert agent_states.shape == (self.num_agents, self.state_dim)

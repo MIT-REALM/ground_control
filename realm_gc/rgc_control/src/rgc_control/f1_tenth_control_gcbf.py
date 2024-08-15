@@ -9,6 +9,7 @@ import rospy
 from f1tenth_msgs.msg import F1TenthDriveStamped
 from rgc_state_estimators.msg import F1TenthState
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import TransformStamped
 
 # from rgc_control.policies.tracking.steering_policies import F1TenthSteeringPolicy
 from rgc_control.policies.common import F1TenthAction
@@ -42,6 +43,18 @@ class F1TenthControl(RobotControl):
             self.state_estimate_topic, F1TenthState, self.state_estimate_callback
         )
 
+        self.obs_state_topic = rospy.get_param(
+            "~position_topic1", "/vicon/realm_f1tenth/realm_obs")
+        self.obs_state_sub = rospy.Subscriber(
+            self.obs_state_topic, TransformStamped, self.obs_state_callback
+        )
+
+        self.obs_state_topic = rospy.get_param("~position_topic2",
+            "/vicon/realm_f1tenth/realm_obs2")
+        
+        self.obs_state_sub = rospy.Subscriber(
+            self.obs_state_topic, TransformStamped, self.obs_state_callback2
+        )
         # Instantiate control policy using F1Tenth steering policy and reference
         # trajectory. We need to wait until we get the first state estimate in order
         # to instantiate the control policy.
@@ -70,7 +83,12 @@ class F1TenthControl(RobotControl):
             model_path='/catkin_ws/src/realm_gc/rgc_control/src/gcbfplus/seed1_20240719162242/'
         )
     
-        
+    def obs_state_callback(self, msg):
+        print('obs_state:', msg.transform.translation.x, msg.transform.translation.y)
+
+    def obs_state_callback2(self, msg):
+        print('obs_state:', msg.transform.translation.x, msg.transform.translation.y)
+
     def state_estimate_callback(self, msg):
         self.state = msg
 
@@ -92,6 +110,7 @@ class F1TenthControl(RobotControl):
             # Pack [x,y,theta,v] from state message into TimedPose2DObservation instance
             # Make sure to normalize the time
             t = (rospy.Time.now() - self.time_begin).to_sec() / self.T
+            # print('self.state:', self.state)
             current_state = ICRAF1TenthObservation(
                 x=self.state.x,
                 y=self.state.y,
@@ -99,8 +118,15 @@ class F1TenthControl(RobotControl):
                 v=self.state.speed,
                 t=t,
             )
-            print(current_state.x)
-            print(current_state.y)
+            # current_state = ICRAF1TenthObservation(
+            #     x=self.state.transform.translation.x,
+            #     y=self.state.transform.translation.y,
+            #     theta=self.state.transform.rotation.w,
+            #     v=self.state.transform.translation.z,
+            #     t=t,
+            # )
+            # print(current_state.x)
+            # print(current_state.y)
             
             self.control = self.control_policy.compute_action(current_state)
 
@@ -126,7 +152,7 @@ class F1TenthControl(RobotControl):
         #     self.desired_speed = -0.0001
         #     msg.drive.acceleration = 0.0
 
-        msg.drive.mode = 0
+        # msg.drive.mode = 0
         msg.drive.speed = self.desired_speed
     
         self.control_pub.publish(msg)
@@ -139,6 +165,7 @@ class F1TenthControl(RobotControl):
             self.reset_control()
             rospy.signal_shutdown('Goal reached')
         # rospy.sleep(0.01)
+        # rospy.spin()
 
 if __name__ == "__main__":
     try:

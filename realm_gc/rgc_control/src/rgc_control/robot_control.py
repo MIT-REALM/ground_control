@@ -11,8 +11,8 @@ class RobotControl(abc.ABC):
         rospy.init_node("robot_control_node", anonymous=True)
 
         # Sets control loop frequency to 30 Hz
-        self.rate = rospy.get_param("~rate", 30)  # Hz
-        self.dt = 1.0 / self.rate
+        self.rate = rospy.get_param("~rate", 33)  # Hz
+        self.dt = 1.0 / self.rate 
         self.rate_timer = rospy.Rate(self.rate)
 
         # Set duration for experiment

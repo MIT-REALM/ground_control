@@ -24,12 +24,20 @@ class F1TenthSimulator:
             "~position_topic", "/vicon/realm_f1tenth/realm_f1tenth"
         )
 
+        self.position_obs1= rospy.get_param(
+            "~position_topic1", "/vicon/realm_f1tenth/realm_obs"
+        )
+
+        self.position_obs2= rospy.get_param("~position_topic2", "/vicon/realm_f1tenth/realm_obs2")
+
         # Initialize the f1tenth state
         self.state = np.array([0.0, 0.0, 0.0, 0.0])
+        self.obs = np.array([1.0, 5.0, 0.0, 0.0])
+        self.obs2 = np.array([4.0, 3.0, 0.0, 0.0])
         self.command = np.array([0.0, 0.0, 0.0])
 
         # Set the simulation rate
-        self.rate_hz = rospy.get_param("~rate", 10.0)
+        self.rate_hz = rospy.get_param("~rate", 100.0)
         self.rate = rospy.Rate(self.rate_hz)
 
         # Subscribe to cmd_vel
@@ -40,6 +48,14 @@ class F1TenthSimulator:
         # Publish the transform of the f1tenth
         self.tf_pub = rospy.Publisher(
             self.position_topic, TransformStamped, queue_size=10
+        )
+
+        self.tf_pub1 = rospy.Publisher(
+            self.position_obs1, TransformStamped, queue_size=10
+        )
+
+        self.tf_pub2 = rospy.Publisher(
+            self.position_obs2, TransformStamped, queue_size=10
         )
 
         self.traj_filepath = os.path.join(
@@ -57,6 +73,7 @@ class F1TenthSimulator:
     def cmd_callback(self, msg):
         """Update the saved command."""
         self.command = np.array([msg.drive.steering_angle, msg.drive.acceleration, msg.drive.speed])
+        # print('command: ', self.command)
 
     def run(self):
         """Run the simulation."""
@@ -79,7 +96,12 @@ class F1TenthSimulator:
                     a,
                 ]
             )
-            self.state += dq_dt / self.rate_hz / 3
+            # print('delta in sim: ', delta)
+            # print('a in sim: ', a)
+
+            self.state += dq_dt / self.rate_hz
+            self.state[3] = max(0, self.state[3])
+            # self.state[2] = self.state[2] % (2 * np.pi)
             # print('state after sim: ', self.state)
             # print('state: ', self.state)
             # Publish the transform
@@ -94,11 +116,50 @@ class F1TenthSimulator:
             tf.transform.rotation.y = 0.0
             tf.transform.rotation.z = np.sin(self.state[2] / 2)
             tf.transform.rotation.w = np.cos(self.state[2] / 2)
+
+            tf_obs = TransformStamped()
+            tf_obs.header.stamp = rospy.Time.now()
+            tf_obs.header.frame_id = "world"
+            tf_obs.child_frame_id = "realm_obs"
+            tf_obs.transform.translation.x = self.obs[0]
+            tf_obs.transform.translation.y = self.obs[1]
+            tf_obs.transform.translation.z = 0.0
+            tf_obs.transform.rotation.x = 0.0
+            tf_obs.transform.rotation.y = 0.0
+            tf_obs.transform.rotation.z = 0.0
+            tf_obs.transform.rotation.w = 0.0
+
+            tf_obs2 = TransformStamped()
+            tf_obs2.header.stamp = rospy.Time.now()
+            tf_obs2.header.frame_id = "world"
+            tf_obs2.child_frame_id = "realm_obs2"
+            tf_obs2.transform.translation.x = self.obs2[0]
+            tf_obs2.transform.translation.y = self.obs2[1]
+            tf_obs2.transform.translation.z = 0.0
+            tf_obs2.transform.rotation.x = 0.0
+            tf_obs2.transform.rotation.y = 0.0
+            tf_obs2.transform.rotation.z = 0.0
+            tf_obs2.transform.rotation.w = 0.0
+
+
+            # tf.header.stamp = rospy.Time.now()
+            # tf.header.frame_id = "world"
+            # tf.child_frame_id = "realm_f1tenth"
+            # tf.transform.translation.x = self.state[0]
+            # tf.transform.translation.y = self.state[1]
+            # tf.transform.translation.z = self.state[3]
+            # tf.transform.rotation.x = 0.0
+            # tf.transform.rotation.y = 0.0
+            # tf.transform.rotation.z = 0.0
+            # tf.transform.rotation.w = self.state[2]
+
             self.tf_pub.publish(tf)
+            self.tf_pub1.publish(tf_obs)
+            self.tf_pub2.publish(tf_obs2)
 
             # Sleep
             self.rate.sleep()
-
+            # rospy.spin()
 
 if __name__ == "__main__":
     try:

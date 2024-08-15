@@ -15,7 +15,7 @@ class StateEstimator(abc.ABC):
         rospy.init_node("state_estimation_node")
 
         # Fetch parameters
-        self.rate = rospy.get_param("~rate", 10)  # Hz
+        self.rate = rospy.get_param("~rate", 100)  # Hz
         self.dt = 1.0 / self.rate
         self.rate_timer = rospy.Rate(self.rate)
 
