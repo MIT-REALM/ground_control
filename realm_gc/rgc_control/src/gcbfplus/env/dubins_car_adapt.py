@@ -39,7 +39,7 @@ class DubinsCarAdapt(MultiAgentEnv):
 
     PARAMS = {
         "car_radius": 0.05,
-        "comm_radius": 0.5,
+        "comm_radius": 1.5,
         "n_rays": 16,
         "obs_len_range": [0.1, 0.6],
         "n_obs": 8,

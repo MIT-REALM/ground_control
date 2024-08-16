@@ -44,11 +44,14 @@ class F1TenthSimulator:
         self.rate_hz = rospy.get_param("~rate", 30.0)
         self.rate = rospy.Rate(self.rate_hz)
 
+        self.obs_1_mv = 1
+        self.obs_2_mv = -1
         # Subscribe to cmd_vel
         self.cmd_vel_sub = rospy.Subscriber(
             self.control_topic, F1TenthDriveStamped, self.cmd_callback
         )
 
+        
         self.sim_f1tenth_pub = rospy.Publisher(
             self.sim_position_topic, F1TenthState, queue_size=10)
             
@@ -76,6 +79,34 @@ class F1TenthSimulator:
         self.state[1] = self.ref_traj.cy[0]
         self.state[2] = self.ref_traj.cyaw[0]
 
+        tf_obs = TransformStamped()
+        tf_obs.header.stamp = rospy.Time.now()
+        tf_obs.header.frame_id = "world"
+        tf_obs.child_frame_id = "realm_obs"
+        tf_obs.transform.translation.x = self.obs[0]
+        tf_obs.transform.translation.y = self.obs[1]
+        tf_obs.transform.translation.z = 0.0
+        tf_obs.transform.rotation.x = 0.0
+        tf_obs.transform.rotation.y = 0.0
+        tf_obs.transform.rotation.z = 0.0
+        tf_obs.transform.rotation.w = 0.0
+
+        tf_obs2 = TransformStamped()
+        tf_obs2.header.stamp = rospy.Time.now()
+        tf_obs2.header.frame_id = "world"
+        tf_obs2.child_frame_id = "realm_obs2"
+
+        tf_obs2.transform.translation.x = self.obs2[0]
+        tf_obs2.transform.translation.y = self.obs2[1]
+        tf_obs2.transform.translation.z = 0.0
+        tf_obs2.transform.rotation.x = 0.0
+        tf_obs2.transform.rotation.y = 0.0
+        tf_obs2.transform.rotation.z = 0.0
+        tf_obs2.transform.rotation.w = 0.0
+    
+        self.tf_pub1.publish(tf_obs)
+        self.tf_pub2.publish(tf_obs2)
+        
 
     def cmd_callback(self, msg):
         """Update the saved command."""
@@ -84,6 +115,13 @@ class F1TenthSimulator:
 
     def run(self):
         """Run the simulation."""
+        # while self.command is None:
+        #         rospy.loginfo(
+        #             "Waiting for command"
+        #         )
+        #         rospy.sleep(1.0)
+
+        # rospy.loginfo("Command received. Starting simulation.")
         while not rospy.is_shutdown():
             # Update the state
             x, y, theta, v = self.state
@@ -124,6 +162,16 @@ class F1TenthSimulator:
             tf.transform.rotation.z = np.sin(self.state[2] / 2)
             tf.transform.rotation.w = np.cos(self.state[2] / 2)
 
+            obs_speed = 0.005
+            if self.obs_1_mv == 1:
+                self.obs[0] += obs_speed
+                if self.obs[0] >= 0.3:
+                    self.obs_1_mv = -1
+            else:
+                self.obs[0] -= obs_speed
+                if self.obs[0] <= -0.3:
+                    self.obs_1_mv = 1
+
             tf_obs = TransformStamped()
             tf_obs.header.stamp = rospy.Time.now()
             tf_obs.header.frame_id = "world"
@@ -140,6 +188,16 @@ class F1TenthSimulator:
             tf_obs2.header.stamp = rospy.Time.now()
             tf_obs2.header.frame_id = "world"
             tf_obs2.child_frame_id = "realm_obs2"
+
+            if self.obs_2_mv == 1:
+                self.obs2[0] += obs_speed
+                if self.obs2[0] >= 0.3:
+                    self.obs_2_mv = -1
+            else:
+                self.obs2[0] -= obs_speed
+                if self.obs2[0] <= -0.3:
+                    self.obs_2_mv = 1
+
             tf_obs2.transform.translation.x = self.obs2[0]
             tf_obs2.transform.translation.y = self.obs2[1]
             tf_obs2.transform.translation.z = 0.0

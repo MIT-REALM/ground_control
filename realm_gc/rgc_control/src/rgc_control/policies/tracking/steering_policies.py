@@ -418,8 +418,8 @@ class F1TenthSpeedSteeringPolicy(ControlPolicy):
                 speed_profile[i] = 0.0
 
         # speed down
-        for i in range(40):
-            speed_profile[-i] = target_speed / (50 - i)
+        for i in range(len(cyaw) - 1):
+            speed_profile[-i] = target_speed / (len(cyaw) - i)
             if speed_profile[-i] <= 1.0 / 3.6:
                 speed_profile[-i] = 1.0 / 3.6
 

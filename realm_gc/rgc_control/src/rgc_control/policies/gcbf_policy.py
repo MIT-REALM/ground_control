@@ -152,6 +152,7 @@ class GCBF_policy(ControlPolicy):
             ref_vel = None
 
         ref_accel, flag = self.ref_check_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+        
         if flag == 1:
             accel = ref_accel[None, :]
         else:

@@ -21,7 +21,7 @@ class RALF1tenthObservation(TimedG2CPose2DObservation):
 
 #Implements a path-tracking LQR policy, which currently does not work very well
 def create_ral_f1tenth_policy(
-    initial_position, v_ref, traj_csv_path
+    initial_position, v_ref, traj_csv_path, traj=None,
 ) -> CompositePolicy:
     """Create a composite policy for the F1tenth ego agent in the RAL experiment.
 
@@ -32,32 +32,7 @@ def create_ral_f1tenth_policy(
     # Construct the components of the policy using the parameters they were trained with
 
     # Load the trajectory and flip the x and y coordinates, then add some noise
-    ego_traj = SplineTrajectory2D(v_ref, traj_csv_path)
-
-    # Start pointing along +y in the highbay
-    desired_equilibrium_state = jnp.array([0.0, 0.0, jnp.pi / 2.0, 1.5])
-
-    #p = jnp.fliplr(ego_traj.p) 
-
-    # # Clamp the initial position to be the intended starting position
-    # if p[0, 1] <= -3.0:
-    #     p = p.at[0, 0].set(-0.5)
-    # else:
-    #     p = p.at[0, 0].set(0.5)
-
-    # Shift to +y to account for limited highbay space
-    #p = p.at[:, 1].add(0.5)
-
-    # Upscale if it's small
-    #if p.shape == (2, 2):
-    #    p_new = jnp.zeros((6, 2))
-    #    p_new = p_new.at[:, 0].set(jnp.interp(jnp.linspace(0, 1, 6), jnp.array([0.0, 1.0]), p[:, 0]))
-    #    p_new = p_new.at[:, 1].set(jnp.interp(jnp.linspace(0, 1, 6), jnp.array([0.0, 1.0]), p[:, 1]))
-    #    p = p_new
-
-    print("Loaded trajectory with waypoints:")
-
-    print(ego_traj)
+    ego_traj = SplineTrajectory2D(v_ref, traj_csv_path, traj)
 
     # Make the trajectory tracking policy
     steering_controller = F1TenthSpeedSteeringPolicy(

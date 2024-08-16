@@ -82,6 +82,8 @@ class F1TenthControl(RobotControl):
         self.obs_state_sub = rospy.Subscriber(
             self.obs_state_topic, TransformStamped, self.obs_state_callback2
         )
+
+
         # Instantiate control policy using F1Tenth steering policy and reference
         # trajectory. We need to wait until we get the first state estimate in order
         # to instantiate the control policy.
@@ -115,7 +117,7 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/base_path"), 
             rospy.get_param("~trajectory/filename")
         )
-        self.v_ref = rospy.get_param("~v_ref", 2.5)        
+        self.v_ref = rospy.get_param("~v_ref", 1.5)        
         self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.traj_filepath)
 
         self.goal_x = self.reference_trajectory.cx[-1]
@@ -156,7 +158,10 @@ class F1TenthControl(RobotControl):
             self.v_ref,
             self.traj_filepath,
         )
-        
+
+        self.new_traj = None
+        self.first_step = True
+
     def pos_callback(self, msg):
         self.actual_state = np.array([msg.transform.translation.x, msg.transform.translation.y, 0.0, 0.0])
     
@@ -222,6 +227,37 @@ class F1TenthControl(RobotControl):
                 t=self.target_ind,
             )
 
+            
+            spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath, self.new_traj)
+            _, min_dist = spline_traj.calc_nearest_index(self.state)
+            print('min_dist:', min_dist)
+
+            if min_dist > 0.2:
+                traj = {}
+                c = np.linspace(0, 1, 200)
+                x_ref = self.state.x * (1 - c) + self.goal[0] * c
+                y_ref = self.state.y * (1 - c) + self.goal[1] * c
+                traj['X'] = x_ref 
+                traj['Y'] = y_ref
+
+                self.new_traj = traj
+                self.control_policy_ral = create_ral_f1tenth_policy(
+                    np.array([self.state.x, self.state.y, self.state.theta, self.state.speed,self.e,self.theta_e]),
+                    self.v_ref,
+                    self.traj_filepath,
+                    traj=traj
+                )
+
+                current_state_timed = RALF1tenthObservation(
+                    x=self.state.x,
+                    y=self.state.y,
+                    theta=self.state.theta,
+                    v=self.state.speed,
+                    e = self.e,
+                    theta_e = self.theta_e,
+                    t=0,
+                )
+
             reference_control, self.e, self.theta_e, self.target_ind = self.control_policy_ral.compute_action(current_state_timed)
             
             
@@ -241,7 +277,12 @@ class F1TenthControl(RobotControl):
             
             # reference_control = self.reference_control.compute_action(self.obs)
 
-            self.control = self.control_policy.compute_action(current_state, reference_control)
+            obs_pos = np.array([[self.obs1[0], self.obs1[1]], [self.obs2[0], self.obs2[1]]])
+            # if self.first_step:
+            self.control = self.control_policy.compute_action(current_state, reference_control, obs=obs_pos)
+            #     self.first_step = False
+            # else:
+            #     self.control = self.control_policy.compute_action(current_state, reference_control, obs=obs_pos)
 
             # Stop if the experiment is over
             if t >= 10.0:
@@ -258,11 +299,11 @@ class F1TenthControl(RobotControl):
         # Control speed rather than acceleration directly
         self.desired_speed += self.dt * self.control.acceleration
         
-        if self.desired_speed > 2.5:
-            self.desired_speed = 2.5
+        if self.desired_speed > self.v_ref:
+            self.desired_speed = self.v_ref
             msg.drive.acceleration = 0.0
         elif self.desired_speed < 0.0:
-            self.desired_speed = -0.0001
+            self.desired_speed = -0.001
             msg.drive.acceleration = 0.0
 
         # msg.drive.mode = 0
