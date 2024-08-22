@@ -41,7 +41,7 @@ class F1TenthSimulator:
         self.command = np.array([0.0, 0.0, 0.0])
 
         # Set the simulation rate
-        self.rate_hz = rospy.get_param("~rate", 30.0)
+        self.rate_hz = rospy.get_param("~rate", 10.0)
         self.rate = rospy.Rate(self.rate_hz)
 
         self.obs_1_mv = 1
@@ -106,6 +106,7 @@ class F1TenthSimulator:
     
         self.tf_pub1.publish(tf_obs)
         self.tf_pub2.publish(tf_obs2)
+        self.previous_command = self.command
         
 
     def cmd_callback(self, msg):
@@ -114,6 +115,7 @@ class F1TenthSimulator:
         # print('command: ', self.command)
 
     def run(self):
+        
         """Run the simulation."""
         # while self.command is None:
         #         rospy.loginfo(
@@ -132,15 +134,22 @@ class F1TenthSimulator:
             #     v_des = 1.5
             # print('state before sim: ', self.state)
             # print('command: ', self.command)
-            dq_dt = np.array(
-                [
-                    v * np.cos(theta),
-                    v * np.sin(theta),
-                    # (v / self.axle_length) * np.tan(delta),
-                    delta, 
-                    a,
-                ]
-            )
+            new_command = self.command
+
+            diff_command = np.linalg.norm(self.previous_command - new_command)
+            if diff_command < 1e-6:
+                dq_dt = self.state * 0.0
+            else:
+                dq_dt = np.array(
+                    [
+                        v * np.cos(theta),
+                        v * np.sin(theta),
+                        # (v / self.axle_length) * np.tan(delta),
+                        delta, 
+                        a,
+                    ]
+                )
+                self.previous_command = self.command
             # print('delta in sim: ', delta)
             # print('a in sim: ', a)
 

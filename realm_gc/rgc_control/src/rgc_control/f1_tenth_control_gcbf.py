@@ -117,7 +117,7 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/base_path"), 
             rospy.get_param("~trajectory/filename")
         )
-        self.v_ref = rospy.get_param("~v_ref", 1.5)        
+        self.v_ref = rospy.get_param("~v_ref", 0.5)        
         self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.traj_filepath)
 
         self.goal_x = self.reference_trajectory.cx[-1]
@@ -161,6 +161,7 @@ class F1TenthControl(RobotControl):
 
         self.new_traj = None
         self.first_step = True
+        self.obs_pos_past = obs_pos
 
     def pos_callback(self, msg):
         self.actual_state = np.array([msg.transform.translation.x, msg.transform.translation.y, 0.0, 0.0])
@@ -228,35 +229,35 @@ class F1TenthControl(RobotControl):
             )
 
             
-            spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath, self.new_traj)
-            _, min_dist = spline_traj.calc_nearest_index(self.state)
-            print('min_dist:', min_dist)
+            # spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath, self.new_traj)
+            # _, min_dist = spline_traj.calc_nearest_index(self.state)
+            # print('min_dist:', min_dist)
 
-            if min_dist > 0.2:
-                traj = {}
-                c = np.linspace(0, 1, 200)
-                x_ref = self.state.x * (1 - c) + self.goal[0] * c
-                y_ref = self.state.y * (1 - c) + self.goal[1] * c
-                traj['X'] = x_ref 
-                traj['Y'] = y_ref
+            # if min_dist > 0.2:
+            #     traj = {}
+            #     c = np.linspace(0, 1, 200)
+            #     x_ref = self.state.x * (1 - c) + self.goal[0] * c
+            #     y_ref = self.state.y * (1 - c) + self.goal[1] * c
+            #     traj['X'] = x_ref 
+            #     traj['Y'] = y_ref
 
-                self.new_traj = traj
-                self.control_policy_ral = create_ral_f1tenth_policy(
-                    np.array([self.state.x, self.state.y, self.state.theta, self.state.speed,self.e,self.theta_e]),
-                    self.v_ref,
-                    self.traj_filepath,
-                    traj=traj
-                )
+            #     self.new_traj = traj
+            #     self.control_policy_ral = create_ral_f1tenth_policy(
+            #         np.array([self.state.x, self.state.y, self.state.theta, self.state.speed,self.e,self.theta_e]),
+            #         self.v_ref,
+            #         self.traj_filepath,
+            #         traj=traj
+            #     )
 
-                current_state_timed = RALF1tenthObservation(
-                    x=self.state.x,
-                    y=self.state.y,
-                    theta=self.state.theta,
-                    v=self.state.speed,
-                    e = self.e,
-                    theta_e = self.theta_e,
-                    t=0,
-                )
+            #     current_state_timed = RALF1tenthObservation(
+            #         x=self.state.x,
+            #         y=self.state.y,
+            #         theta=self.state.theta,
+            #         v=self.state.speed,
+            #         e = self.e,
+            #         theta_e = self.theta_e,
+            #         t=0,
+            #     )
 
             reference_control, self.e, self.theta_e, self.target_ind = self.control_policy_ral.compute_action(current_state_timed)
             
@@ -278,13 +279,94 @@ class F1TenthControl(RobotControl):
             # reference_control = self.reference_control.compute_action(self.obs)
 
             obs_pos = np.array([[self.obs1[0], self.obs1[1]], [self.obs2[0], self.obs2[1]]])
+            obs_pos_old = self.obs_pos_past
+            obs_pos_new = obs_pos
+            obs_vel = (obs_pos_new - obs_pos_old) / self.dt
             # if self.first_step:
-            self.control = self.control_policy.compute_action(current_state, reference_control, obs=obs_pos)
-            #     self.first_step = False
-            # else:
-            #     self.control = self.control_policy.compute_action(current_state, reference_control, obs=obs_pos)
+            control_gcbf, next_state = self.control_policy.compute_action(current_state, reference_control, obs=obs_pos, mov_obs_vel=obs_vel)
 
-            # Stop if the experiment is over
+
+            traj = {}
+            c = np.linspace(0, 1, 20)
+            # x_ref1 = self.state.x * (1 - c) + next_state[0] * c
+            # y_ref1 = self.state.y * (1 - c) + next_state[1] * c
+
+            # x_ref2 = next_state[0] * (1 - c) + self.goal[0] * c
+            # y_ref2 = next_state[1] * (1 - c) + self.goal[1] * c
+
+            # x_ref = np.concatenate((x_ref1, x_ref2))
+            # y_ref = np.concatenate((y_ref1, y_ref2))
+            
+            x_ref = self.state.x * (1 - c) + self.goal[0] * c
+            y_ref = self.state.y * (1 - c) + self.goal[1] * c
+            # x_ref[2] = next_state[0]
+            # y_ref[2] = next_state[1]
+            
+            traj['X'] = x_ref 
+            traj['Y'] = y_ref 
+            # if np.isnan(self.state.speed):
+            #     self.state.speed = 0.0
+
+            # self.new_traj = traj  
+            next_state_pose = self.state
+            next_state_pose.x = next_state[0]
+            next_state_pose.y = next_state[1]
+            next_state_pose.theta = next_state[2]
+            next_state_pose.speed = next_state[3]
+
+            spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath, traj)
+            _, min_dist = spline_traj.calc_nearest_index(next_state_pose)
+            print('min_dist:', min_dist)
+
+            if min_dist < 0.01:
+                self.control = reference_control
+            else:
+                x_ref[2] = next_state[0]
+                y_ref[2] = next_state[1]
+                
+                traj['X'] = x_ref 
+                traj['Y'] = y_ref 
+                self.control_policy_ral = create_ral_f1tenth_policy(
+                    np.array([self.state.x, self.state.y, self.state.theta, self.state.speed,self.e,self.theta_e]),
+                    self.v_ref,
+                    self.traj_filepath,
+                    traj=traj
+                )
+
+                current_state_timed = RALF1tenthObservation(
+                    x=self.state.x,
+                    y=self.state.y,
+                    theta=self.state.theta,
+                    v=self.state.speed,
+                    e = self.e,
+                    theta_e = self.theta_e,
+                    t=0,
+                )
+
+                control_steer, self.e, self.theta_e, self.target_ind = self.control_policy_ral.compute_action(current_state_timed)
+
+                # spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath, traj)
+                # _, min_dist = spline_traj.calc_nearest_index(self.state)
+                # print('min_dist:', min_dist)
+
+                # if min_dist > 0.2:
+                #     self.control = control_steer
+                # else:
+                #     self.control = control_gcbf
+                self.control = control_steer
+
+            if np.isnan(self.control.steering_angle):
+                if np.isnan(control_gcbf.steering_angle):
+                    self.control.steering_angle = 0.0
+                else:
+                    self.control.steering_angle = control_gcbf.steering_angle
+            
+            if np.isnan(self.control.acceleration):
+                if np.isnan(control_gcbf.acceleration):
+                    self.control.acceleration = 0.0
+                else:
+                    self.control.acceleration = control_gcbf.acceleration
+
             if t >= 10.0:
                 self.control = F1TenthAction(0.0, 0.0)
 

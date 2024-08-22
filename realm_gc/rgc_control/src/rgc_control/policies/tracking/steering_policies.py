@@ -223,10 +223,14 @@ def solve_dare(A, B, Q, R):
     eps = 0.01
 
     for i in range(max_iter):
+        
         x_next = A.T @ x @ A - A.T @ x @ B @ \
                 la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
         if (abs(x_next - x)).max() < eps:
             break
+        # if np.isnan(x_next).any():
+        #     continue 
+        # x_next = np.clip(x_next, a_min=-10, a_max=10)
         x = x_next
 
     return x_next

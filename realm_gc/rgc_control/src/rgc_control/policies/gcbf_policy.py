@@ -151,22 +151,24 @@ class GCBF_policy(ControlPolicy):
         else:
             ref_vel = None
 
-        ref_accel, flag = self.ref_check_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+        # ref_accel, flag = self.ref_check_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
         
-        if flag == 1:
-            accel = ref_accel[None, :]
-        else:
-            accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+        # if flag == 1:
+        #     accel = ref_accel[None, :]
+        # else:
+        mov_obs_vel = self.env.mov_obs_vel_pred(new_graph)
+        accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
         # accel = self.act_fn(new_graph)
         accel = self.env.clip_action(accel)
         # print('graph state before step: ', new_graph.env_states.agent)
-        # new_graph_step, _, _, _, _ = self.env.step(new_graph, accel)
+        new_graph_step, _, _, _, _ = self.env.step(new_graph, accel)
+        next_state = new_graph_step.env_states.agent
         # print('accel: ', accel)
         # print('graph state after step: ', new_graph_step.env_states.agent)
 
         return F1TenthAction(
             acceleration=accel[0, 1],
             steering_angle=accel[0, 0],
-        )
+        ), next_state.squeeze()
     
  

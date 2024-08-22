@@ -58,6 +58,7 @@ class MultiAgentEnv(ABC):
         self._area_size = area_size
         self._mov_obs = None
         self._agent_states = None
+        self.vel_pred_fn = jax.jit(jax.vmap(self.vel_pred))
 
     @property
     def params(self) -> dict:
@@ -208,7 +209,7 @@ class MultiAgentEnv(ABC):
             mov_agent_new = graph.type_states(type_idx=0, n_type=self.num_agents)
         else:
             mov_agent_new = state
-        vel_pred_fn = jax.jit(jax.vmap(self.vel_pred))
+        # vel_pred_fn = jax.jit(jax.vmap(self.vel_pred))
         if self._agent_states is None:
             self._agent_states = mov_agent_new[:,None,:].repeat(5, axis=1)
         else:
@@ -216,7 +217,7 @@ class MultiAgentEnv(ABC):
         # breakpoint()
             self._agent_states = self._agent_states[:, -5:, :]
         
-        vel = vel_pred_fn(self._agent_states)
+        vel = self.vel_pred_fn(self._agent_states)
         
 
         return vel.squeeze()
@@ -226,7 +227,7 @@ class MultiAgentEnv(ABC):
             mov_obs_new = graph.env_states.mov_obs
         else:
             mov_obs_new = state
-        vel_pred_fn = jax.jit(jax.vmap(self.vel_pred))
+        
         if self._mov_obs is None:
             self._mov_obs = mov_obs_new[:,None,:].repeat(5, axis=1)
         else:
@@ -234,7 +235,7 @@ class MultiAgentEnv(ABC):
         # breakpoint()
             self._mov_obs = self._mov_obs[:, -5:, :]
         
-        vel = vel_pred_fn(self._mov_obs)
+        vel = self.vel_pred_fn(self._mov_obs)
         vel = jnp.concatenate([vel, 0*vel], axis=-1)
 
         return vel.squeeze()

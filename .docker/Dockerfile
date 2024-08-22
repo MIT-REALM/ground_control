@@ -136,7 +136,7 @@ RUN apt-get update \
 # Make a ROS workspace
 RUN mkdir -p /catkin_ws/src
 WORKDIR /catkin_ws
-SHELL ["/bin/bash", "-c"]  # so we can use `source`
+SHELL ["/bin/bash", "-c"]
 RUN source /opt/ros/noetic/setup.sh && catkin_init_workspace src
 
 # Clone the vicon bridge
@@ -182,9 +182,19 @@ RUN echo "source /catkin_ws/devel/setup.bash" >> /root/.bashrc
 RUN apt-get --purge autoremove python3-pip -y
 RUN apt install python3-pip -y
 RUN python3 -m pip install --upgrade pip
-RUN pip3 install --upgrade numpy pyyaml
+RUN pip3 install --upgrade numpy
 RUN pip3 install seaborn
-RUN pip3 install "jax[cpu]" rospkg transforms3d equinox scipy flax einops colour
+# RUN pip3 install pyyaml --force-reinstall
+RUN pip3 install "jax[cpu]" 
+RUN pip3 install rospkg 
+RUN pip3 install transforms3d
+RUN pip3 install equinox
+RUN pip3 install scipy
+# RUN apt-get purge python3-yaml -y
+# RUN pip3 uninstall pyyaml -y
+RUN pip3 install --ignore-installed flax
+RUN pip3 install einops
+RUN pip3 install colour
 RUN pip3 install optax==0.1.7
 # RUN pip3 install --upgrade typing_extensions
 RUN pip3 install typing_extensions==4.8.0
