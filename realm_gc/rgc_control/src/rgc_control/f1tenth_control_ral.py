@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Define class for robot control """
 import os
-import cv2
 import numpy as np
 import rospy
 import math
-from cv_bridge import CvBridge
 from f1tenth_msgs.msg import F1TenthDriveStamped
 from rgc_state_estimators.msg import F1TenthState
 from sensor_msgs.msg import Image
+import pickle
 
 # from rgc_control.policies.tracking.steering_policies import F1TenthSteeringPolicy
 from rgc_control.policies.common import F1TenthAction
@@ -35,12 +34,18 @@ class F1TenthControl(RobotControl):
         self.e = 0.0
         self.theta_e = 0.0
 
+        self.filename = rospy.get_param("~trajectory/filename")
+
         self.traj_filepath = os.path.join(
             rospy.get_param("~trajectory/base_path"), 
-            rospy.get_param("~trajectory/filename")
+            self.filename
         )
-        self.v_ref = rospy.get_param("~v_ref", 0.5)        
-        self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.traj_filepath)
+        self.v_ref = rospy.get_param("~v_ref", 2.0) 
+        self.x_offset = rospy.get_param("~x_offset")
+        self.y_offset = rospy.get_param("~y_offset")
+        self.scale = rospy.get_param("~scale")       
+        self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.traj_filepath,
+            self.scale, self.x_offset, self.y_offset)
 
         self.goal_x = self.reference_trajectory.cx[-1]
         self.goal_y = self.reference_trajectory.cy[-1]
@@ -49,6 +54,22 @@ class F1TenthControl(RobotControl):
         self.goal_reached = False
 
         self.target_ind = 0
+
+        self.data = {}
+        self.data['v_ref'] = self.v_ref
+        self.data['states'] = {}
+        self.data['states']['x'] = []
+        self.data['states']['y'] = []
+        self.data['states']['theta'] = []
+        self.data['states']['v'] = []
+        self.data['states']['e'] = []
+        self.data['states']['theta_e'] = []
+        self.data['states']['target_ind'] = []
+        self.data['control'] = {}
+        self.data['control']['accel'] = []
+        self.data['control']['angle'] = []
+
+        self.data['filename'] = self.traj_filepath
 
         # Subscribe to state estimation topic from ros param
         self.state = None
@@ -60,7 +81,11 @@ class F1TenthControl(RobotControl):
         )
 
 
-        print(self.reference_trajectory.cx[0],self.reference_trajectory.cy[0],self.reference_trajectory.cyaw[0],self.reference_trajectory.cx[-1],self.reference_trajectory.cy[-1])
+        #print("reference_trajectory start: ", 
+        #    self.reference_trajectory.cx[0],self.reference_trajectory.cy[0],self.reference_trajectory.cyaw[0])
+        #print("reference_trajectory end:   ",
+        #    self.reference_trajectory.cx[-1],self.reference_trajectory.cy[-1])
+
         # Instantiate control policy using F1Tenth steering policy and reference
         # trajectory. We need to wait until we get the first state estimate in order
         # to instantiate the control policy.
@@ -81,6 +106,7 @@ class F1TenthControl(RobotControl):
 
     def state_estimate_callback(self, msg):
         self.state = msg
+        # print("state msg:", msg)
 
     def reset_control(self, msg=None):
         """Reset the control to stop the experiment and publish the command."""
@@ -122,6 +148,7 @@ class F1TenthControl(RobotControl):
         Update and publish the control.
         This function implements fand calls the control prediction and update steps.
         """
+        
         if self.state is not None:
             # Pack [x,y,theta,v] from state message into TimedPose2DObservation instance
             # Make sure to normalize the time
@@ -143,12 +170,36 @@ class F1TenthControl(RobotControl):
             dx = self.state.x - self.goal_x
             dy = self.state.y - self.goal_y
             if math.hypot(dx, dy) <= self.goal_dist:
-                self.goal_reached = True
-            if self.goal_reached:
+                # if not self.goal_reached:
+                #     file = open(f"data_{self.filename.split('.')[0]}_{self.v_ref}.pkl", "wb")
+                #     pickle.dump(self.data, file)
+                #     file.close()
+                #if self.goal_reached:
                 print("goal reached :)")
+                self.goal_reached = True
+                self.state.speed=0
                 self.reset_control()
+                self.ctrl_c=True
             else:
+                self.data['states']['x'].append(self.state.x)
+                self.data['states']['y'].append(self.state.y)
+                self.data['states']['theta'].append(self.state.theta)
+                self.data['states']['v'].append(self.state.speed)
+                self.data['states']['e'].append(self.e)
+                self.data['states']['theta_e'].append(self.theta_e)
+                self.data['states']['target_ind'].append(self.target_ind)
+
                 self.control, self.e, self.theta_e, self.target_ind = self.control_policy.compute_action(current_state)
+
+                #print(self.target_ind, self.reference_trajectory.cx[self.target_ind], self.reference_trajectory.cy[self.target_ind], self.reference_trajectory.cyaw[self.target_ind])
+
+                self.data['control']['accel'].append(self.control.acceleration)
+                self.data['control']['angle'].append(self.control.steering_angle)
+
+            file = open(f"/catkin_ws/src/realm_gc/data_{self.filename.split('.')[0]}_{self.v_ref}.pkl", "wb")
+            #print(f" stored at: ", f"/catkin_ws/src/realm_gc/data_{self.filename.split('.')[0]}_{self.v_ref}.pkl")
+            pickle.dump(self.data, file)
+            file.close()
             # self.e,self.theta_e = self.set_e(self.state,self.reference_trajectory.cx[ind],self.reference_trajectory.cy[ind],self.reference_trajectory.cyaw[ind])
             
             # # Stop if the experiment is over
@@ -170,21 +221,23 @@ class F1TenthControl(RobotControl):
         #msg.drive.mode = 1
         msg.drive.mode=0
         if not self.goal_reached:
-            if self.control.steering_angle>=np.pi/4:
-                self.control.steering_angle=np.pi/4
-            elif self.control.steering_angle<=-np.pi/4:
-                self.control.steering_angle = -np.pi/4
+            # if self.control.steering_angle>=np.pi/8:
+            #     self.control.steering_angle=np.pi/8
+            # elif self.control.steering_angle<=-np.pi/8:
+            #     self.control.steering_angle = -np.pi/8
+            self.control.steering_angle = min( np.pi/4, self.control.steering_angle)
+            self.control.steering_angle = max(-np.pi/4, self.control.steering_angle)
 
             msg.drive.steering_angle = self.control.steering_angle
             msg.drive.acceleration = self.control.acceleration
 
             # Control speed rather than acceleration directly
             self.desired_speed += self.dt * self.control.acceleration
-            if self.desired_speed > 0.5:
-                self.desired_speed = 0.5
+            self.desired_speed = min(self.desired_speed, self.v_ref)
             msg.drive.speed = self.desired_speed
-            print(msg.drive.speed,msg.drive.acceleration,msg.drive.steering_angle)
+            #print(msg.drive.speed,msg.drive.acceleration,msg.drive.steering_angle)
             self.control_pub.publish(msg)
+
 
 
 if __name__ == "__main__":

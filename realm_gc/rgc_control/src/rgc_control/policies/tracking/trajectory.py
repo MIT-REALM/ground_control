@@ -47,10 +47,19 @@ class SplineTrajectory2D():
     args:
         p: the array of control points for the trajectory
     """
-    def __init__(self, v_ref:float, filepath: str):
+    def __init__(self, v_ref:float, filepath: str,
+        scale=1.0, x_offset=0.0, y_offset=0.0):
         #Loads a dictionary with keys 'X' and 'Y' and converts it into spline information
         with open(filepath,'rb') as file:
             self.traj = pickle.load(file) 
+        file.close()
+        #print(self.traj['X'],self.traj['Y'])
+        x, y = [], []
+        for i in range(len(self.traj['X'])):
+            self.traj['X'][i] = self.traj['X'][i] * scale + x_offset
+            self.traj['Y'][i] = self.traj['Y'][i] * scale + y_offset
+        #print(self.traj['X'],self.traj['Y'])
+
         self.cx,self.cy,self.cyaw,self.ck = self.calc_spline_course()
         self.v_ref = v_ref
         self.v = self.calc_speed_profile(self.v_ref)

@@ -57,8 +57,6 @@ def create_ral_f1tenth_policy(
 
     print("Loaded trajectory with waypoints:")
 
-    print(ego_traj)
-
     # Make the trajectory tracking policy
     steering_controller = F1TenthSpeedSteeringPolicy(
         trajectory=ego_traj,

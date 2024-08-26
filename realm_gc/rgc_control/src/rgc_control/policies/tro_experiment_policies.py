@@ -115,7 +115,7 @@ def create_tro_turtlebot_policy(
 
     non_ego_traj = LinearTrajectory2D(p=p)
     print("Loaded trajectory with waypoints:")
-    print(non_ego_traj.p)
+    #print(non_ego_traj.p)
 
     # Make the trajectory tracking policy
     steering_controller = TurtlebotSteeringPolicy()

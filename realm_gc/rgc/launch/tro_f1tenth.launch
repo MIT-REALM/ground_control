@@ -2,10 +2,14 @@
 
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
-    <arg name="traj_filepath" default="ego_traj_nominal_3.pkl"/>
+    <arg name="traj_filepath" default="ego_traj_nominal_1.pkl"/>
 
     <arg name="T" default="12"/>
-    <arg name="v_ref" default="0.5"/>
+    <arg name="v_ref" default="2.0"/>
+
+    <arg name="scale" default="1.0"/>
+    <arg name="x_offset" default="0.0"/>
+    <arg name="y_offset" default="0.0"/>
 
     <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
     
@@ -25,5 +29,11 @@
 
         <!-- Set experiment time -->
         <param name="T" type="double" value="$(arg T)"/>
+
+        <param name="v_ref" type="double" value="$(arg v_ref)"/>
+
+        <param name="scale" type="double" value="$(arg scale)"/>
+        <param name="x_offset" type="double" value="$(arg x_offset)"/>
+        <param name="y_offset" type="double" value="$(arg y_offset)"/>
     </node>
 </launch>

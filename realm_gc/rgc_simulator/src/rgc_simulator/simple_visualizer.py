@@ -9,8 +9,6 @@ import matplotlib
 import os
 from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
 
-
-
 class VisualizeSimulator:
     """simple visualizer"""
 
@@ -45,16 +43,22 @@ class VisualizeSimulator:
             topic, TransformStamped, lambda msg, i=idx: self.position_callback(msg, i)
         ) for idx, topic in enumerate(self.position_topics)]
 
+        filename = rospy.get_param("~trajectory/filename")
         self.traj_filepath = os.path.join(
             rospy.get_param("~trajectory/base_path"), 
-            rospy.get_param("~trajectory/filename")
+            filename
         )
 
-        self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
-        print(self.ref_traj.cx)
-        print(self.ref_traj.cy)
+        self.v_ref = rospy.get_param("~v_ref")
 
+        self.x_offset = rospy.get_param("~x_offset")
+        self.y_offset = rospy.get_param("~y_offset")
+        self.scale = rospy.get_param("~scale")
 
+        self.ref_traj = SplineTrajectory2D(self.v_ref, self.traj_filepath,
+            self.scale, self.x_offset, self.y_offset)
+
+        print("Visualizer running")
 
     def position_callback(self, msg, idx):
         self.xy[idx,0] = msg.transform.translation.x
@@ -63,6 +67,8 @@ class VisualizeSimulator:
 
     def run(self):
         # see https://matplotlib.org/stable/users/explain/animations/blitting.html
+        print("visualizing...")
+
         fig, ax = plt.subplots(figsize=(10, 10))
         pts = ax.scatter(self.xy[:,0], self.xy[:,1], animated=True)
 
@@ -70,7 +76,7 @@ class VisualizeSimulator:
         x_max = max(self.ref_traj.cx)
         y_min = min(self.ref_traj.cy)
         y_max = max(self.ref_traj.cy)
-        grace = 2
+        grace = 5
 
         ax.set_xlim(x_min-grace, x_max+grace)
         ax.set_ylim(y_min-grace, y_max+grace)

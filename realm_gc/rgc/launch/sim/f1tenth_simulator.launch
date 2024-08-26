@@ -5,11 +5,23 @@
     <arg name="control_topic" default="/vesc/high_level/ackermann_cmd_mux/input/nav_0"/>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
     <arg name="filename" default="ego_traj_nominal_1.pkl"/>
+
+    <arg name="scale" default="1.0"/>
+    <arg name="x_offset" default="0.0"/>
+    <arg name="y_offset" default="0.0"/>
+
+    <arg name="v_ref" default="1.0"/>
     
     <node name="f1tenth_simulator" pkg="rgc_simulator" type="f1tenth_simulator.py" output="screen">
         <param name="position_topic" type="string" value="$(arg position_topic)"/>
         <param name="control_topic" type="string" value="$(arg control_topic)"/>
         <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
         <param name="trajectory/filename" type="string" value="$(arg filename)"/>
+
+        <param name="v_ref" type="double" value="$(arg v_ref)"/>
+
+        <param name="scale" type="double" value="$(arg scale)"/>
+        <param name="x_offset" type="double" value="$(arg x_offset)"/>
+        <param name="y_offset" type="double" value="$(arg y_offset)"/>
     </node>
 </launch>

@@ -42,12 +42,20 @@ class F1TenthSimulator:
             self.position_topic, TransformStamped, queue_size=10
         )
 
+        self.v_ref = rospy.get_param("~v_ref")
+
+        filename = rospy.get_param("~trajectory/filename")
         self.traj_filepath = os.path.join(
             rospy.get_param("~trajectory/base_path"), 
-            rospy.get_param("~trajectory/filename")
+            filename
         )
 
-        self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
+        self.x_offset = rospy.get_param("~x_offset")
+        self.y_offset = rospy.get_param("~y_offset")
+        self.scale = rospy.get_param("~scale")
+
+        self.ref_traj = SplineTrajectory2D(self.v_ref, self.traj_filepath,
+            self.scale, self.x_offset, self.y_offset)
 
         self.state[0] = self.ref_traj.cx[0]
         self.state[1] = self.ref_traj.cy[0]

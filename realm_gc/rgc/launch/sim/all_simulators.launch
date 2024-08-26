@@ -7,6 +7,12 @@
         /vicon/realm_f1tenth/realm_f1tenth]"/>
     <arg name="visualizer_position_names" default="[f1tenth]"/>
 
+    <arg name="scale" default="0.6"/>
+    <arg name="x_offset" default="0.0"/>
+    <arg name="y_offset" default="0.0"/>
+
+    <arg name="v_ref" default="0.1"/>
+
     <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
     <arg name="filename" default="ego_traj_nominal_1.pkl"/>
 
@@ -16,6 +22,10 @@
         <arg name="control_topic" default="/vesc/high_level/ackermann_cmd_mux/input/nav_0"/>
         <arg name="base_path" default="$(arg base_path)"/>
         <arg name="filename" default="$(arg filename)"/>
+
+        <arg name="scale" default="$(arg scale)"/>
+        <arg name="x_offset" default="$(arg x_offset)"/>
+        <arg name="y_offset" default="$(arg y_offset)"/>
     </include>
 
     <node name="simple_visualizer" pkg="rgc_simulator" type="simple_visualizer.py" output="screen">
@@ -23,5 +33,11 @@
         <rosparam param="visualizer_position_names" subst_value="True">$(arg visualizer_position_names)</rosparam> 
         <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
         <param name="trajectory/filename" type="string" value="$(arg filename)"/>
+
+        <param name="v_ref" type="double" value="$(arg v_ref)"/>
+
+        <param name="scale" type="double" value="$(arg scale)"/>
+        <param name="x_offset" type="double" value="$(arg x_offset)"/>
+        <param name="y_offset" type="double" value="$(arg y_offset)"/>
     </node>
 </launch>
