@@ -21,7 +21,7 @@ class RALF1tenthObservation(TimedG2CPose2DObservation):
 
 #Implements a path-tracking LQR policy, which currently does not work very well
 def create_ral_f1tenth_policy(
-    initial_position, v_ref, traj_csv_path
+    initial_position, scale, x_offset, y_offset, v_ref, traj_csv_path
 ) -> CompositePolicy:
     """Create a composite policy for the F1tenth ego agent in the RAL experiment.
 
@@ -32,10 +32,12 @@ def create_ral_f1tenth_policy(
     # Construct the components of the policy using the parameters they were trained with
 
     # Load the trajectory and flip the x and y coordinates, then add some noise
-    ego_traj = SplineTrajectory2D(v_ref, traj_csv_path)
-
+    print("Offsets",x_offset,y_offset)
+    ego_traj = SplineTrajectory2D(v_ref, traj_csv_path,scale,x_offset,y_offset)
+    print("Ego Trajectory:",ego_traj.cx[0],ego_traj.cy[0])
     # Start pointing along +y in the highbay
-    desired_equilibrium_state = jnp.array([0.0, 0.0, jnp.pi / 2.0, 1.5])
+    #desired_equilibrium_state = jnp.array([0.0, -4.0, jnp.pi / 2.0, 1.5])
+    desired_equilibrium_state = jnp.array([initial_position[0],initial_position[1], jnp.pi / 2.0, v_ref])
 
     #p = jnp.fliplr(ego_traj.p) 
 
@@ -83,7 +85,7 @@ def create_lqr_f1tenth_policy(
     # Construct the components of the policy using the parameters they were trained with
 
     # Start pointing along +y in the highbay
-    desired_equilibrium_state = jnp.array([0.0, 0.0, jnp.pi / 2.0, 1.5])
+    desired_equilibrium_state = jnp.array([0.0, -4.0, jnp.pi / 2.0, 1.5])
 
     # Load the trajectory and flip x and y to convert from sim to high bay layout
     ego_traj = LinearTrajectory2D.from_eqx(6, traj_eqx_path)

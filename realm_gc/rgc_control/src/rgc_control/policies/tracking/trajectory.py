@@ -48,7 +48,7 @@ class SplineTrajectory2D():
         p: the array of control points for the trajectory
     """
     def __init__(self, v_ref:float, filepath: str,
-        scale=1.0, x_offset=0.0, y_offset=0.0):
+        scale, x_offset, y_offset):
         #Loads a dictionary with keys 'X' and 'Y' and converts it into spline information
         with open(filepath,'rb') as file:
             self.traj = pickle.load(file) 
@@ -59,16 +59,24 @@ class SplineTrajectory2D():
             self.traj['X'][i] = self.traj['X'][i] * scale + x_offset
             self.traj['Y'][i] = self.traj['Y'][i] * scale + y_offset
         #print(self.traj['X'],self.traj['Y'])
-
+        x_traj = self.traj['X']
+        y_traj = self.traj['Y']
+        #self.traj['X'] = y_traj
+        #self.traj['Y'] = x_traj
+        self.set_X = y_traj
+        self.set_Y = x_traj
+        
         self.cx,self.cy,self.cyaw,self.ck = self.calc_spline_course()
+        print(self.cx,self.cy)
         self.v_ref = v_ref
         self.v = self.calc_speed_profile(self.v_ref)
 
     def calc_spline_course(self, ds=0.1):
-        trajectory = self.traj
-        x = trajectory['X']
-        y = trajectory['Y']
-        sp = CubicSpline2D(x, y)
+        #trajectory = self.traj
+        #x = trajectory['X']
+        #y = trajectory['Y']
+        #sp = CubicSpline2D(x, y)
+        sp = CubicSpline2D(self.set_X,self.set_Y)
         if np.isnan(sp.s[-1]):
             print(sp.s)
         s = list(np.arange(0, sp.s[-1], ds))

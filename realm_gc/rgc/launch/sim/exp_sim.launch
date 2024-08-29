@@ -17,17 +17,16 @@
     <arg name="filename" default="experiment_trial_2.pkl"/>
 
     <!-- Start the F1Tenth simulator -->
-    <include file="$(find rgc)/launch/sim/f1tenth_simulator.launch">
-        <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
-        <arg name="control_topic" default="/vesc/high_level/ackermann_cmd_mux/input/nav_0"/>
-        <arg name="base_path" default="$(arg base_path)"/>
-        <arg name="filename" default="$(arg filename)"/>
+    <!-- <include file="$(find rgc)/launch/sim/f1tenth_simulator.launch"> -->
+    <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
+    <arg name="control_topic" default="/vesc/high_level/ackermann_cmd_mux/input/nav_0"/>
+    <!-- <arg name="base_path" default="$(arg base_path)"/> -->
+    <!-- <arg name="filename" default="$(arg filename)"/> -->
 
-        <arg name="scale" default="$(arg scale)"/>
-        <arg name="x_offset" default="$(arg x_offset)"/>
-        <arg name="y_offset" default="$(arg y_offset)"/>
-        <arg name="v_ref" default="$(arg v_ref)"/>
-    </include>
+    <!-- <arg name="scale" default="$(arg scale)"/>
+    <arg name="x_offset" default="$(arg x_offset)"/>
+    <arg name="y_offset" default="$(arg y_offset)"/> -->
+    <!-- </include> -->
 
     <node name="simple_visualizer" pkg="rgc_simulator" type="simple_visualizer.py" output="screen">
         <rosparam param="visualizer_position_topics" subst_value="True">$(arg visualizer_position_topics)</rosparam>

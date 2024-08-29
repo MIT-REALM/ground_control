@@ -25,7 +25,7 @@ class F1TenthSimulator:
         )
 
         # Initialize the f1tenth state
-        self.state = np.array([0.0, 0.0, 0.0, 0.0])
+        self.state = np.array([-4.0, 0.0, np.pi/2, 0.0])
         self.command = np.array([0.0, 0.0])
 
         # Set the simulation rate
@@ -60,7 +60,7 @@ class F1TenthSimulator:
         self.state[0] = self.ref_traj.cx[0]
         self.state[1] = self.ref_traj.cy[0]
         self.state[2] = self.ref_traj.cyaw[0]
-
+        
 
     def cmd_callback(self, msg):
         """Update the saved command."""
@@ -70,6 +70,8 @@ class F1TenthSimulator:
         """Run the simulation."""
         while not rospy.is_shutdown():
             # Update the state
+            #print("Initial state",self.state)
+            #print("Initial ref",self.ref_traj.cx[0],self.ref_traj.cy[0])
             x, y, theta, v = self.state
             delta, a = self.command
             dq_dt = np.array(

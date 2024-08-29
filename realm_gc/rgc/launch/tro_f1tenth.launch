@@ -2,13 +2,13 @@
 
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
-    <arg name="traj_filepath" default="ego_traj_nominal_1.pkl"/>
+    <arg name="traj_filepath" default="experiment_trial_2.pkl"/>
 
     <arg name="T" default="12"/>
-    <arg name="v_ref" default="2.0"/>
+    <arg name="v_ref" default="1.0"/>
 
     <arg name="scale" default="1.0"/>
-    <arg name="x_offset" default="0.0"/>
+    <arg name="x_offset" default="-4.0"/>
     <arg name="y_offset" default="0.0"/>
 
     <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
