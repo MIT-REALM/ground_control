@@ -59,24 +59,24 @@ class SplineTrajectory2D():
             self.traj['X'][i] = self.traj['X'][i] * scale + x_offset
             self.traj['Y'][i] = self.traj['Y'][i] * scale + y_offset
         #print(self.traj['X'],self.traj['Y'])
-        x_traj = self.traj['X']
-        y_traj = self.traj['Y']
+        #x_traj = self.traj['X']
+        #y_traj = self.traj['Y']
         #self.traj['X'] = y_traj
         #self.traj['Y'] = x_traj
-        self.set_X = y_traj
-        self.set_Y = x_traj
+        #self.set_X = y_traj
+        #self.set_Y = x_traj
         
         self.cx,self.cy,self.cyaw,self.ck = self.calc_spline_course()
-        print(self.cx,self.cy)
+        #print(self.cx,self.cy)
         self.v_ref = v_ref
         self.v = self.calc_speed_profile(self.v_ref)
 
     def calc_spline_course(self, ds=0.1):
-        #trajectory = self.traj
-        #x = trajectory['X']
-        #y = trajectory['Y']
-        #sp = CubicSpline2D(x, y)
-        sp = CubicSpline2D(self.set_X,self.set_Y)
+        trajectory = self.traj
+        x = trajectory['X']
+        y = trajectory['Y']
+        sp = CubicSpline2D(x, y)
+        #sp = CubicSpline2D(self.set_X,self.set_Y)
         if np.isnan(sp.s[-1]):
             print(sp.s)
         s = list(np.arange(0, sp.s[-1], ds))

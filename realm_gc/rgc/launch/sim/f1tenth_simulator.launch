@@ -10,7 +10,7 @@
     <arg name="x_offset" default="-4.0"/>
     <arg name="y_offset" default="0.0"/>
 
-    <arg name="v_ref" default="0.0"/-->
+    <arg name="v_ref" default="0.0"/>
     
     <node name="f1tenth_simulator" pkg="rgc_simulator" type="f1tenth_simulator.py" output="screen">
         <param name="position_topic" type="string" value="$(arg position_topic)"/>

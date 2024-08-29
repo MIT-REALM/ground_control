@@ -8,8 +8,8 @@
     <arg name="v_ref" default="1.0"/>
 
     <arg name="scale" default="1.0"/>
-    <arg name="x_offset" default="-4.0"/>
-    <arg name="y_offset" default="0.0"/>
+    <arg name="x_offset" default="0.0"/>
+    <arg name="y_offset" default="-4.0"/>
 
     <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
     

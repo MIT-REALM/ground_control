@@ -34,7 +34,7 @@ def create_ral_f1tenth_policy(
     # Load the trajectory and flip the x and y coordinates, then add some noise
     print("Offsets",x_offset,y_offset)
     ego_traj = SplineTrajectory2D(v_ref, traj_csv_path,scale,x_offset,y_offset)
-    print("Ego Trajectory:",ego_traj.cx[0],ego_traj.cy[0])
+    #print("Ego Trajectory:",ego_traj.cx[0],ego_traj.cy[0])
     # Start pointing along +y in the highbay
     #desired_equilibrium_state = jnp.array([0.0, -4.0, jnp.pi / 2.0, 1.5])
     desired_equilibrium_state = jnp.array([initial_position[0],initial_position[1], jnp.pi / 2.0, v_ref])
