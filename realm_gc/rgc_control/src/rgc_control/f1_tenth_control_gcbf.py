@@ -20,7 +20,7 @@ from rgc_control.policies.icra_experiment_policies import (
 # from std_msgs.msg import Float32MultiArray
 from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
 
-from rgc_control.policies.tracking.steering_policies import F1TenthSteeringPolicy, SteeringObservation, Pose2DObservation
+from rgc_control.policies.tracking.steering_policies import F1TenthSteeringPolicy, SteeringObservation, Pose2DObservation, F1TenthSpeedSteeringPolicy
 
 from rgc_control.robot_control import RobotControl
 from rgc_control.policies.gcbf_policy import GCBF_policy
@@ -175,7 +175,8 @@ class F1TenthControl(RobotControl):
         traj['Y'] = y
         self.reference_trajectory = SplineTrajectory2D(self.v_ref,self.traj_filepath, traj)
 
-        self.reference_control = F1TenthSteeringPolicy(equilibrium_state=car_pos + np.array([0.1, -0.2, -0.2, 0.1]), axle_length=0.28, dt=0.03)
+        # self.reference_control = F1TenthSteeringPolicy(equilibrium_state=car_pos + np.array([0.1, -0.2, -0.2, 0.1]), axle_length=0.28, dt=0.03)
+        self.reference_control = F1TenthSpeedSteeringPolicy(trajectory=self.reference_trajectory, wheelbase=0.28, dt=0.03, target_speed=self.v_ref)
         # ref_offset = np.array([0.1, -0.2, -0.2, 0.1])
         self.current_pose = None
         self.goal_pose= Pose2DObservation(
