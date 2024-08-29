@@ -40,7 +40,7 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/base_path"), 
             self.filename
         )
-        self.v_ref = rospy.get_param("~v_ref", 2.0) 
+        self.v_ref = 5.0 #rospy.get_param("~v_ref",5.0) 
         self.x_offset = rospy.get_param("~x_offset")
         self.y_offset = rospy.get_param("~y_offset")
         self.scale = rospy.get_param("~scale")       
@@ -165,7 +165,7 @@ class F1TenthControl(RobotControl):
 
             #Calculate the nearest point on the curvature to steer towards
             # ind, _ = self.calc_nearest_index(self.state,self.reference_trajectory.cx,self.reference_trajectory.cy,self.reference_trajectory.cyaw)
-            print("Before",self.e)
+            #print("Before",self.e)
             current_state = RALF1tenthObservation(
                 x=self.state.x,
                 y=self.state.y,
@@ -175,7 +175,7 @@ class F1TenthControl(RobotControl):
                 theta_e = self.theta_e,
                 t=self.target_ind,
             )
-            print("State:",self.state.x,self.state.y,"Error:",(self.e),"time:",t)
+            #print("State:",self.state.x,self.state.y,"Error:",(self.e),"time:",t)
             dx = self.state.x - self.goal_x
             dy = self.state.y - self.goal_y
             if math.hypot(dx, dy) <= self.goal_dist:
@@ -198,10 +198,10 @@ class F1TenthControl(RobotControl):
                 self.data['states']['theta_e'].append(self.theta_e)
                 self.data['states']['target_ind'].append(self.target_ind)
                 
-                print("Before-1",self.e)
-                print("Current State:",current_state)
+                #print("Before-1",self.e)
+                #print("Current State:",current_state)
                 self.control, self.e, self.theta_e, self.target_ind = self.control_policy.compute_action(current_state)
-                print("After",self.e)
+                #print("After",self.e)
 
                 #print(self.target_ind, self.reference_trajectory.cx[self.target_ind], self.reference_trajectory.cy[self.target_ind], self.reference_trajectory.cyaw[self.target_ind])
 
@@ -246,8 +246,9 @@ class F1TenthControl(RobotControl):
             # Control speed rather than acceleration directly
             self.desired_speed += self.dt * self.control.acceleration
             self.desired_speed = min(self.desired_speed, self.v_ref)
-            self.desired_speed = min( 2, self.desired_speed)
-            self.desired_speed = max(-2, self.desired_speed)
+            self.desired_speed = min( self.v_ref, self.desired_speed)
+            self.desired_speed = max(-self.v_ref, self.desired_speed)
+            print("Speed:",self.state.speed, "Ref:",self.v_ref, "Acc:",self.control.acceleration)
             msg.drive.speed = self.desired_speed
             #print(msg.drive.speed,msg.drive.acceleration,msg.drive.steering_angle)
             self.control_pub.publish(msg)

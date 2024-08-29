@@ -8,13 +8,13 @@
     <arg name="visualizer_position_names" default="[f1tenth]"/>
 
     <arg name="scale" default="1.0"/>
-    <arg name="x_offset" default="-4.0"/>
-    <arg name="y_offset" default="0.0"/>
+    <arg name="x_offset" default="0.0"/>
+    <arg name="y_offset" default="-5.0"/>
 
-    <arg name="v_ref" default="1.0"/>
+    <arg name="v_ref" default="2.5"/>
 
-    <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
-    <arg name="filename" default="experiment_trial_2.pkl"/>
+    <arg name="base_path" default="$(find rgc_control)/saved_policies/ICRA_experiments"/>
+    <arg name="filename" default="initial_0.pkl"/>
 
     <!-- Start the F1Tenth simulator -->
     <!-- <include file="$(find rgc)/launch/sim/f1tenth_simulator.launch"> -->

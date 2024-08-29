@@ -91,7 +91,9 @@ class VisualizeSimulator:
                  for idx, name in enumerate(self.position_names)]
         
         plt.plot(self.ref_traj.cx, self.ref_traj.cy)
-        # plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
+        plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
+        plt.ylabel('Y')
+        plt.xlabel('X')
 
         plt.show(block=False)
         plt.pause(0.1)
