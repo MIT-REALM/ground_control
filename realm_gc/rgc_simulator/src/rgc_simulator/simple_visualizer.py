@@ -110,7 +110,7 @@ class VisualizeSimulator:
 
         pts_obs = ax.scatter(obs[:, 0], obs[:, 1], animated=True, s=100, c=['r']*20)
 
-        pts1 = ax.scatter(np.array(self.ref_traj.cx), np.array(self.ref_traj.cy), animated=True, c='k', linestyle='-')
+        (pts1, )= ax.plot(np.array(self.ref_traj.cx), np.array(self.ref_traj.cy), c='k', linestyle='-', animated=True, linewidth=2)
 
         # lines = ax.plot(self.xy, self.xy + 0.1*np.array([np.cos(self.theta), np.sin(self.theta)]).T, animated=True, linewidth=2)
         
@@ -131,7 +131,7 @@ class VisualizeSimulator:
                  for idx, name in enumerate(self.position_names)]
         
         # with writer.saving(fig, "writer_test.mp4", 100):    
-        plt.plot(self.ref_traj.cx, self.ref_traj.cy)
+        # plt.plot(self.ref_traj.cx, self.ref_traj.cy)
         # plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
         # plt.scatter(ref_x,ref_y)
 
@@ -160,7 +160,7 @@ class VisualizeSimulator:
             pts_obs.set_offsets(obs)
 
             # pts1.set_offsets(np.array([self.new_trajx, self.new_trajy]))
-            pts1 = ax.scatter(self.new_trajx, self.new_trajy, animated=True, c='k', linestyle='-')
+            # pts1 = ax.scatter(self.new_trajx, self.new_trajy, animated=True, c='k', linestyle='-')
             for idx, anno in enumerate(annos):
                 # print(idx, anno, self.xy[idx,:])
                 anno.set_position(self.xy[idx,:])
@@ -169,11 +169,15 @@ class VisualizeSimulator:
                 # draw orientation as straight line
                 # ax.plot([self.xy[idx,0], self.xy[idx,0] + 0.1*np.cos(self.theta[idx])], 
                 #         [self.xy[idx,1], self.xy[idx,1] + 0.1*np.sin(self.theta[idx])])
+            # if self.new_trajx is not None and self.new_trajy is not None:
+            #     ax.plot(self.new_trajx, self.new_trajy, '--r')
+            # print('type new trajx: ', type(self.new_trajx))
             if self.new_trajx is not None and self.new_trajy is not None:
-                ax.plot(self.new_trajx, self.new_trajy, '--r')
-
+                pts1.set_xdata(self.new_trajx)
+                pts1.set_ydata(self.new_trajy)
+                ax.draw_artist(pts1)
+                
             ax.draw_artist(pts)
-            ax.draw_artist(pts1)
             ax.draw_artist(pts_obs)
 
             # ax.draw_artist(lines)

@@ -22,7 +22,7 @@ class RALF1tenthObservation(TimedG2CPose2DObservation):
 #Implements a path-tracking LQR policy, which currently does not work very well
 def create_ral_f1tenth_policy(
     initial_position, v_ref, traj_csv_path, traj=None,
-) -> CompositePolicy:
+):
     """Create a composite policy for the F1tenth ego agent in the RAL experiment.
 
     Args:

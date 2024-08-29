@@ -98,7 +98,7 @@ class G2CTrajectoryTrackingPolicy(ControlPolicy):
     def action_type(self):
         return self.steering_controller.action_type
     
-    def compute_action(self, observation: TimedG2CPose2DObservation) -> ControlAction:
+    def compute_action(self, observation: TimedG2CPose2DObservation, traj=None) -> ControlAction:
         """Takes in an observation and returns a control action."""
         # Compute the desired waypoint. 
         #Each waypoint consists of desired x,y,theta & curvature 
@@ -115,4 +115,4 @@ class G2CTrajectoryTrackingPolicy(ControlPolicy):
                 k=waypoint[4],
             ),
         )
-        return self.steering_controller.compute_action(steering_observation)
+        return self.steering_controller.compute_action(steering_observation, traj)

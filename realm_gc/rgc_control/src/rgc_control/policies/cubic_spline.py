@@ -49,6 +49,9 @@ class CubicSpline1D:
         if np.any(h < 0):
             raise ValueError("x coordinates must be sorted in ascending order")
 
+        h_less_than_zero = np.where(h < 0.0001)
+        h[h_less_than_zero] = 1e-4
+        
         self.a, self.b, self.c, self.d = [], [], [], []
         self.x = x
         self.y = y

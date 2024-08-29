@@ -55,7 +55,7 @@ services:
       context: .
       dockerfile: .docker/Dockerfile
     environment:
-      - SIMRATE=100
+      - SIMRATE=10
       - DISPLAY=${DISPLAY} # allows GUI access
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access

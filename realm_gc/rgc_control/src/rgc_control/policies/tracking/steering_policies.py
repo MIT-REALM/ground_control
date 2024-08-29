@@ -307,8 +307,15 @@ class F1TenthSpeedSteeringPolicy(ControlPolicy):
     def action_type(self):
         return F1TenthAction
 
-    def lqr_speed_steering_control(self, state):
-        cx, cy, cyaw, ck = self.cx, self.cy, self.cyaw, self.ck
+    def lqr_speed_steering_control(self, state, traj=None):
+        if traj is not None:
+            self.set_calc_speed_profile()
+            cx = traj.cx
+            cy = traj.cy
+            cyaw = traj.cyaw
+            ck = traj.ck
+        else:
+            cx, cy, cyaw, ck = self.cx, self.cy, self.cyaw, self.ck
         pe, pth_e = state.e, state.theta_e
         sp, dt = self.speed_profile, self.dt
         L, Q, R = self.L, self.lqr_Q, self.lqr_R
@@ -422,7 +429,7 @@ class F1TenthSpeedSteeringPolicy(ControlPolicy):
                 speed_profile[i] = 0.0
 
         # speed down
-        for i in range(len(cyaw) - 1):
+        for i in range(5):
             speed_profile[-i] = target_speed / (len(cyaw) - i)
             if speed_profile[-i] <= 1.0 / 3.6:
                 speed_profile[-i] = 1.0 / 3.6
@@ -446,9 +453,9 @@ class F1TenthSpeedSteeringPolicy(ControlPolicy):
     #     B[4, 1] = self.dt
     #     return A,B
 
-    def compute_action(self, observation:SpeedSteeringObservation):
+    def compute_action(self, observation:SpeedSteeringObservation, traj: SplineTrajectory2D)-> F1TenthAction:
         state = observation.pose
-        dl, target_ind, e, e_th, ai = self.lqr_speed_steering_control(state)
+        dl, target_ind, e, e_th, ai = self.lqr_speed_steering_control(state, traj)
         return F1TenthAction(steering_angle=dl, acceleration=ai), e, e_th, target_ind
 
     
