@@ -28,8 +28,8 @@ class GCBF_policy(ControlPolicy):
             min_distance: float = 1.0,
             car_pos: np.ndarray = np.array([3.0, -0.5, 0.0, 0,0]),
             car_goal: np.ndarray = np.array([1.0, 0.5, 0.0, 0.0]),
-            obs_pos: np.ndarray = np.array([[0.5, 0.5], [0.5, 0.5]]),
-            num_obs: int = 1,
+            obs_pos: np.ndarray = np.zeros((20, 2)),
+            num_obs: int = 20,
             mov_obs: int = 2,
             model_path = 'realm_gc/rgc_control/src/gcbfplus/seed1_20240719162242/'
             ):
@@ -140,12 +140,12 @@ class GCBF_policy(ControlPolicy):
             obs = self.obs
         if goal is None:
             goal = self.car_goal
-
+        
         car_pos = jnp.array([car_pos.x, car_pos.y, car_pos.theta, car_pos.v])
         
         new_graph = self.create_graph(car_pos, goal, obs, graph)
         self.graph0 = new_graph
-        print('graph state before step: ', new_graph.env_states.agent)
+        # print('graph state before step: ', new_graph.env_states.agent)
         if ref_inp is not None:
             ref_vel = jnp.array([ref_inp.steering_angle, ref_inp.acceleration])
         else:

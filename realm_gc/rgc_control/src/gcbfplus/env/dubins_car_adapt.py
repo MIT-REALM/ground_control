@@ -473,8 +473,8 @@ class DubinsCarAdapt(MultiAgentEnv):
         lower_limit, upper_limit: Tuple[Action, Action],
             limits of the action
         """
-        lower_lim = jnp.ones(2) * -3.0
-        upper_lim = jnp.ones(2) * 3.0
+        lower_lim = jnp.ones(2) * -1.0
+        upper_lim = jnp.ones(2) * 1.0
         return lower_lim, upper_lim
 
     def u_ref(self, graph: GraphsTuple) -> Action:

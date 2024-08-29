@@ -9,11 +9,11 @@
 
     <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
     <arg name="position_topic_sim" default="/vicon/realm_f1tenth/realm_f1tenth_sim"/>
-    <arg name="position_topic1" default="/vicon/realm_f1tenth/realm_obs"/>
-    <arg name="position_topic2" default="/vicon/realm_f1tenth/realm_obs2"/>
+    <arg name="position_topic1" default="/vicon/realm_obs/realm_obs"/>
+    <arg name="position_topic2" default="/vicon/realm_obs2/realm_obs2"/>
     
     <!-- State estimator -->
-    <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_euler.py" output="screen">
+    <node name="f1tenth_state_estimator" pkg="rgc_state_estimators" type="f1tenth_ekf.py" output="screen">
         <param name="position_topic" type="string" value="$(arg position_topic)"/>
     </node>
 

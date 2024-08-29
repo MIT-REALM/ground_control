@@ -220,9 +220,13 @@ COPY realm_gc/bash_sh.sh /catkin_ws/src/bash_sh.sh
 RUN chmod +x /catkin_ws/src/bash_sh.sh
 
 RUN echo "alias run_ros='rostopic pub /start_control std_msgs/Empty' " >> /root/.bashrc
+RUN echo "alias stop_ros='rostopic pub -1 /stop_control std_msgs/Empty' " >> /root/.bashrc
+
 RUN /catkin_ws/src/bash_sh.sh
 
 RUN export DISPLAY=localhost:0.0
+
+RUN apt-get install ffmpeg
 # RUN pip3 install tkinter
 # WORKDIR /catkin_ws/src
 # RUN ./bash_sh.sh

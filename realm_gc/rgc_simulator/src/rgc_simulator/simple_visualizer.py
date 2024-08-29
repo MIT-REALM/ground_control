@@ -5,20 +5,9 @@ import rospy
 from geometry_msgs.msg import TransformStamped, Twist
 # import tkinter
 # import matplotlib
+from f1tenth_msgs.msg import MultiArray
 from matplotlib.animation import FuncAnimation
-# matplotlib.use('TkAgg')
-# gui_env = ['TKAgg','GTKAgg','Qt4Agg','WXAgg']
-# for gui in gui_env:
-#     try:
-#         print("testing", gui)
-#         matplotlib.use(gui,warn=False, force=True)
-#         from matplotlib import pyplot as plt
-#         break
-#     except:
-#         print('Failed to set:',gui)
-#         continue
-
-# print("Using:",matplotlib.get_backend())
+from matplotlib.animation import FFMpegWriter
 
 import matplotlib.pyplot as plt
 
@@ -39,9 +28,20 @@ class VisualizeSimulator:
             "/vicon/realm_f1tenth/realm_f1tenth",
             # "/vicon/realm_turtle_1/realm_turtle_1",
             # "/vicon/realm_turtle_2/realm_turtle_2",
-            "/vicon/realm_f1tenth/realm_obs",
-            "/vicon/realm_f1tenth/realm_obs2"
+            "/vicon/realm_obs/realm_obs",
+            "/vicon/realm_obs2/realm_obs2"
         ]
+
+        self.traj_topic = rospy.get_param(
+            "~traj_topic", "/vesc/high_level/ackermann_cmd_mux/traj"
+        )
+
+        self.new_trajx = None
+        self.new_trajy = None
+
+        self.traj_sub = rospy.Subscriber(
+            self.traj_topic, MultiArray, self.traj_callback
+        )
 
         default_position_names = [
             "f1tenth",
@@ -58,6 +58,7 @@ class VisualizeSimulator:
         )
 
         self.xy = np.zeros((len(self.position_topics), 2))
+
         self.theta = np.zeros(len(self.position_topics))
 
         self.position_subs = [rospy.Subscriber(
@@ -73,7 +74,10 @@ class VisualizeSimulator:
         # print(self.ref_traj.cx)
         # print(self.ref_traj.cy)
 
-
+    def traj_callback(self, msg):
+        
+        self.new_trajx = msg.datax
+        self.new_trajy = msg.datay
 
     def position_callback(self, msg, idx):
         self.xy[idx,0] = msg.transform.translation.x
@@ -84,9 +88,29 @@ class VisualizeSimulator:
         # print(idx, self.xy[idx,:])
 
     def run(self):
+
+        # metadata = dict(title='Movie Test', artist='Matplotlib',
+        #         comment='Movie support!')
+        # writer = FFMpegWriter(fps=15, metadata=metadata)
         # see https://matplotlib.org/stable/users/explain/animations/blitting.html
         fig, ax = plt.subplots(figsize=(10, 10))
+        
+        
         pts = ax.scatter(self.xy[:, 0], self.xy[:, 1], animated=True, s=100, c=['b', 'r', 'r'])
+
+        obs_pos = self.xy[-2:, :]
+        obs_center = obs_pos
+        obs_r = 0.2
+        theta = np.linspace(0, 2*np.pi, 10)
+        circ = np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
+        
+        obs1 = np.repeat(obs_center[0, :][:, None], 10, axis=1).T + circ * obs_r
+        obs2 = np.repeat(obs_center[1, :][:, None], 10, axis=1).T + circ * obs_r
+        obs = np.concatenate((obs1, obs2), axis=0)
+
+        pts_obs = ax.scatter(obs[:, 0], obs[:, 1], animated=True, s=100, c=['r']*20)
+
+        pts1 = ax.scatter(np.array(self.ref_traj.cx), np.array(self.ref_traj.cy), animated=True, c='k', linestyle='-')
 
         # lines = ax.plot(self.xy, self.xy + 0.1*np.array([np.cos(self.theta), np.sin(self.theta)]).T, animated=True, linewidth=2)
         
@@ -106,9 +130,7 @@ class VisualizeSimulator:
         annos = [ax.annotate(name, xy=self.xy[idx,:], animated=True) 
                  for idx, name in enumerate(self.position_names)]
         
-        # ref_x = np.linspace(0, 2.0, 10)
-        # ref_y = np.linspace(0, 5.0, 10)
-        
+        # with writer.saving(fig, "writer_test.mp4", 100):    
         plt.plot(self.ref_traj.cx, self.ref_traj.cy)
         # plt.scatter(self.ref_traj.traj['X'], self.ref_traj.traj['Y'])
         # plt.scatter(ref_x,ref_y)
@@ -118,11 +140,27 @@ class VisualizeSimulator:
 
         bg = fig.canvas.copy_from_bbox(fig.bbox)
         ax.draw_artist(pts)
+        ax.draw_artist(pts1)
+        ax.draw_artist(pts_obs)
         fig.canvas.blit(fig.bbox)
 
         while not rospy.is_shutdown():
             fig.canvas.restore_region(bg)
             pts.set_offsets(self.xy)
+
+            obs_pos = self.xy[-2:, :]
+            obs_center = obs_pos
+            obs_r = 0.2
+            theta = np.linspace(0, 2*np.pi, 10)
+            circ = np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
+            
+            obs1 = np.repeat(obs_center[0, :][:, None], 10, axis=1).T + circ * obs_r
+            obs2 = np.repeat(obs_center[1, :][:, None], 10, axis=1).T + circ * obs_r
+            obs = np.concatenate((obs1, obs2), axis=0)
+            pts_obs.set_offsets(obs)
+
+            # pts1.set_offsets(np.array([self.new_trajx, self.new_trajy]))
+            pts1 = ax.scatter(self.new_trajx, self.new_trajy, animated=True, c='k', linestyle='-')
             for idx, anno in enumerate(annos):
                 # print(idx, anno, self.xy[idx,:])
                 anno.set_position(self.xy[idx,:])
@@ -131,14 +169,19 @@ class VisualizeSimulator:
                 # draw orientation as straight line
                 # ax.plot([self.xy[idx,0], self.xy[idx,0] + 0.1*np.cos(self.theta[idx])], 
                 #         [self.xy[idx,1], self.xy[idx,1] + 0.1*np.sin(self.theta[idx])])
-                
+            if self.new_trajx is not None and self.new_trajy is not None:
+                ax.plot(self.new_trajx, self.new_trajy, '--r')
+
             ax.draw_artist(pts)
+            ax.draw_artist(pts1)
+            ax.draw_artist(pts_obs)
+
             # ax.draw_artist(lines)
-            ax.plot(self.xy, self.xy + 0.1*np.array([np.cos(self.theta), np.sin(self.theta)]).T, animated=True, linewidth=2)
+            # writer.grab_frame()
             fig.canvas.blit(fig.bbox)
             fig.canvas.flush_events()
             
-            
+        
             
 
 

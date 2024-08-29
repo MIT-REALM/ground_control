@@ -29,10 +29,10 @@ class F1TenthSimulator:
         )
 
         self.position_obs1= rospy.get_param(
-            "~position_topic1", "/vicon/realm_f1tenth/realm_obs"
+            "~position_topic1", "/vicon/realm_obs/realm_obs"
         )
 
-        self.position_obs2= rospy.get_param("~position_topic2", "/vicon/realm_f1tenth/realm_obs2")
+        self.position_obs2= rospy.get_param("~position_topic2", "/vicon/realm_obs2/realm_obs2")
 
         # Initialize the f1tenth state
         self.state = np.array([0.0, 0.0, 0.0, 0.0])
@@ -171,7 +171,7 @@ class F1TenthSimulator:
             tf.transform.rotation.z = np.sin(self.state[2] / 2)
             tf.transform.rotation.w = np.cos(self.state[2] / 2)
 
-            obs_speed = 0.005
+            obs_speed = 0.001
             if self.obs_1_mv == 1:
                 self.obs[0] += obs_speed
                 if self.obs[0] >= 0.3:
@@ -220,18 +220,6 @@ class F1TenthSimulator:
             sim_state.y = self.state[1]
             sim_state.theta = self.state[2]
             sim_state.speed = self.state[3]
-
-
-            # tf.header.stamp = rospy.Time.now()
-            # tf.header.frame_id = "world"
-            # tf.child_frame_id = "realm_f1tenth"
-            # tf.transform.translation.x = self.state[0]
-            # tf.transform.translation.y = self.state[1]
-            # tf.transform.translation.z = self.state[3]
-            # tf.transform.rotation.x = 0.0
-            # tf.transform.rotation.y = 0.0
-            # tf.transform.rotation.z = 0.0
-            # tf.transform.rotation.w = self.state[2]
 
             self.tf_pub.publish(tf)
             self.tf_pub1.publish(tf_obs)

@@ -7,7 +7,7 @@ find_package(Boost REQUIRED)
 
 add_message_files(
   DIRECTORY msg
-  FILES F1TenthDrive.msg F1TenthDriveStamped.msg)
+  FILES F1TenthDrive.msg F1TenthDriveStamped.msg MultiArray.msg)
 
 generate_messages(DEPENDENCIES std_msgs)
 
