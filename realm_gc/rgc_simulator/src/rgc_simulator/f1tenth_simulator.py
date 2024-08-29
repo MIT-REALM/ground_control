@@ -8,6 +8,9 @@ from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
 from rgc_state_estimators.msg import F1TenthState
 import os
 
+sim_rate = os.environ['SIMRATE']
+if sim_rate is None:
+    sim_rate = 100
 
 class F1TenthSimulator:
     """Implement a simple simulator for the f1tenth with vicon (no other sensors)."""
@@ -41,7 +44,7 @@ class F1TenthSimulator:
         self.command = np.array([0.0, 0.0, 0.0])
 
         # Set the simulation rate
-        self.rate_hz = rospy.get_param("~rate", 10.0)
+        self.rate_hz = rospy.get_param("~rate", 100.0)
         self.rate = rospy.Rate(self.rate_hz)
 
         self.obs_1_mv = 1

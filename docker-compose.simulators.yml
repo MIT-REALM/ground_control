@@ -39,6 +39,7 @@ services:
     environment:
       - ROS_HOSTNAME=127.0.0.1
       - DISPLAY=${DISPLAY} # allows GUI access
+      - SIMRATE=10
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
       - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
@@ -54,6 +55,7 @@ services:
       context: .
       dockerfile: .docker/Dockerfile
     environment:
+      - SIMRATE=100
       - DISPLAY=${DISPLAY} # allows GUI access
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access

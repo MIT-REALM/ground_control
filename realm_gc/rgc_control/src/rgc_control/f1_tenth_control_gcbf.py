@@ -134,7 +134,7 @@ class F1TenthControl(RobotControl):
         self.v_ref = rospy.get_param("~v_ref", 0.2)        
         
         self.goal_x = 0.0
-        self.goal_y = 3.0
+        self.goal_y = 5.0
         self.goal_yaw = 0.0
         self.e = 0.0
         self.theta_e = 0.0
@@ -271,55 +271,8 @@ class F1TenthControl(RobotControl):
             )
 
             
-            # spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath, self.new_traj)
-            # _, min_dist = spline_traj.calc_nearest_index(self.state)
-            # print('min_dist:', min_dist)
-
-            # if min_dist > 0.2:
-            #     traj = {}
-            #     c = np.linspace(0, 1, 200)
-            #     x_ref = self.state.x * (1 - c) + self.goal[0] * c
-            #     y_ref = self.state.y * (1 - c) + self.goal[1] * c
-            #     traj['X'] = x_ref 
-            #     traj['Y'] = y_ref
-
-            #     self.new_traj = traj
-            #     self.control_policy_ral = create_ral_f1tenth_policy(
-            #         np.array([self.state.x, self.state.y, self.state.theta, self.state.speed,self.e,self.theta_e]),
-            #         self.v_ref,
-            #         self.traj_filepath,
-            #         traj=traj
-            #     )
-
-            #     current_state_timed = RALF1tenthObservation(
-            #         x=self.state.x,
-            #         y=self.state.y,
-            #         theta=self.state.theta,
-            #         v=self.state.speed,
-            #         e = self.e,
-            #         theta_e = self.theta_e,
-            #         t=0,
-            #     )
-
             reference_control, self.e, self.theta_e, self.target_ind = self.control_policy_ral.compute_action(current_state_timed)
             
-            
-            # self.current_pose = Pose2DObservation(
-            #     self.state.x,
-            #     self.state.y,
-            #     self.state.theta, 
-            #     self.state.speed,
-            # )
-            # self.obs= SteeringObservation(
-            #     pose=self.current_pose,
-            #     goal = self.goal_pose
-            # )
-            # current_state_np = np.array([self.state.x, self.state.y, self.state.theta, self.state.speed]) 
-
-            # self.reference_control.set_eq(current_state_np)
-            
-            # reference_control = self.reference_control.compute_action(self.obs)
-
             obs_pos = np.array([[self.obs1[0], self.obs1[1]], [self.obs2[0], self.obs2[1]]])
             obs_pos_old = self.obs_pos_past
             obs_pos_new = obs_pos
@@ -373,8 +326,8 @@ class F1TenthControl(RobotControl):
             if min_dist < 0.1:
                 self.control = reference_control
             else:
-                x_ref[2] = next_state[0]
-                y_ref[2] = next_state[1]
+                x_ref[4] = next_state[0]
+                y_ref[4] = next_state[1]
                 
                 traj['X'] = x_ref 
                 traj['Y'] = y_ref 
@@ -440,9 +393,11 @@ class F1TenthControl(RobotControl):
             self.desired_speed = -0.001
             msg.drive.acceleration = 0.0
 
-        msg.drive.mode = 0
+        msg.drive.mode = 1
         msg.drive.speed = self.desired_speed
-    
+
+        msg.drive.acceleration = np.clip(msg.drive.acceleration, a_min=-0.5, a_max=0.5)
+
         self.control_pub.publish(msg)
         # print('control:', self.control.steering_angle, self.control.acceleration)
         print('speed:', self.desired_speed)

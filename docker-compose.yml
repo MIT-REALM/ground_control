@@ -8,6 +8,7 @@ services:
       dockerfile: .docker/Dockerfile
     environment:
       - ROS_HOSTNAME=192.168.0.168
+      - SIMRATE=100
     network_mode: host
     privileged: true
     stdin_open: true # docker run -i
@@ -86,6 +87,7 @@ services:
       context: .
       dockerfile: .docker/Dockerfile
     environment:
+      - SIMRATE=100
       - DISPLAY=${DISPLAY} # allows GUI access
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
