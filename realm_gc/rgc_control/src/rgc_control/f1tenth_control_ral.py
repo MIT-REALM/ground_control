@@ -40,7 +40,7 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/base_path"), 
             self.filename
         )
-        self.v_ref = 5.0 #rospy.get_param("~v_ref",5.0) 
+        self.v_ref = 2.43 #rospy.get_param("~v_ref",5.0) 
         self.x_offset = rospy.get_param("~x_offset")
         self.y_offset = rospy.get_param("~y_offset")
         self.scale = rospy.get_param("~scale")       
@@ -208,7 +208,7 @@ class F1TenthControl(RobotControl):
                 self.data['control']['accel'].append(self.control.acceleration)
                 self.data['control']['angle'].append(self.control.steering_angle)
 
-            file = open(f"/catkin_ws/src/realm_gc/data_{self.filename.split('.')[0]}_{self.v_ref}.pkl", "wb")
+            file = open(f"/catkin_ws/src/realm_gc/rgc_control/saved_policies/data/data_{self.filename.split('.')[0]}_{self.v_ref}.pkl", "wb")
             #print(f" stored at: ", f"/catkin_ws/src/realm_gc/data_{self.filename.split('.')[0]}_{self.v_ref}.pkl")
             pickle.dump(self.data, file)
             file.close()

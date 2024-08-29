@@ -1,11 +1,11 @@
 <!-- This launch file starts the controller and state estimator for the F1Tenth platform -->
 
 <launch>
-    <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
-    <arg name="traj_filepath" default="experiment_trial_2.pkl"/>
+    <arg name="base_path" default="$$(find rgc_control)/saved_policies/ICRA_experiments_new"/>
+    <arg name="traj_filepath" default="initial_1.pkl"/>
 
     <arg name="T" default="12"/>
-    <arg name="v_ref" default="1.0"/>
+    <arg name="v_ref" default="1.883"/>
 
     <arg name="scale" default="1.0"/>
     <arg name="x_offset" default="0.0"/>
