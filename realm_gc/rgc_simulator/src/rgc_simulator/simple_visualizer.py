@@ -104,7 +104,7 @@ class VisualizeSimulator:
         
         obs_pos = self.xy[-2:, :]
         obs_center = obs_pos
-        obs_r = 0.2
+        obs_r = 0.25
         theta = np.linspace(0, 2*np.pi, 10)
         circ = np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
         
@@ -118,9 +118,9 @@ class VisualizeSimulator:
 
         # lines = ax.plot(self.xy, self.xy + 0.1*np.array([np.cos(self.theta), np.sin(self.theta)]).T, animated=True, linewidth=2)
         
-        x_min = -2
+        x_min = -5
         x_max = 5
-        y_min = -2
+        y_min = -5
         y_max = 5
         # x_min = min(self.ref_traj.cx)
         # x_max = max(self.ref_traj.cx)
@@ -155,7 +155,7 @@ class VisualizeSimulator:
 
             obs_pos = self.xy[-2:, :]
             obs_center = obs_pos
-            obs_r = 0.2
+            obs_r = 0.25
             theta = np.linspace(0, 2*np.pi, 10)
             circ = np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
             

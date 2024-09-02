@@ -15,13 +15,17 @@ class SplineTrajectory2D():
     args:
         p: the array of control points for the trajectory
     """
-    def __init__(self, v_ref:float, filepath: str, traj=None):
+    def __init__(self, v_ref:float, filepath: str, traj: dict = None):
         #Loads a dictionary with keys 'X' and 'Y' and converts it into spline information
         if traj is not None:
             self.traj = traj
         else:
             with open(filepath,'rb') as file:
                 self.traj = pickle.load(file) 
+                self.traj['Y'] = np.array(self.traj['Y']) * 5 - 4.0
+                # self.traj['Y'] = np.array(self.traj['Y']) - 4.0 
+                
+                self.traj['X'] = np.array(self.traj['X']) / 2
                         
         self.cx,self.cy,self.cyaw,self.ck = self.calc_spline_course()
         self.v_ref = v_ref

@@ -98,6 +98,7 @@ class GCBF_policy(ControlPolicy):
         self.qp_act_fn = qp_fn
         key=jax.random.PRNGKey(0)
         graph0 = env.reset(key)
+        _ = self.qp_act_fn(graph0, graph0)
         self.env = env
         self.graph0 = graph0
         self.car_goal = car_goal
@@ -151,29 +152,32 @@ class GCBF_policy(ControlPolicy):
         else:
             ref_vel = None
 
-        # ref_accel, flag = self.ref_check_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
-        
-        # if flag == 1:
-        #     accel = ref_accel[None, :]
-        # else:
         mov_obs_vel = self.env.mov_obs_vel_pred(new_graph)
-        accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
-        # accel = self.act_fn(new_graph)
+
+        ref_accel, flag = self.ref_check_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+        
+        if flag == 1:
+            accel = ref_accel[None, :]
+        else:
+            state = graph.env_states.agent
+            print('prev state: ', state)
+            
+            accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+            # accel = self.act_fn(new_graph)
         accel = self.env.clip_action(accel)
-        # print('graph state before step: ', new_graph.env_states.agent)
-        new_graph_step, _, _, _, _ = self.env.step(new_graph, accel)
-        # safe_agents = self.env.safe_mask(new_graph) * 1
+        
+        new_graph, _, _, _, _ = self.env.step(new_graph, accel)
+        
         obs_coll = self.env.mov_obs_collision_mask(new_graph)
         print('obs coll:', obs_coll * 1)
-        # mov_obs_coll = self.env.
-        # print('safe mas')
-        next_state = new_graph_step.env_states.agent
+        
+        next_state = new_graph.env_states.agent
         # print('accel: ', accel)
-        # print('graph state after step: ', new_graph_step.env_states.agent)
+        print('graph state after step: ', new_graph.env_states.agent)
 
         return F1TenthAction(
             acceleration=accel[0, 1],
             steering_angle=accel[0, 0],
-        ), next_state.squeeze()
+        ), next_state.squeeze(), flag
     
  

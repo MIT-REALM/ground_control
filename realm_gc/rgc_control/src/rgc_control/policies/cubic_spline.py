@@ -91,6 +91,15 @@ class CubicSpline1D:
 
         i = self.__search_index(x)
         dx = x - self.x[i]
+        if i == len(self.a):
+            i = i-1
+        if i == len(self.b):
+            i = i-1
+        if i == len(self.c):
+            i = i-1
+        if i == len(self.d):
+            i = i-1
+            
         position = self.a[i] + self.b[i] * dx + \
             self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
 
@@ -114,6 +123,17 @@ class CubicSpline1D:
             return None
 
         i = self.__search_index(x)
+
+        if i == len(self.x):
+            i = i-1
+        if i == len(self.b):
+            i = i-1
+        if i == len(self.c):
+            i = i-1
+        if i == len(self.d):
+            i = i-1
+        
+        
         dx = x - self.x[i]
         dy = self.b[i] + 2.0 * self.c[i] * dx + 3.0 * self.d[i] * dx ** 2.0
         return dy
@@ -136,6 +156,16 @@ class CubicSpline1D:
             return None
 
         i = self.__search_index(x)
+
+        if i == len(self.x):
+            i = i-1
+        if i == len(self.b):
+            i = i-1
+        if i == len(self.c):
+            i = i-1
+        if i == len(self.d):
+            i = i-1
+            
         dx = x - self.x[i]
         ddy = 2.0 * self.c[i] + 6.0 * self.d[i] * dx
         return ddy

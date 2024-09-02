@@ -203,7 +203,7 @@ class GCBFPlus(GCBF):
     
     # @ft.partial(jax.jit, static_argnums=(0,))
     def get_u_qp_act(self, graph: GraphsTuple, prev_graph: GraphsTuple, params, act=None, mov_obs_vel=None, ref_in=None) -> Action:
-        # u_ref, flag = self.get_qp_action_ref_test(graph=graph, prev_graph=prev_graph, cbf_params=params, act=act,mov_obs_vel=mov_obs_vel, ref_in=ref_in)
+        u_ref, flag = self.get_qp_action_ref_test(graph=graph, prev_graph=prev_graph, cbf_params=params, act=act,mov_obs_vel=mov_obs_vel, ref_in=ref_in)
         # if flag == 1:
         #     return u_ref
         # else:
@@ -323,8 +323,7 @@ class GCBFPlus(GCBF):
             cbf_params=None,
             act=None,
             mov_obs_vel = None,
-            ref_in=None,
-    ) -> [Action, Array]:
+            ref_in=None,) -> [Action, Array]:
         assert graph.is_single  # consider single graph
         agent_node_mask = graph.node_type == 0
         agent_node_id = mask2index(agent_node_mask, self.n_agents)
