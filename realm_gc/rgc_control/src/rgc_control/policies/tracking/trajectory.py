@@ -22,7 +22,7 @@ class SplineTrajectory2D():
         else:
             with open(filepath,'rb') as file:
                 self.traj = pickle.load(file) 
-                self.traj['Y'] = np.array(self.traj['Y']) * 5 - 4.0
+                self.traj['Y'] = np.array(self.traj['Y']) * 2
                 # self.traj['Y'] = np.array(self.traj['Y']) - 4.0 
                 
                 self.traj['X'] = np.array(self.traj['X']) / 2

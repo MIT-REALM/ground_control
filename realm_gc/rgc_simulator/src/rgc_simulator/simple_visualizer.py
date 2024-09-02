@@ -104,15 +104,18 @@ class VisualizeSimulator:
         
         obs_pos = self.xy[-2:, :]
         obs_center = obs_pos
-        obs_r = 0.25
-        theta = np.linspace(0, 2*np.pi, 10)
+        obs_r = 0.5
+        theta = np.linspace(0, 2*np.pi, 20)
         circ = np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
         
-        obs1 = np.repeat(obs_center[0, :][:, None], 10, axis=1).T + circ * obs_r
-        obs2 = np.repeat(obs_center[1, :][:, None], 10, axis=1).T + circ * obs_r
+        obs1 = np.repeat(obs_center[0, :][:, None], 20, axis=1).T + circ * obs_r
+        obs2 = np.repeat(obs_center[1, :][:, None], 20, axis=1).T + circ * obs_r
         obs = np.concatenate((obs1, obs2), axis=0)
 
-        pts_obs = ax.scatter(obs[:, 0], obs[:, 1], animated=True, s=100, c=['r']*20)
+        pts_obs = ax.scatter(obs[:, 0], obs[:, 1], animated=True, s=100, c=['r']*40)
+        
+        pts_obs_center1 = ax.scatter(obs_center[0, 0], obs_center[0, 1], animated=True, s=100, c=['k'])
+        pts_obs_center2 = ax.scatter(obs_center[1, 0], obs_center[1, 1], animated=True, s=100, c=['k'])
 
         (pts1, )= ax.plot(np.array(self.ref_traj.cx), np.array(self.ref_traj.cy), c='k', linestyle='-', animated=True, linewidth=2)
 
@@ -147,6 +150,8 @@ class VisualizeSimulator:
         ax.draw_artist(pts1)
         ax.draw_artist(pts_obs)
         ax.draw_artist(pt_arrow)
+        ax.draw_artist(pts_obs_center1)
+        ax.draw_artist(pts_obs_center2)
         fig.canvas.blit(fig.bbox)
 
         while not rospy.is_shutdown():
@@ -155,15 +160,14 @@ class VisualizeSimulator:
 
             obs_pos = self.xy[-2:, :]
             obs_center = obs_pos
-            obs_r = 0.25
-            theta = np.linspace(0, 2*np.pi, 10)
             circ = np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
             
-            obs1 = np.repeat(obs_center[0, :][:, None], 10, axis=1).T + circ * obs_r
-            obs2 = np.repeat(obs_center[1, :][:, None], 10, axis=1).T + circ * obs_r
+            obs1 = np.repeat(obs_center[0, :][:, None], 20, axis=1).T + circ * obs_r
+            obs2 = np.repeat(obs_center[1, :][:, None], 20, axis=1).T + circ * obs_r
             obs = np.concatenate((obs1, obs2), axis=0)
             pts_obs.set_offsets(obs)
-
+            pts_obs_center1.set_offsets(obs_center[0, :])
+            pts_obs_center2.set_offsets(obs_center[1, :])
             # pts1.set_offsets(np.array([self.new_trajx, self.new_trajy]))
             # pts1 = ax.scatter(self.new_trajx, self.new_trajy, animated=True, c='k', linestyle='-')
             for idx, anno in enumerate(annos):
@@ -187,6 +191,8 @@ class VisualizeSimulator:
             ax.draw_artist(pts)
             ax.draw_artist(pts_obs)
             ax.draw_artist(pt_arrow)
+            ax.draw_artist(pts_obs_center1)
+            ax.draw_artist(pts_obs_center2)
 
             # ax.draw_artist(lines)
             # writer.grab_frame()

@@ -104,6 +104,7 @@ class GCBF_policy(ControlPolicy):
         self.car_goal = car_goal
         self.graph0 = self.create_graph(car_pos, car_goal, obs_pos)
         self.obs = obs_pos
+        self.jit_step = jax.jit(env.step)
         
     def create_graph(self, car_pos, car_goal, obs_pos, graph=None):
         if graph is None:
@@ -136,6 +137,9 @@ class GCBF_policy(ControlPolicy):
     ) -> F1TenthAction:
         # Brake to avoid collisions based on the average distance to the
         # obstacle in the center of the image
+        iter_max = 1
+        
+        
         graph = self.graph0
         if obs is None:
             obs = self.obs
@@ -146,34 +150,49 @@ class GCBF_policy(ControlPolicy):
         
         new_graph = self.create_graph(car_pos, goal, obs, graph)
         self.graph0 = new_graph
-        # print('graph state before step: ', new_graph.env_states.agent)
+            # print('graph state before step: ', new_graph.env_states.agent)
         if ref_inp is not None:
-            ref_vel = jnp.array([ref_inp.steering_angle, ref_inp.acceleration])
+            ref_vel = jnp.array([ref_inp.steering_angle, ref_inp.acceleration])[None, :]
+            next_graph, _, _, _, _ = self.env.step(new_graph, ref_vel)
+            obs_coll = self.env.mov_obs_collision_mask(next_graph)
+            flag = 1- max(obs_coll * 1)
+            ref_accel = ref_vel
         else:
             ref_vel = None
-
+            flag = 0
+        
         mov_obs_vel = self.env.mov_obs_vel_pred(new_graph)
 
-        ref_accel, flag = self.ref_check_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
-        
+        # ref_accel, flag = self.ref_check_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)    
         if flag == 1:
-            accel = ref_accel[None, :]
-        else:
-            state = graph.env_states.agent
-            print('prev state: ', state)
-            
-            accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
-            # accel = self.act_fn(new_graph)
-        accel = self.env.clip_action(accel)
+            accel = ref_accel
+            accel = self.env.clip_action(accel)
         
-        new_graph, _, _, _, _ = self.env.step(new_graph, accel)
-        
-        obs_coll = self.env.mov_obs_collision_mask(new_graph)
-        print('obs coll:', obs_coll * 1)
-        
-        next_state = new_graph.env_states.agent
-        # print('accel: ', accel)
-        print('graph state after step: ', new_graph.env_states.agent)
+            new_graph, _, _, _, _ = self.env.step(new_graph, accel)
+                
+            next_state = new_graph.env_states.agent
+            return F1TenthAction(
+                acceleration=accel[0, 1],
+                steering_angle=accel[0, 0],
+            ), next_state.squeeze(), flag
+        else:    
+            for _ in range(iter_max):
+                state = graph.env_states.agent
+                print('prev state: ', state)
+                
+                accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+                # accel = self.act_fn(new_graph)
+                accel = self.env.clip_action(accel)
+                
+                new_graph, _, _, _, _ = self.jit_step(new_graph, accel)
+                # new_graph, _, _, _, _ = self.env.step(new_graph, accel)
+                
+                obs_coll = self.env.mov_obs_collision_mask(new_graph)
+                print('obs coll:', obs_coll * 1)
+                
+                next_state = new_graph.env_states.agent
+                # print('accel: ', accel)
+                print('graph state after step: ', new_graph.env_states.agent)
 
         return F1TenthAction(
             acceleration=accel[0, 1],
