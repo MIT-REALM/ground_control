@@ -54,7 +54,7 @@ class DubinsCarAdapt(MultiAgentEnv):
             area_size: float,
             max_step: int = 256,
             max_travel: float = None,
-            dt: float = 0.03,
+            dt: float = 0.1,
             node_feat: int = 4,
             mov_obs_speed: float = None,
             mov_obs_at_infty: bool = False,

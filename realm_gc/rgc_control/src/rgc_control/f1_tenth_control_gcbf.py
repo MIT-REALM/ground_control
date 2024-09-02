@@ -131,11 +131,11 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/base_path"), 
             rospy.get_param("~trajectory/filename")
         )
-        self.v_ref = rospy.get_param("~v_ref", 0.5)     
+        self.v_ref = rospy.get_param("~v_ref", 1.5)     
         # self.v_ref = 1.2   
         
         self.goal_x = 0.0
-        self.goal_y = 5.0
+        self.goal_y = 3.0
         self.goal_yaw = 0.0
         self.e = 0.0
         self.theta_e = 0.0
@@ -293,7 +293,22 @@ class F1TenthControl(RobotControl):
 
             control_gcbf, next_state = self.control_policy.compute_action(current_state, None, obs=obs, mov_obs_vel=obs_vel)
 
-
+            # print('original next state:', next_state[0], next_state[1])
+            # next_state_dir = np.array([next_state[0] - self.state.x, next_state[1] - self.state.y])
+            # next_state_dir = next_state_dir / np.linalg.norm(next_state_dir)
+            
+            # goal_dir = np.array([self.goal[0] - self.state.x, self.goal[1] - self.state.y])
+            # goal_dir = goal_dir / np.linalg.norm(goal_dir)
+            
+            
+            next_state = np.array(next_state)
+            
+            # if np.dot(next_state_dir, goal_dir) < 0.9:
+            #     next_state[0] = self.state.x + 0.1 * next_state_dir[0]
+            #     next_state[1] = self.state.y + 0.1 * next_state_dir[1]
+            
+            # print('modified next state:', next_state[0], next_state[1])
+            
             traj = {}
             c = np.linspace(0, 1, 25)
             
@@ -306,8 +321,9 @@ class F1TenthControl(RobotControl):
             y_ref2 = next_state[1] * (1 - c) + self.goal[1] * c
             x_ref = np.concatenate((x_ref1, x_ref2))
             y_ref = np.concatenate((y_ref1, y_ref2))
-            traj['X'] = x_ref 
-            traj['Y'] = y_ref 
+            
+            traj['X'] = x_ref[1:]
+            traj['Y'] = y_ref[1:] 
             
             next_state_pose = self.state
             next_state_pose.x = next_state[0]
@@ -323,6 +339,11 @@ class F1TenthControl(RobotControl):
             
             
             spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath, traj)
+            
+            cx = spline_traj.cx
+            cy = spline_traj.cy
+            print('current state:', self.state.x, self.state.y)
+            print('first c:', cx[0], cy[0])
             # _, min_dist = spline_traj.calc_nearest_index(next_state_pose)
             # print('min_dist:', min_dist)
 
@@ -376,11 +397,11 @@ class F1TenthControl(RobotControl):
         if self.desired_speed > self.v_ref:
             self.desired_speed = self.v_ref
             msg.drive.acceleration = 0.0
-        elif self.desired_speed < 0.0:
-            self.desired_speed = -0.001
+        elif self.desired_speed < -self.v_ref / 10:
+            self.desired_speed = -self.v_ref / 10
             msg.drive.acceleration = 0.0
 
-        msg.drive.mode = 1
+        msg.drive.mode = 0
         msg.drive.speed = self.desired_speed
 
         msg.drive.acceleration = np.clip(msg.drive.acceleration, a_min=-0.5, a_max=0.5)

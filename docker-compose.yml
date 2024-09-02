@@ -80,6 +80,7 @@ services:
     stdin_open: true # allows you to attach to a shell in this container
     tty: true # allows you to attach to a shell in this container
     command: bash
+    # command: /bin/bash -c 'source /catkin_ws/devel/setup.bash && run_ros'
   
   simulators:
     image: realm_gc:latest

@@ -68,3 +68,23 @@ services:
       - roscore
     # command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc simulator.launch'
     command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc all_simulators.launch'
+  
+  ros_run:
+    image: realm_gc:latest
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+    # environment:
+    #   - ROS_HOSTNAME=192.168.0.168
+    #   - DISPLAY=${DISPLAY} # allows GUI access
+    # volumes:
+    #   - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
+    #   - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
+    network_mode: host # allows access to the host's network (and the robot)
+    privileged: true # needed for GUI + USB access
+    stdin_open: true # allows you to attach to a shell in this container
+    tty: true # allows you to attach to a shell in this container
+    depends_on:
+      - simulators 
+      - roscore
+    command: /bin/bash -c 'source /catkin_ws/devel/setup.bash && source ~/.bashrc && rostopic pub /start_control std_msgs/Empty'

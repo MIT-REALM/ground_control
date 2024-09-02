@@ -98,6 +98,10 @@ class VisualizeSimulator:
         
         pts = ax.scatter(self.xy[:, 0], self.xy[:, 1], animated=True, s=100, c=['b', 'r', 'r'])
 
+        yaw = self.theta[0]
+        r = 0.2 
+        pt_arrow = ax.arrow(self.xy[0, 0], self.xy[0, 1], r*np.cos(yaw), r*np.sin(yaw), head_width=0.1, head_length=0.1, fc='k', ec='k', animated=True)
+        
         obs_pos = self.xy[-2:, :]
         obs_center = obs_pos
         obs_r = 0.2
@@ -142,6 +146,7 @@ class VisualizeSimulator:
         ax.draw_artist(pts)
         ax.draw_artist(pts1)
         ax.draw_artist(pts_obs)
+        ax.draw_artist(pt_arrow)
         fig.canvas.blit(fig.bbox)
 
         while not rospy.is_shutdown():
@@ -176,9 +181,12 @@ class VisualizeSimulator:
                 pts1.set_xdata(self.new_trajx)
                 pts1.set_ydata(self.new_trajy)
                 ax.draw_artist(pts1)
-                
+            
+            # pt_arrow.set_data([self.xy[0, 0], self.xy[0, 1], r*np.cos(self.theta[0]), r*np.sin(self.theta[0])])
+            pt_arrow.set_data(x = self.xy[0, 0], y=self.xy[0, 1], dx=r*np.cos(self.theta[0]), dy=r*np.sin(self.theta[0]))
             ax.draw_artist(pts)
             ax.draw_artist(pts_obs)
+            ax.draw_artist(pt_arrow)
 
             # ax.draw_artist(lines)
             # writer.grab_frame()

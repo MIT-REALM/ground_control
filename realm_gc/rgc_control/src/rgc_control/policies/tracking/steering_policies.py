@@ -322,10 +322,19 @@ class F1TenthSpeedSteeringPolicy(ControlPolicy):
 
         ind, e = self.calc_nearest_index(state)
 
+        if ind >= len(sp):
+            ind = len(sp) - 1
         tv = sp[ind]
-
+        if ind >= len(cx):
+            ind = len(cx) - 1
         k = ck[ind]
+
+        
         v = state.v
+        
+        if ind >= len(cyaw):
+            ind = len(cyaw) - 1
+            
         th_e = pi_2_pi(state.theta - cyaw[ind])
 
         # A = [1.0, dt, 0.0, 0.0, 0.0
