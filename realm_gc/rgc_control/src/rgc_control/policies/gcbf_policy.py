@@ -162,6 +162,11 @@ class GCBF_policy(ControlPolicy):
         accel = self.env.clip_action(accel)
         # print('graph state before step: ', new_graph.env_states.agent)
         new_graph_step, _, _, _, _ = self.env.step(new_graph, accel)
+        # safe_agents = self.env.safe_mask(new_graph) * 1
+        obs_coll = self.env.mov_obs_collision_mask(new_graph)
+        print('obs coll:', obs_coll * 1)
+        # mov_obs_coll = self.env.
+        # print('safe mas')
         next_state = new_graph_step.env_states.agent
         # print('accel: ', accel)
         # print('graph state after step: ', new_graph_step.env_states.agent)

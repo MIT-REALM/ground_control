@@ -8,8 +8,6 @@ from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
 from rgc_state_estimators.msg import F1TenthState
 import os
 
-
-
 class F1TenthSimulator:
     """Implement a simple simulator for the f1tenth with vicon (no other sensors)."""
 

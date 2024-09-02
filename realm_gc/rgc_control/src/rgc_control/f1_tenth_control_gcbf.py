@@ -140,7 +140,7 @@ class F1TenthControl(RobotControl):
         self.e = 0.0
         self.theta_e = 0.0
         self.target_ind = 0
-
+        self.control_state = None
         goal = np.array([self.goal_x, self.goal_y, self.goal_yaw, 0.0])
         self.goal = goal
 
@@ -231,6 +231,16 @@ class F1TenthControl(RobotControl):
         This function implements and calls the control prediction and update steps.
         """
         # self.state = self.sim_state
+        # self.state = control_state
+        if self.control_state is not None:
+            self.state = F1TenthState()
+            self.state.x = self.control_state[0]
+            self.state.y = self.control_state[1]
+            self.state.theta = self.control_state[2]
+            self.state.speed = self.control_state[3]
+            # self.state = self.control_state
+        
+
         current_state = ICRAF1TenthObservation(
                 x=self.state.x,
                 y=self.state.y,
@@ -417,7 +427,26 @@ class F1TenthControl(RobotControl):
         traj_msg.datay = spline_traj.cy
 
         self.traj_pub.publish(traj_msg)
-        
+
+        v = self.state.speed
+        theta = self.state.theta
+        delta = self.control.steering_angle
+        a = self.control.acceleration
+        dq_dt = np.array(
+                    [
+                        v * np.cos(theta),
+                        v * np.sin(theta),
+                        # (v / self.axle_length) * np.tan(delta),
+                        delta, 
+                        a,
+                    ]
+                )
+        if not isinstance(self.state, np.ndarray):
+            state_np = np.array([self.state.x, self.state.y, self.state.theta, self.state.speed])
+        else:
+            state_np = self.state
+        self.control_state = state_np + self.dt * dq_dt
+
         if dist_goal < 0.1:
             print('Goal reached')
             self.reset_control()

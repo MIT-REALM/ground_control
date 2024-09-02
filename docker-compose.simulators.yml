@@ -39,7 +39,7 @@ services:
     environment:
       - ROS_HOSTNAME=127.0.0.1
       - DISPLAY=${DISPLAY} # allows GUI access
-      - SIMRATE=10
+      - SIMRATE=30
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
       - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
@@ -55,7 +55,7 @@ services:
       context: .
       dockerfile: .docker/Dockerfile
     environment:
-      - SIMRATE=10
+      - SIMRATE=30
       - DISPLAY=${DISPLAY} # allows GUI access
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
@@ -87,4 +87,4 @@ services:
     depends_on:
       - simulators 
       - roscore
-    command: /bin/bash -c 'source /catkin_ws/devel/setup.bash && source ~/.bashrc && rostopic pub /start_control std_msgs/Empty'
+    command: /bin/bash -c 'source /catkin_ws/devel/setup.bash && rostopic pub /start_control std_msgs/Empty'
