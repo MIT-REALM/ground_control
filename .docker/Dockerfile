@@ -216,6 +216,9 @@ RUN apt install rename
 RUN apt remove python3-matplotlib -y
 RUN pip3 uninstall matplotlib -y
 RUN pip3 install matplotlib --upgrade
+
+RUN pip3 install pytictoc
+
 COPY realm_gc/bash_sh.sh /catkin_ws/src/bash_sh.sh
 RUN chmod +x /catkin_ws/src/bash_sh.sh
 
@@ -227,6 +230,9 @@ RUN /catkin_ws/src/bash_sh.sh
 RUN export DISPLAY=localhost:0.0
 
 RUN apt-get install ffmpeg
+
+
+
 # RUN pip3 install tkinter
 # WORKDIR /catkin_ws/src
 # RUN ./bash_sh.sh

@@ -6,14 +6,14 @@ import jax.numpy as jnp
 import numpy as np
 import yaml
 
-
+from pytictoc import TicToc
 from rgc_control.policies.common import F1TenthAction
 from rgc_control.policies.policy import ControlPolicy
 
 from gcbfplus.algo import make_algo
 from gcbfplus.env import make_env
 
-
+t = TicToc()
 
 # from policies.common import F1TenthAction
 # from policies.policy import ControlPolicy
@@ -105,8 +105,10 @@ class GCBF_policy(ControlPolicy):
         self.graph0 = self.create_graph(car_pos, car_goal, obs_pos)
         self.obs = obs_pos
         self.jit_step = jax.jit(env.step)
+        self.jit_rollout = jax.jit(self.rollout)
+        graph, _, _ = self.jit_rollout(graph0, graph0, None, None)
         
-    def create_graph(self, car_pos, car_goal, obs_pos, graph=None):
+    def create_graph(self, car_pos, car_goal, obs_pos, graph=None, mov_obs_vel=None):
         if graph is None:
             graph = self.graph0
         states=graph.env_states
@@ -115,7 +117,10 @@ class GCBF_policy(ControlPolicy):
         goal_states = car_goal[None, :]
         # mov_obs = jnp.concatenate([obs_pos[:,0], obs_pos[:,1], jnp.zeros(obs_pos.shape[0]), jnp.zeros(obs_pos.shape[0])], axis=0)
         mov_obs = obs_pos
-        mov_obs = jnp.concatenate([mov_obs, jnp.zeros((mov_obs.shape[0], 2))], axis=1)
+        if mov_obs_vel is not None:
+            mov_obs = jnp.concatenate([mov_obs, jnp.array(mov_obs_vel)], axis=1)
+        else:
+            mov_obs = jnp.concatenate([mov_obs, jnp.zeros((mov_obs.shape[0], 2))], axis=1)
         states = self.env.EnvState(agent=agent_states, goal=goal_states, obstacle=obs, mov_obs=mov_obs)
 
         # print(type(states))
@@ -160,43 +165,88 @@ class GCBF_policy(ControlPolicy):
         else:
             ref_vel = None
             flag = 0
-        
+                
         mov_obs_vel = self.env.mov_obs_vel_pred(new_graph)
+        new_graph = self.create_graph(car_pos, goal, obs, new_graph, mov_obs_vel[:, :2])
 
         # ref_accel, flag = self.ref_check_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)    
-        if flag == 1:
-            accel = ref_accel
-            accel = self.env.clip_action(accel)
-        
-            new_graph, _, _, _, _ = self.env.step(new_graph, accel)
+        # if flag == 1:
+        accel_ref = ref_accel
+        accel_ref = self.env.clip_action(accel_ref)
+    
+        next_graph, _, _, _, _ = self.env.step(next_graph, accel_ref)
+            
+        next_state_ref = next_graph.env_states.agent
+
+        # else:  
+        # t.tic()
+        graph, next_state, accel = self.jit_rollout(new_graph, graph, mov_obs_vel, ref_vel)  
+        # time_rollout = t.tocvalue()
+        # print('Time for rollout: ', time_rollout)
+        # print('new state shape:', next_state.shape)
+            # for _ in range(iter_max):
+            #     state = graph.env_states.agent
+            #     print('prev state: ', state)
                 
-            next_state = new_graph.env_states.agent
+            #     accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+            #     # accel = self.act_fn(new_graph)
+            #     accel = self.env.clip_action(accel)
+                
+            #     new_graph, _, _, _, _ = self.jit_step(new_graph, accel)
+            #     # new_graph, _, _, _, _ = self.env.step(new_graph, accel)
+                
+            #     obs_coll = self.env.mov_obs_collision_mask(new_graph)
+            #     print('obs coll:', obs_coll * 1)
+                
+            #     next_state = new_graph.env_states.agent
+            #     # print('accel: ', accel)
+            #     print('graph state after step: ', new_graph.env_states.agent)
+        if flag == 1:
+            return F1TenthAction(
+                acceleration=accel_ref[0, 1],
+                steering_angle=accel_ref[0, 0],
+            ), next_state_ref.squeeze(), flag
+        else:
             return F1TenthAction(
                 acceleration=accel[0, 1],
                 steering_angle=accel[0, 0],
             ), next_state.squeeze(), flag
-        else:    
-            for _ in range(iter_max):
-                state = graph.env_states.agent
-                print('prev state: ', state)
-                
-                accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
-                # accel = self.act_fn(new_graph)
-                accel = self.env.clip_action(accel)
-                
-                new_graph, _, _, _, _ = self.jit_step(new_graph, accel)
-                # new_graph, _, _, _, _ = self.env.step(new_graph, accel)
-                
-                obs_coll = self.env.mov_obs_collision_mask(new_graph)
-                print('obs coll:', obs_coll * 1)
-                
-                next_state = new_graph.env_states.agent
-                # print('accel: ', accel)
-                print('graph state after step: ', new_graph.env_states.agent)
-
-        return F1TenthAction(
-            acceleration=accel[0, 1],
-            steering_angle=accel[0, 0],
-        ), next_state.squeeze(), flag
     
- 
+    
+    def rollout(self, new_graph, graph, mov_obs_vel, ref_vel, iter_max=100):
+        
+        def body_fn(carry, inp):
+            new_graph, graph = carry
+            
+            accel = self.qp_act_fn(new_graph ,graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+            accel = self.env.clip_action(accel)
+            graph = new_graph
+            new_graph,_, _, _, _ = self.env.step(graph, accel)
+            new_state = new_graph.env_states.agent
+            
+            return (new_graph, graph), (new_state, accel)
+            
+            
+            # new_graph, graph, i, _, _= inp
+            # accel = self.qp_act_fn(new_graph ,graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+            # accel = self.env.clip_action(accel)
+            # graph = new_graph
+            # new_graph,_, _, _, _ = self.env.step(graph, accel)
+            # new_state = new_graph.env_states.agent
+            # i = i + 1
+            # return (new_graph, graph, i, new_state, accel)
+            
+        (new_graph, graph), (new_state, accel) = jax.lax.scan(
+            body_fn,
+            (new_graph, graph),
+            None,
+            length=iter_max,
+        )
+            
+        # graph,_, _, state, accel = jax.lax.while_loop(
+        #     lambda input: input[2] < iter_max,
+        #     body_fn,
+        #     (new_graph, graph, 0, graph.env_states.agent, jnp.zeros((graph.env_states.agent.shape[0], 2))),
+        # )
+        
+        return new_graph, new_state, accel[-1]
