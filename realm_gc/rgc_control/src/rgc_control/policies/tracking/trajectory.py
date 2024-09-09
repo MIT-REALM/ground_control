@@ -53,6 +53,7 @@ class SplineTrajectory2D():
         with open(filepath,'rb') as file:
             self.traj = pickle.load(file) 
         file.close()
+        print("V_ref",self.traj["V_ref"])
         #print(self.traj['X'],self.traj['Y'])
         x, y = [], []
         for i in range(len(self.traj['X'])):

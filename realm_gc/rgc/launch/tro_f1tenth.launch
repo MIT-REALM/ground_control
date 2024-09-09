@@ -2,14 +2,14 @@
 
 <launch>
     <arg name="base_path" default="$$(find rgc_control)/saved_policies/ICRA_experiments_new"/>
-    <arg name="traj_filepath" default="initial_1.pkl"/>
+    <arg name="traj_filepath" default="initial_9.pkl"/>
 
     <arg name="T" default="12"/>
-    <arg name="v_ref" default="1.883"/>
+    <arg name="v_ref" default="0.564"/>
 
     <arg name="scale" default="1.0"/>
-    <arg name="x_offset" default="0.0"/>
-    <arg name="y_offset" default="-4.0"/>
+    <arg name="x_offset" default="-1.44"/>
+    <arg name="y_offset" default="-3.7"/>
 
     <arg name="position_topic" default="/vicon/realm_f1tenth/realm_f1tenth"/>
     

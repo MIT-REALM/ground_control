@@ -40,7 +40,7 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/base_path"), 
             self.filename
         )
-        self.v_ref = 2.43 #rospy.get_param("~v_ref",5.0) 
+        self.v_ref = 2.69#rospy.get_param("~v_ref",5.0) 
         self.x_offset = rospy.get_param("~x_offset")
         self.y_offset = rospy.get_param("~y_offset")
         self.scale = rospy.get_param("~scale")       
@@ -237,8 +237,8 @@ class F1TenthControl(RobotControl):
             #     self.control.steering_angle=np.pi/8
             # elif self.control.steering_angle<=-np.pi/8:
             #     self.control.steering_angle = -np.pi/8
-            self.control.steering_angle = min( np.pi/4, self.control.steering_angle)
-            self.control.steering_angle = max(-np.pi/4, self.control.steering_angle)
+            self.control.steering_angle = min( np.pi/3, self.control.steering_angle)
+            self.control.steering_angle = max(-np.pi/3, self.control.steering_angle)
 
             msg.drive.steering_angle = self.control.steering_angle
             msg.drive.acceleration = self.control.acceleration

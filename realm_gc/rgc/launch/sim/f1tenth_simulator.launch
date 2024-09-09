@@ -7,8 +7,8 @@
     <arg name="filename" default="experiment_trial_2.pkl"/>
 
     <arg name="scale" default="1.0"/>
-    <arg name="x_offset" default="-4.0"/>
-    <arg name="y_offset" default="0.0"/>
+    <arg name="x_offset" default="-1.44"/>
+    <arg name="y_offset" default="-3.7"/>
 
     <arg name="v_ref" default="0.0"/>
     
