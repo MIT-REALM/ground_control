@@ -5,14 +5,14 @@
 
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/ICRA_experiments_new"/>
-    <arg name="traj_filepath" default="initial_9.pkl"/>
+    <arg name="traj_filepath" default="initial_19.pkl"/>
 
     <arg name="scale" default="1.0"/>
-    <arg name="x_offset" default="-1.44"/>
-    <arg name="y_offset" default="-3.7"/>
+    <arg name="x_offset" default="-1.48"/>
+    <arg name="y_offset" default="-3.8"/>
 
     <arg name="T" default="12"/>
-    <arg name="v_ref" default="1.0"/>
+    <arg name="v_ref" default="0.764"/>
 
     <!-- Start the F1Tenth stack -->
     <include file="$(find rgc)/launch/tro_f1tenth.launch">
