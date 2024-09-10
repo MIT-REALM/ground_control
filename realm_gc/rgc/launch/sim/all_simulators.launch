@@ -13,8 +13,8 @@
 
     <arg name="v_ref" default="0.764"/>
 
-    <arg name="base_path" default="$(find rgc_control)/saved_policies/ICRA_experiments_new"/>
-    <arg name="filename" default="initial_19.pkl"/>
+    <arg name="base_path" default="$(find rgc_control)/saved_policies/test_experiments"/>
+    <arg name="filename" default="test_initial_0.pkl"/>
 
     <!-- Start the F1Tenth simulator -->
     <include file="$(find rgc)/launch/sim/f1tenth_simulator.launch">

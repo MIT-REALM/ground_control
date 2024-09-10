@@ -29,22 +29,22 @@ services:
       - roscore
     command: /bin/bash -c '. /catkin_ws/devel/setup.bash && roslaunch --wait vicon_bridge vicon.launch datastream_hostport:=192.168.0.9'
 
-  foxglove_bridge:
-    image: realm_gc:latest
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile
-    environment:
-      - ROS_HOSTNAME=192.168.0.168
-    volumes:
-      - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
-    network_mode: host
-    privileged: true
-    stdin_open: true # docker run -i
-    tty: true # docker run -t
-    depends_on:
-      - roscore
-    command: /bin/bash -c 'catkin_make && . /catkin_ws/devel/setup.bash && roslaunch --wait --screen foxglove_bridge foxglove_bridge.launch port:=8765'
+  # foxglove_bridge:
+  #   image: realm_gc:latest
+  #   build:
+  #     context: .
+  #     dockerfile: .docker/Dockerfile
+  #   environment:
+  #     - ROS_HOSTNAME=192.168.0.168
+  #   volumes:
+  #     - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
+  #   network_mode: host
+  #   privileged: true
+  #   stdin_open: true # docker run -i
+  #   tty: true # docker run -t
+  #   depends_on:
+  #     - roscore
+  #   command: /bin/bash -c 'catkin_make && . /catkin_ws/devel/setup.bash && roslaunch --wait --screen foxglove_bridge foxglove_bridge.launch port:=8765'
 
   robots:
     image: realm_gc:latest
@@ -53,7 +53,10 @@ services:
       dockerfile: .docker/Dockerfile
     environment:
       - ROS_HOSTNAME=192.168.0.168
+      - SIMRATE=100
+      - DISPLAY=${DISPLAY} # allows GUI access
     volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
       - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
     network_mode: host
     privileged: true
@@ -61,7 +64,7 @@ services:
     tty: true # docker run -t
     depends_on:
       - roscore
-    command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc tro_all.launch'
+    command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc all.launch'
 
   bash:
     image: realm_gc:latest
@@ -70,7 +73,6 @@ services:
       dockerfile: .docker/Dockerfile
     environment:
       - ROS_HOSTNAME=192.168.0.168
-      - DISPLAY=${DISPLAY} # allows GUI access
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
       - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
@@ -80,22 +82,22 @@ services:
     tty: true # allows you to attach to a shell in this container
     command: bash
 
-  simulators:
-      image: realm_gc:latest
-      build:
-        context: .
-        dockerfile: .docker/Dockerfile
-      environment:
-        - SIMRATE=100
-        - DISPLAY=${DISPLAY} # allows GUI access
-      volumes:
-        - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
-        - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
-      network_mode: host
-      privileged: true
-      stdin_open: true # docker run -i
-      tty: true # docker run -t
-      depends_on:
-        - roscore
-      # command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc simulator.launch'
-      command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc exp_sim.launch'
+  # simulators:
+  #     image: realm_gc:latest
+  #     build:
+  #       context: .
+  #       dockerfile: .docker/Dockerfile
+  #     environment:
+  #       - SIMRATE=100
+  #       - DISPLAY=${DISPLAY} # allows GUI access
+  #     volumes:
+  #       - /tmp/.X11-unix:/tmp/.X11-unix # allows GUI access
+  #       - ./realm_gc:/catkin_ws/src/realm_gc # allows access to the ROS package in the realm directory
+  #     network_mode: host
+  #     privileged: true
+  #     stdin_open: true # docker run -i
+  #     tty: true # docker run -t
+  #     depends_on:
+  #       - roscore
+  #     # command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc simulator.launch'
+  #     command: /bin/bash -c 'catkin_make && source /catkin_ws/devel/setup.bash && roslaunch --wait rgc exp_sim.launch'
