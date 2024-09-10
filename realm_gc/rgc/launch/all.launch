@@ -1,0 +1,39 @@
+<launch>
+    <arg name="base_path" default="$(find rgc_control)/saved_policies/ICRA_experiments_new"/>
+    <arg name="traj_filepath" default="initial_24.pkl"/>
+
+    <arg name="scale" default="1.0"/>
+    <arg name="x_offset" default="-1.48"/>
+    <arg name="y_offset" default="-3.8"/>
+    <arg name="v_ref" default="0.764"/>
+
+    <include file="$(find rgc)/launch/tro_all.launch">
+        <arg name="base_path" default="$(arg base_path)"/>
+        <arg name="traj_filepath" default="$(arg traj_filepath)"/>
+
+        <arg name="v_ref" default="$(arg v_ref)"/>
+        <arg name="scale" default="$(arg scale)"/>
+        <arg name="x_offset" default="$(arg x_offset)"/>
+        <arg name="y_offset" default="$(arg y_offset)"/>
+    </include>
+
+    <!-- <group ns="all_sim">
+        <include file="$(find rgc)/launch/sim/all_simulators.launch">
+            <arg name="base_path" default="$(arg base_path)"/>
+            <arg name="filename" default="$(arg traj_filepath)"/>
+        </include>
+    </group> -->
+    
+    <!-- <group ns="exp_sim"> -->
+    <include file="$(find rgc)/launch/sim/exp_sim.launch">
+        <arg name="base_path" default="$(arg base_path)"/>
+        <arg name="filename" default="$(arg traj_filepath)"/>
+
+        <arg name="v_ref" default="$(arg v_ref)"/>
+        <arg name="scale" default="$(arg scale)"/>
+        <arg name="x_offset" default="$(arg x_offset)"/>
+        <arg name="y_offset" default="$(arg y_offset)"/>
+    </include>
+    <!-- </group> -->
+
+</launch>
