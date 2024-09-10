@@ -5,7 +5,7 @@
 
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/ICRA_experiments_new"/>
-    <arg name="traj_filepath" default="initial_20.pkl"/>
+    <arg name="traj_filepath" default="initial_19.pkl"/>
 
     <arg name="scale" default="1.0"/>
     <arg name="x_offset" default="-1.48"/>
