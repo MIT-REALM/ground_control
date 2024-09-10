@@ -13,8 +13,9 @@ samples = np.hstack((x,y))
 for i in range(n):
     print(i, samples[i])
 
-# plt.scatter(x,y)
-# plt.show()
+m=15
+plt.scatter(x[:m],y[:m])
+plt.show()
 
 def lane_change_trajectory(lane_width, v=1.5, t_total=3):
 

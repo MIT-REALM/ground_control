@@ -1,6 +1,6 @@
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/test_experiments"/>
-    <arg name="traj_filepath" default="test_initial_0.pkl"/>
+    <arg name="traj_filepath" default="test_initial_14.pkl"/>
 
     <arg name="scale" default="1.0"/>
     <arg name="x_offset" default="-1.48"/>
