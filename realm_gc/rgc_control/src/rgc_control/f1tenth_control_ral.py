@@ -40,7 +40,7 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/base_path"), 
             self.filename
         )
-        self.v_ref = 1.5#rospy.get_param("~v_ref",5.0) 
+        self.v_ref = 1.2#rospy.get_param("~v_ref",5.0) 
         self.x_offset = rospy.get_param("~x_offset")
         self.y_offset = rospy.get_param("~y_offset")
         self.scale = rospy.get_param("~scale")       
