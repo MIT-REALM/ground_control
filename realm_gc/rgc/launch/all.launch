@@ -1,6 +1,6 @@
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/validation"/>
-    <arg name="traj_filepath" default="test_2.pkl"/>
+    <arg name="traj_filepath" default="test_5.pkl"/>
 
     <arg name="scale" default="1.0"/>
     <arg name="x_offset" default="-1.48"/>
