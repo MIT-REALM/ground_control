@@ -227,6 +227,10 @@ RUN /catkin_ws/src/bash_sh.sh
 RUN export DISPLAY=localhost:0.0
 
 RUN apt-get install ffmpeg
+
+RUN pip3 install typing_extensions --upgrade
+RUN pip3 install attrs
+RUN pip3 install numpy==1.26.4
 # RUN pip3 install tkinter
 # WORKDIR /catkin_ws/src
 # RUN ./bash_sh.sh

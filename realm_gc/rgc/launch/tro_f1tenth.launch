@@ -18,7 +18,7 @@
     </node>
 
     <!-- Controller -->
-    <node name="f1tenth_controller" pkg="rgc_control" type="f1_tenth_control_gcbf.py" output="screen">
+    <node name="f1tenth_controller" pkg="rgc_control" type="f1_tenth_control_cmarl.py" output="screen">
         <!-- Info on where to find the saved trajectory file -->
         <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
         <param name="trajectory/filename" type="string" value="$(arg traj_filepath)"/>
