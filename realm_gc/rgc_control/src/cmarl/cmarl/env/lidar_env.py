@@ -156,11 +156,23 @@ class LidarEnv(MultiAgentEnv, ABC):
         return lidar_data
 
     def agent_step_euler(self, agent_states: AgentState, action: Action) -> AgentState:
-        """By default, use double integrator dynamics"""
         assert action.shape == (self.num_agents, self.action_dim)
         assert agent_states.shape == (self.num_agents, self.state_dim)
-        x_dot = jnp.concatenate([agent_states[:, 2:], action * 10.], axis=1)
-        n_state_agent_new = x_dot * self.dt + agent_states
+
+        def single_agent_step(x, u):
+            theta = jnp.arctan2(x[3], x[2])
+            theta_next = theta + u[0] * x[4] * self.dt * self.delta_scale
+            x_next = jnp.array([
+                x[0] + x[4] * jnp.cos(theta) * self.dt,
+                x[1] + x[4] * jnp.sin(theta) * self.dt,
+                jnp.cos(theta_next),
+                jnp.sin(theta_next),
+                x[4] + u[1] * self.dt * 10.
+            ])
+            return x_next
+
+        n_state_agent_new = single_agent_step(agent_states, action)
+
         assert n_state_agent_new.shape == (self.num_agents, self.state_dim)
         return self.clip_state(n_state_agent_new)
 
@@ -194,8 +206,9 @@ class LidarEnv(MultiAgentEnv, ABC):
             new_mov_obs = None
         # calculate next states
         action = self.clip_action(action)
+        # print('aegnt states: ', agent_states)
         next_agent_states = self.agent_step_euler(agent_states, action)
-        
+        # print('next agent states: ', next_agent_states)
         # if iter > 0:
         # orig_goals = jnp.array([[-self.area_size, 0.], [0., -self.area_size]]) + 0.1
     
@@ -222,7 +235,7 @@ class LidarEnv(MultiAgentEnv, ABC):
         # cost = self.get_cost(graph)
         # assert reward.shape == tuple()
 
-        return self.get_graph(next_state, lidar_data_next), 0.0, 0.0, done, info
+        return self.get_graph(next_state, lidar_data_next)
 
     @abstractmethod
     def get_reward(self, graph: LidarEnvGraphsTuple, action: Action) -> Reward:

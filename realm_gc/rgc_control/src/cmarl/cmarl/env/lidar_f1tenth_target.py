@@ -195,8 +195,8 @@ class LidarF1TenthTarget(LidarNav):
         return feat
 
     def state_lim(self, state: Optional[State] = None) -> Tuple[State, State]:
-        lower_lim = jnp.array([0., 0., -1, -1, -0.5])
-        upper_lim = jnp.array([self.area_size, self.area_size, 1, 1, 0.5])
+        lower_lim = jnp.array([-1000., -1000., -1, -1, -0.5])
+        upper_lim = jnp.array([1000., 1000., 1, 1, 0.5])
         return lower_lim, upper_lim
 
     def render_video(

@@ -33,6 +33,10 @@ from rgc_control.policies.ral_experiment_policies import (
 
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
+import pytictoc
+
+pytic = pytictoc.TicToc()
+
 class F1TenthControl(RobotControl):
     def __init__(self):
         super(F1TenthControl, self).__init__()
@@ -120,14 +124,6 @@ class F1TenthControl(RobotControl):
                 "Waiting for obs2 state estimate to converge to instantiate control policy"
             )
             rospy.sleep(1.0)
-
-        # rospy.sleep(2.0)  # additional waiting for state to converge
-        # rospy.loginfo("State estimate has converged. Instantiating control policy.")
-
-        # self.control_policy = create_icra_f1tenth_policy(
-        #     np.array([self.state.x, self.state.y, self.state.theta, self.state.speed]),
-        #     self.eqx_filepath,
-        # )
         
         print('obs positions obtained: ',self.obs1, self.obs2)
 
@@ -136,8 +132,8 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/base_path"), 
             rospy.get_param("~trajectory/filename")
         )
-        self.v_ref = rospy.get_param("~v_ref", 1.0)     
-        # self.v_ref = 1.2   
+        # self.v_ref = rospy.get_param("~v_ref", 2.0)     
+        self.v_ref = 1.2   
         
         self.goal_x = 0.0
         self.goal_y = 3.0
@@ -148,6 +144,8 @@ class F1TenthControl(RobotControl):
         self.control_state = None
         goal = np.array([self.goal_x, self.goal_y, self.goal_yaw, 0.0])
         self.goal = goal
+
+        # self.state.y = -2.0
 
         car_pos = np.array([self.state.x, self.state.y, self.state.theta, self.state.speed])
 
@@ -271,14 +269,6 @@ class F1TenthControl(RobotControl):
                 t=t,
             )
 
-            # current_state = ICRAF1TenthObservation(
-            #     x=self.state.transform.translation.x,
-            #     y=self.state.transform.translation.y,
-            #     theta=self.state.transform.rotation.w,
-            #     v=self.state.transform.translation.z,
-            #     t=t,
-            # )
-            
 
             current_state_timed = RALF1tenthObservation(
                 x=self.state.x,
@@ -291,7 +281,7 @@ class F1TenthControl(RobotControl):
             )
 
             traj = {}
-            c = np.linspace(0, 1, 20)
+            c = np.linspace(0, 1, 10)
             
             x_ref = self.state.x * (1 - c) + self.goal[0] * c
             y_ref = self.state.y * (1 - c) + self.goal[1] * c
@@ -300,8 +290,9 @@ class F1TenthControl(RobotControl):
             traj['Y'] = y_ref 
             
             # spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath, traj)
-            
-            spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath)    
+            # pytic.tic()
+            spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath)  
+            # print('first spline generation time: ', pytic.tocvalue())  
             traj = spline_traj
             ind, _ = spline_traj.calc_nearest_index(self.state)
             # closest_cx = traj['X'][ind]
@@ -311,11 +302,14 @@ class F1TenthControl(RobotControl):
             traj['X'] = traj_x
             traj['Y'] = traj_y
 
+            # pytic.tic()
             spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath, traj)    
-                    
+            # print('spline generation time: ', pytic.tocvalue())
+
+            pytic.tic()
             # control_steer, self.e, self.theta_e, self.target_ind = self.control_policy_ral.compute_action(current_state_timed,spline_traj)
             control_steer, self.e, self.theta_e, self.target_ind = self.control_policy_ral.compute_action(current_state_timed)
-
+            print('steering control time: ', pytic.tocvalue())
             # reference_control, self.e, self.theta_e, self.target_ind = self.control_policy_ral.compute_action(current_state_timed)
             
             obs_pos = np.array([[self.obs1[0], self.obs1[1]], [self.obs2[0], self.obs2[1]]])
@@ -332,9 +326,10 @@ class F1TenthControl(RobotControl):
             obs2 = np.repeat(obs_center[1, :][:, None], 10, axis=1).T + circ * obs_r
             obs = np.concatenate((obs1, obs2), axis=0)
 
+            pytic.tic()
             control_gcbf, next_state, flag = self.control_policy.compute_action(current_state, control_steer, obs=obs, mov_obs_vel=obs_vel)
             # flag = 1
-
+            print('cmarl policy time: ', pytic.tocvalue())
             if flag == 0:
                 # print('original next state:', next_state[0], next_state[1])
                 # next_state_dir = np.array([next_state[0] - self.state.x, next_state[1] - self.state.y])
@@ -368,24 +363,12 @@ class F1TenthControl(RobotControl):
 
                 y_ref = np.concatenate((y_ref1, np.array(traj_y)))
 
-                # c = np.linspace(0, 1, 10)
                 
-                # x_ref2 = next_state[0] * (1 - c) + self.goal[0] * c
-                # y_ref2 = next_state[1] * (1 - c) + self.goal[1] * c
-                
-                # x_ref = np.concatenate((x_ref1, x_ref2))
-                # y_ref = np.concatenate((y_ref1, y_ref2))
-                
-                # traj['X'] = x_ref[1:]
-                # traj['Y'] = y_ref[1:] 
-
-                # x_ref[4] = next_state[0]
-                # y_ref[4] = next_state[1]
                 traj = {}
                 traj['X'] = x_ref 
                 traj['Y'] = y_ref 
                 
-                
+                pytic.tic()
                 spline_traj  = SplineTrajectory2D(self.v_ref,self.traj_filepath, traj)
                 
                 cx = spline_traj.cx
@@ -394,8 +377,12 @@ class F1TenthControl(RobotControl):
                 print('first c:', cx[0], cy[0])
                
                 control_steer, self.e, self.theta_e, self.target_ind = self.control_policy_ral.compute_action(current_state_timed,spline_traj)
-        
-            self.control = control_steer
+
+                print('second steering time: ', pytic.tocvalue())
+
+                self.control = control_steer
+            else:
+                self.control = control_gcbf
 
             if np.isnan(self.control.steering_angle):
                 if np.isnan(control_gcbf.steering_angle):
@@ -438,9 +425,9 @@ class F1TenthControl(RobotControl):
 
         self.control_pub.publish(msg)
         # print('control:', self.control.steering_angle, self.control.acceleration)
-        print('speed:', self.desired_speed)
+        # print('speed:', self.desired_speed)
         dist_goal = np.sqrt((self.state.x - self.goal[0])**2 + (self.state.y - self.goal[1])**2)
-        print('distance to goal:', dist_goal)
+        # print('distance to goal:', dist_goal)
 
         traj_msg = MultiArray()
 
@@ -468,7 +455,7 @@ class F1TenthControl(RobotControl):
             state_np = self.state
         # self.control_state = state_np + self.dt * dq_dt
         # print('control state: ', self.control_state)
-        print('ekf state: ', state_np)
+        # print('ekf state: ', state_np)
         print('control: ', msg.drive.speed, msg.drive.steering_angle)
         # if self.actual_state is not None:
         #     print('actual state: ', self.actual_state)

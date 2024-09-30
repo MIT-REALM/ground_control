@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import yaml
-
+import pytictoc
 
 from rgc_control.policies.common import F1TenthAction
 from rgc_control.policies.policy import ControlPolicy
@@ -17,7 +17,7 @@ from cmarl.cmarl.trainer.utils import get_bb_cbf, plot_rnn_states, test_rollout,
 from cmarl.cmarl.utils.graph import GraphsTuple
 from cmarl.cmarl.utils.utils import jax_jit_np, tree_index, chunk_vmap, merge01, jax_vmap, np2jax, jax2np
 
-
+t = pytictoc.TicToc()
 # from policies.common import F1TenthAction
 # from policies.policy import ControlPolicy
 
@@ -89,6 +89,7 @@ class CMARL_policy(ControlPolicy):
         self.init_rnn_state = algo.init_rnn_state
         # params = algo.cbf_train_state.params
         self.act_fn = act_fn
+        self.step = jax.jit(env.step)
         key=jax.random.PRNGKey(0)
         graph0 = env.reset(key)
         _ = self.act_fn(graph0, self.init_rnn_state)
@@ -143,27 +144,29 @@ class CMARL_policy(ControlPolicy):
         new_graph = self.create_graph(car_pos, goal, obs, graph)
         self.graph0 = new_graph
         # print('graph state before step: ', new_graph.env_states.agent)
-        if ref_inp is not None:
-            ref_vel = jnp.array([ref_inp.steering_angle, ref_inp.acceleration])
-        else:
-            ref_vel = None
+        # if ref_inp is not None:
+        #     ref_vel = jnp.array([ref_inp.steering_angle, ref_inp.acceleration])
+        # else:
+        #     ref_vel = None
 
         # mov_obs_vel = self.env.mov_obs_vel_pred(new_graph)
-
+        t.tic()
         accel, self.init_rnn_state = self.act_fn(new_graph, self.init_rnn_state)
         accel = self.env.clip_action(accel)
-        
-        new_graph, _, _, _, _ = self.env.step(new_graph, accel)
-        
+        print('action time: ', t.tocvalue())
+        t.tic()
+
+        new_graph = self.step(new_graph, accel)
+        print('step time: ', t.tocvalue())
         # obs_coll = self.env.mov_obs_collision_mask(new_graph)
         # print('obs coll:', obs_coll * 1)
         
         next_state = new_graph.env_states.agent
         # print('accel: ', accel)
-        print('graph state after step: ', new_graph.env_states.agent)
+        # print('graph state after step: ', new_graph.env_states.agent)
 
         return F1TenthAction(
             acceleration=accel[0, 1],
             steering_angle=accel[0, 0],
-        ), next_state.squeeze(), 1    
+        ), next_state.squeeze(), 0
  

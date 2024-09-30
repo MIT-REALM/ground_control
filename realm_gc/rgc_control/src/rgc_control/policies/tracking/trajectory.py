@@ -4,7 +4,9 @@ import pickle
 import numpy as np
 import math
 from rgc_control.policies.cubic_spline import CubicSpline2D
+import pytictoc
 
+pytic = pytictoc.TicToc()
 def pi_2_pi(angle):
     return (angle + np.pi) % (2 * np.pi) - np.pi
 
@@ -22,14 +24,17 @@ class SplineTrajectory2D():
         else:
             with open(filepath,'rb') as file:
                 self.traj = pickle.load(file) 
-                self.traj['Y'] = np.array(self.traj['Y']) * 5 - 4.0
+                self.traj['Y'] = np.array(self.traj['Y']) 
                 # self.traj['Y'] = np.array(self.traj['Y']) - 4.0 
                 
-                self.traj['X'] = np.array(self.traj['X']) / 2
-                        
+                self.traj['X'] = np.array(self.traj['X']) 
+        pytic.tic()                
         self.cx,self.cy,self.cyaw,self.ck = self.calc_spline_course()
+        print('spline generation time: ', pytic.tocvalue())
         self.v_ref = v_ref
+        pytic.tic()
         self.v = self.calc_speed_profile(self.v_ref)
+        print('vel profile gen time:', pytic.tocvalue())
 
     def calc_nearest_index(self, state):
         cx, cy, cyaw = self.cx, self.cy, self.cyaw

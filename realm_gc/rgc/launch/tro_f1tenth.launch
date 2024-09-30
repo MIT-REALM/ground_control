@@ -2,7 +2,7 @@
 
 <launch>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
-    <arg name="traj_filepath" default="ego_traj_nominal_3.pkl"/>
+    <arg name="traj_filepath" default="ego_traj_nominal_1.pkl"/>
 
     <arg name="T" default="12"/>
     <arg name="v_ref" default="0.5"/>
