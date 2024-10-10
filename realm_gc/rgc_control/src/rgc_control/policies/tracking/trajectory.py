@@ -24,17 +24,17 @@ class SplineTrajectory2D():
         else:
             with open(filepath,'rb') as file:
                 self.traj = pickle.load(file) 
-                self.traj['Y'] = np.array(self.traj['Y']) 
+                self.traj['Y'] = np.array(self.traj['Y']) * 2
                 # self.traj['Y'] = np.array(self.traj['Y']) - 4.0 
                 
                 self.traj['X'] = np.array(self.traj['X']) 
-        pytic.tic()                
+        # pytic.tic()                
         self.cx,self.cy,self.cyaw,self.ck = self.calc_spline_course()
-        print('spline generation time: ', pytic.tocvalue())
+        # print('spline generation time: ', pytic.tocvalue())
         self.v_ref = v_ref
-        pytic.tic()
+        # pytic.tic()
         self.v = self.calc_speed_profile(self.v_ref)
-        print('vel profile gen time:', pytic.tocvalue())
+        # print('vel profile gen time:', pytic.tocvalue())
 
     def calc_nearest_index(self, state):
         cx, cy, cyaw = self.cx, self.cy, self.cyaw
@@ -92,7 +92,7 @@ class SplineTrajectory2D():
             
             # speed down
             if i>20:
-                for i in range(20):
+                for i in range(10):
                     speed_profile[-i] = v_ref / (50 - i)
                     if speed_profile[-i] <= 1.0 / 3.6:
                         speed_profile[-i] = 1.0 / 3.6

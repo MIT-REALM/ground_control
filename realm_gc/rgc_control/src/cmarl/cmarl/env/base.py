@@ -57,6 +57,9 @@ class MultiAgentEnv(ABC):
         self._max_travel = max_travel
         self._area_size = area_size
         self._n_mov_obs = self._params.get("n_mov_obs", 0)
+        self._mov_obs = None
+        self._agent_states = None
+        self.vel_pred_fn = jax.jit(jax.vmap(self.vel_pred))
 
     @property
     def params(self) -> dict:
@@ -199,6 +202,68 @@ class MultiAgentEnv(ABC):
     #         return RolloutResult(Tp1_graph, T_action, T_reward, T_cost, T_done, T_info, T_rnn_state)
     #
     #     return fn
+
+    def vel_pred(self, all_states):
+        '''
+        input: array of states
+        output: predicted next velocity based on spline fitting
+        '''
+        ind = jnp.arange(all_states.shape[0]).astype(jnp.float32) * self.dt
+        ext_ind = jnp.arange(all_states.shape[0], all_states.shape[0]+1).astype(jnp.float32) * self.dt
+        
+        # polyx = CubicSpline(ind, all_states[:,0], bc_type='natural')
+        # polyy = CubicSpline(ind, all_states[:,1], bc_type='natural')
+        polyx = jnp.polyfit(ind, all_states[:,0], 3)
+        polyy = jnp.polyfit(ind, all_states[:,1], 3)
+        # new_x = polyx(ext_ind)
+        # new_y = polyy(ext_ind)
+        new_x = jnp.polyval(polyx, ext_ind)
+        new_y = jnp.polyval(polyy, ext_ind)
+        velx = (new_x - all_states[-1,0]) / self.dt
+        vely = (new_y - all_states[-1,1]) / self.dt
+        # spline_fitx = UnivariateSpline(ind, all_states[:,0], k=3)
+        # spline_fity = UnivariateSpline(ind, all_states[:,1], k=3)
+        # spline_fitx.set_smoothing_factor(0.1)
+        # spline_fity.set_smoothing_factor(0.1)
+        # velx = spline_fitx.derivative(n=1)(ind)
+        # vely = spline_fity.derivative(n=1)(ind)
+        return jnp.array([velx, vely]).reshape(1,2)
+    
+    def mov_agent_vel_pred(self,graph: GraphsTuple = None, state:Array = None) -> Array:
+        if graph is not None:
+            mov_agent_new = graph.type_states(type_idx=0, n_type=self.num_agents)
+        else:
+            mov_agent_new = state
+        # vel_pred_fn = jax.jit(jax.vmap(self.vel_pred))
+        if self._agent_states is None:
+            self._agent_states = mov_agent_new[:,None,:].repeat(5, axis=1)
+        else:
+            self._agent_states = jnp.concatenate([self._agent_states, mov_agent_new[:, None, :]], axis=1)
+        # breakpoint()
+            self._agent_states = self._agent_states[:, -5:, :]
+        
+        vel = self.vel_pred_fn(self._agent_states)
+        
+
+        return vel.squeeze()
+    
+    def mov_obs_vel_pred(self,graph: GraphsTuple = None, state: Array = None) -> Array:
+        if graph is not None:
+            mov_obs_new = graph.env_states.mov_obs
+        else:
+            mov_obs_new = state
+        
+        if self._mov_obs is None:
+            self._mov_obs = mov_obs_new[:,None,:].repeat(5, axis=1)
+        else:
+            self._mov_obs = jnp.concatenate([self._mov_obs, mov_obs_new[:, None, :]], axis=1)
+        # breakpoint()
+            self._mov_obs = self._mov_obs[:, -5:, :]
+        
+        vel = self.vel_pred_fn(self._mov_obs)
+        # vel = jnp.concatenate([vel, 0*vel], axis=-1)
+
+        return vel.squeeze()
 
     def rollout_fn_jitstep(
         self, policy: Callable, rollout_length: int = None, noedge: bool = False, nograph: bool = False

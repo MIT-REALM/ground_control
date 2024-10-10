@@ -227,7 +227,6 @@ class MultiAgentEnv(ABC):
             mov_obs_new = graph.env_states.mov_obs
         else:
             mov_obs_new = state
-        
         if self._mov_obs is None:
             self._mov_obs = mov_obs_new[:,None,:].repeat(5, axis=1)
         else:
@@ -236,7 +235,7 @@ class MultiAgentEnv(ABC):
             self._mov_obs = self._mov_obs[:, -5:, :]
         
         vel = self.vel_pred_fn(self._mov_obs)
-        vel = jnp.concatenate([vel, 0*vel], axis=-1)
+        # vel = jnp.concatenate([vel, 0*vel], axis=-1)
 
         return vel.squeeze()
     

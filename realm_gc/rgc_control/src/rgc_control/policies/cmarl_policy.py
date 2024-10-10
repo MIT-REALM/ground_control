@@ -54,7 +54,7 @@ class CMARL_policy(ControlPolicy):
             num_obs=mov_obs,
             max_step=128,
             max_travel=100,
-            full_observation=False,
+            full_observation=True,
             n_mov_obs=mov_obs,
             delta_scale=10.0,
             goal_reward_scale=config.goal_reward_scale if "goal_reward_scale" in config else 1.0,
@@ -100,6 +100,7 @@ class CMARL_policy(ControlPolicy):
         self.obs = obs_pos
         
     def create_graph(self, car_pos, car_goal, obs_pos, graph=None):
+        
         if graph is None:
             graph = self.graph0
         states=graph.env_states
@@ -114,10 +115,17 @@ class CMARL_policy(ControlPolicy):
         goal_v = car_goal[None,-1]
         goal_states = jnp.concatenate([goal_states, jnp.cos(goal_theta), jnp.sin(goal_theta), goal_v])[None, :]
 
+        mov_obs = obs_pos
+        if graph is not None:
+            mov_obs_vel = self.env.mov_obs_vel_pred(graph)
+        else:
+            # mov_obs_vel = self.env.mov_agent_vel_pred(state=obs_pos)
+            mov_obs_vel = jnp.zeros((mov_obs.shape[0], 2))
         
         # mov_obs = jnp.concatenate([obs_pos[:,0], obs_pos[:,1], jnp.zeros(obs_pos.shape[0]), jnp.zeros(obs_pos.shape[0])], axis=0)
-        mov_obs = obs_pos
-        mov_obs = jnp.concatenate([mov_obs, jnp.zeros((mov_obs.shape[0], 3))], axis=1)
+        # print('mov obs vel shape:', mov_obs_vel.shape)
+        # print('mov_obs shape:', mov_obs.shape)
+        mov_obs = jnp.concatenate([mov_obs, mov_obs_vel, jnp.zeros((mov_obs.shape[0], 1))], axis=1)
         states = LidarEnvState(agent=agent_states, goal=goal_states, obstacle=obs, mov_obs=mov_obs)
 
         graph = self.env.get_graph(states)
@@ -150,18 +158,24 @@ class CMARL_policy(ControlPolicy):
         #     ref_vel = None
 
         # mov_obs_vel = self.env.mov_obs_vel_pred(new_graph)
-        t.tic()
-        accel, self.init_rnn_state = self.act_fn(new_graph, self.init_rnn_state)
-        accel = self.env.clip_action(accel)
-        print('action time: ', t.tocvalue())
-        t.tic()
+        # t.tic()
+        num_iter = 20
+        states = jnp.zeros((num_iter, 5))
+        for j in range(num_iter):
+            accel, self.init_rnn_state = self.act_fn(new_graph, self.init_rnn_state)
+            accel = self.env.clip_action(accel)
+            # print('action time: ', t.tocvalue())
+            # t.tic()
 
-        new_graph = self.step(new_graph, accel)
-        print('step time: ', t.tocvalue())
+            new_graph = self.step(new_graph, accel)
+            # print('state shape: ', new_graph.env_states.agent.shape)
+            states = states.at[j].set(new_graph.env_states.agent.squeeze())
+        # print('step time: ', t.tocvalue())
         # obs_coll = self.env.mov_obs_collision_mask(new_graph)
         # print('obs coll:', obs_coll * 1)
         
-        next_state = new_graph.env_states.agent
+        # next_state = new_graph.env_states.agent
+        next_state = states
         # print('accel: ', accel)
         # print('graph state after step: ', new_graph.env_states.agent)
 
