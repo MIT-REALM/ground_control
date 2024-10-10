@@ -90,6 +90,9 @@ class CMARL_policy(ControlPolicy):
         # params = algo.cbf_train_state.params
         self.act_fn = act_fn
         self.step = jax.jit(env.step)
+
+        self.Vh_fn = jax.jit(algo.get_Vh)
+
         key=jax.random.PRNGKey(0)
         graph0 = env.reset(key)
         _ = self.act_fn(graph0, self.init_rnn_state)
@@ -138,6 +141,7 @@ class CMARL_policy(ControlPolicy):
         obs=None,
         mov_obs_vel=None,
         goal=None,
+        dt=0.01,
     ) -> F1TenthAction:
         # Brake to avoid collisions based on the average distance to the
         # obstacle in the center of the image
@@ -151,6 +155,19 @@ class CMARL_policy(ControlPolicy):
         
         new_graph = self.create_graph(car_pos, goal, obs, graph)
         self.graph0 = new_graph
+
+        Vh = self.Vh_fn(graph, self.init_rnn_state)
+        next_ref_graph = self.step(graph, jnp.array([ref_inp.steering_angle, ref_inp.acceleration])[None, :])
+        Vh_next = self.Vh_fn(next_ref_graph, self.init_rnn_state)
+        Vh_dot = (Vh_next - Vh) / dt
+
+        Vhcond = Vh_dot + 10 * Vh
+        max_Vhcond = jnp.max(Vhcond)
+
+        print('Vh cond max: ', max_Vhcond)
+        print('vh: ', Vh)
+        if max_Vhcond < 0:
+            return ref_inp, next_ref_graph.env_states.agent.squeeze(), 1
         # print('graph state before step: ', new_graph.env_states.agent)
         # if ref_inp is not None:
         #     ref_vel = jnp.array([ref_inp.steering_angle, ref_inp.acceleration])

@@ -333,10 +333,10 @@ class F1TenthControl(RobotControl):
 
             min_obs_dist = np.min(obs_dist)
             
-            if min_obs_dist < 1.5:
+            if min_obs_dist < 2.5:
                 
                 pytic.tic()
-                control_gcbf, next_state, flag = self.control_policy.compute_action(current_state, control_steer, obs=obs, mov_obs_vel=obs_vel)
+                control_gcbf, next_state, flag = self.control_policy.compute_action(current_state, control_steer, obs=obs, mov_obs_vel=obs_vel, dt=self.dt)
                 # flag = 1
                 control_diff = np.linalg.norm([control_steer.acceleration-control_gcbf.acceleration, control_steer.steering_angle-control_gcbf.steering_angle])
                 if control_diff < 0.01:

@@ -4,7 +4,8 @@ import jax
 import jax.numpy as jnp
 import jax.random as jr
 import numpy as np
-
+import scipy
+import einops as ei
 from typing import NamedTuple, Tuple, Optional
 
 from ..utils.graph import EdgeBlock, GetGraph, GraphsTuple
@@ -13,12 +14,12 @@ from ..utils.utils import merge01
 from .base import MultiAgentEnv, RolloutResult
 from .obstacle import Obstacle, Rectangle
 # from .plot import render_video
-from .utils import get_lidar, inside_obstacles, get_node_goal_rng
+from .utils import get_lidar, inside_obstacles, get_node_goal_rng, lqr
+from .spline_utils import get_spline
 
-def render_video(**kwargs):
-    pass
+from ..trainer.utils import has_any_nan, has_nan
 
-class DubinsCarAdapt(MultiAgentEnv):
+class F1TenthNew(MultiAgentEnv):
     AGENT = 0
     GOAL = 1
     OBS = 2
@@ -46,6 +47,7 @@ class DubinsCarAdapt(MultiAgentEnv):
         "n_mov_obs": 4,
         "slow_mov_obs_speed": 0.1,
         "fast_mov_obs_speed": 0.2,
+        "axle": 0.28
     }
 
     def __init__(
@@ -54,17 +56,18 @@ class DubinsCarAdapt(MultiAgentEnv):
             area_size: float,
             max_step: int = 256,
             max_travel: float = None,
-            dt: float = 0.1,
+            dt: float = 0.03,
             node_feat: int = 4,
             mov_obs_speed: float = None,
             mov_obs_at_infty: bool = False,
             station_obs_at_infty: bool = False,
             params: dict = None,
             use_stop_mask: bool = False,
+            enable_stop: bool = True
     ):
-        super(DubinsCarAdapt, self).__init__(num_agents, area_size, max_step, max_travel, dt, params)
+        super(F1TenthNew, self).__init__(num_agents, area_size, max_step, max_travel, dt, params)
         self.create_obstacles = jax.vmap(Rectangle.create)
-        self.enable_stop = True
+        self.enable_stop = enable_stop
         self.mov_obs_vel = None
         self.mov_obs_speed = mov_obs_speed
         self._params['slow_mov_obs_speed'] = self.mov_obs_speed if self.mov_obs_speed is not None else self._params['slow_mov_obs_speed']
@@ -75,13 +78,45 @@ class DubinsCarAdapt(MultiAgentEnv):
         self.mov_obs_at_infty = mov_obs_at_infty
         self.station_obs_at_infty = station_obs_at_infty
         self.use_stop_mask = use_stop_mask
-    
+        self.dare = jax.jit(self.solve_discrete_are)
+        self._K = None
+        self.delta_scale = 15
+        self.accel_scale = 10.0
+        # Q = jnp.eye(self.state_dim)
+        # R = jnp.eye(self.action_dim)
+        # self._A = jnp.zeros((self.state_dim, self.state_dim))
+        # self._K = jnp.zeros((self.num_agents, self.action_dim, self.state_dim))
+        # for i in range(self.num_agents):
+        #     v = jnp.zeros(()) + np.random.uniform(0.0, 0.5)
+        #     theta = jnp.zeros(()) + np.random.uniform(-np.pi, np.pi)
+        #     delta  = jnp.zeros(()) + np.random.uniform(-np.pi / 4, np.pi / 4)
+            
+        #     self._A = self._A.at[0, 2].set(v)
+        #     self._A = self._A.at[0, 4].set(jnp.cos(theta))
+        #     self._A = self._A.at[1, 3].set(v)
+        #     self._A = self._A.at[1, 4].set(jnp.sin(theta))
+        #     self._A = self._A.at[2, 3].set((- v / self.params["axle"]) * jnp.tan(delta))
+        #     self._A = self._A.at[2, 4].set(-jnp.sin(theta) * jnp.tan(delta) / self.params["axle"])
+        #     self._A = self._A.at[3, 2].set((v / self.params["axle"]) * jnp.tan(delta))
+        #     self._A = self._A.at[3, 4].set(jnp.cos(theta) * jnp.tan(delta) / self.params["axle"])
+            
+        #     self._A_discrete = scipy.linalg.expm(np.array(self._A) * self.dt)
+            
+        #     B = jnp.zeros((5, 2))
+        #     B = B.at[2, 0].set((- (v + 1e-6) * jnp.sin(theta) / self.params["axle"]) * self.dt / (jnp.cos(delta) + 1e-6) ** 2)
+        #     B = B.at[3, 0].set(((v + 1e-6) * jnp.cos(theta) / self.params["axle"]) * self.dt / (jnp.cos(delta) + 1e-6) ** 2)
+        #     B = B.at[4, 1].set(self.dt)
+        #     self._A_discrete = self._A_discrete.copy()
+        #     K = lqr(self._A_discrete, B, Q, R)
+        #     self._K = self._K.at[i].set(K)
+        self.one_u = jax.jit(self.u_one_agent)
+
     def env_name(self):
-        return 'Dubins'
+        return 'F1Tenth'
 
     @property
     def state_dim(self) -> int:
-        return 4  # x, y, theta, v
+        return 5  # x, y, cos(theta), sin(theta), v
 
     @property
     def node_dim(self) -> int:
@@ -105,11 +140,11 @@ class DubinsCarAdapt(MultiAgentEnv):
         self._t = 0
 
         # randomly generate obstacles
-        n_rng_obs = self._params["n_obs"]
+        n_rng_obs = self._params["n_obs"] // 2
         n_rng_mov_obs = self._params["n_mov_obs"]
         assert n_rng_obs >= 0
         obstacle_key, key = jr.split(key, 2)
-        obs_pos = jr.uniform(obstacle_key, (self._params["n_obs"], 2), minval=0, maxval=self.area_size)
+        obs_pos = jr.uniform(obstacle_key, (n_rng_obs, 2), minval=0, maxval=self.area_size)
         
         if self.station_obs_at_infty:
             obs_pos = obs_pos.at[:, :2].set(jnp.array([self.area_size, self.area_size]) * 100)
@@ -117,16 +152,29 @@ class DubinsCarAdapt(MultiAgentEnv):
         length_key, key = jr.split(key, 2)
         obs_len = jr.uniform(
             length_key,
-            (self._params["n_obs"], 2),
+            (n_rng_obs, 2),
             minval=self._params["obs_len_range"][0],
             maxval=self._params["obs_len_range"][1],
         )
         theta_key, key = jr.split(key, 2)
-        obs_theta = jr.uniform(theta_key, (self._params["n_obs"],), minval=0, maxval=2 * np.pi)
+        obs_theta = jr.uniform(theta_key, (n_rng_obs,), minval=0, maxval=2 * np.pi)
+        
+        obs_len_mov_obs = jnp.ones((n_rng_obs, 2)) * self._params["car_radius"] * 4
+        
+        obs_pos_new_key, key = jr.split(key, 2)
+        
+        obs_pos_mov_obs = jr.uniform(obs_pos_new_key, (n_rng_obs, 2), minval=self._params["car_radius"] * 4, maxval=self.area_size - self._params["car_radius"] * 4)
+        
+        obs_theta_mov_obs = jnp.zeros((n_rng_obs,))
+        
+        obs_pos = jnp.concatenate([obs_pos, obs_pos_mov_obs], axis=0)
+        obs_len = jnp.concatenate([obs_len, obs_len_mov_obs], axis=0)
+        obs_theta = jnp.concatenate([obs_theta, obs_theta_mov_obs], axis=0)
+        
         obstacles = self.create_obstacles(obs_pos, obs_len[:, 0], obs_len[:, 1], obs_theta)
 
         mov_obs_key, key = jr.split(key, 2)
-        mov_obs_pos = jr.uniform(mov_obs_key, (n_rng_mov_obs, 4), minval=0, maxval=self.area_size)
+        mov_obs_pos = jr.uniform(mov_obs_key, (n_rng_mov_obs, 5), minval=0, maxval=self.area_size)
         
         # mov_obs_pos = mov_obs_pos.at[:, 2:].set(0)
         if self.mov_obs_at_infty:
@@ -138,14 +186,14 @@ class DubinsCarAdapt(MultiAgentEnv):
         
         # slow_mov_obs_vel = slow_mov_obs_vel.at[:, 2:].set(0)
         
-        mov_obs_pos = mov_obs_pos.at[:n_rng_mov_obs // 2, 2:].set(slow_mov_obs_vel)
+        mov_obs_pos = mov_obs_pos.at[:n_rng_mov_obs // 2, 2:4].set(slow_mov_obs_vel)
         
         
         mov_obs_vel_key, key = jr.split(key, 2)
         fast_mov_obs_vel = jr.uniform(mov_obs_vel_key, (n_rng_mov_obs // 2, 2), minval=-self._params["fast_mov_obs_speed"], maxval=self._params["fast_mov_obs_speed"])
         # self.fast_mov_obs_vel = fast_mov_obs_vel
         
-        mov_obs_pos = mov_obs_pos.at[n_rng_mov_obs // 2:, 2:].set(fast_mov_obs_vel)
+        mov_obs_pos = mov_obs_pos.at[n_rng_mov_obs // 2:, 2:4].set(fast_mov_obs_vel)
         # fast_mov_obs_vel = fast_mov_obs_vel.at[:, 2:].set(0)
         
         # self.mov_obs_vel = jnp.concatenate([slow_mov_obs_vel, fast_mov_obs_vel], axis=0)
@@ -154,12 +202,23 @@ class DubinsCarAdapt(MultiAgentEnv):
         states, goals = get_node_goal_rng(
             key, self.area_size, 2, obstacles, self.num_agents, 4 * self.params["car_radius"], self.max_travel, mov_obs_pos)
 
-        # add random heading
+        states = jnp.concatenate([states, jnp.zeros((self.num_agents, 3))], axis=1)
+        goals = jnp.concatenate([goals, jnp.zeros((self.num_agents, 3))], axis=1)
+        
+        # add heading towards goal
+        # xy_diff = goals[:, :2] - states[:, :2]
+        # theta = jnp.arctan2(xy_diff[:, 1], xy_diff[:, 0])
+        # goals = goals.at[:, 2].set(jnp.arctan2(xy_diff[:, 1], xy_diff[:, 0]))
+        
+        # # add random heading
         theta_key, key = jr.split(key, 2)
-        states = jnp.concatenate([states, jnp.zeros((self.num_agents, 2))], axis=1)
-        goals = jnp.concatenate([goals, jnp.zeros((self.num_agents, 2))], axis=1)
-        states = states.at[:, 2].set(jr.uniform(theta_key, (self.num_agents,), minval=-np.pi, maxval=np.pi))
-        goals = goals.at[:, 2].set(jnp.arctan2(goals[:, 1] - states[:, 1], goals[:, 0] - states[:, 0]))
+        theta = jr.uniform(theta_key, (self.num_agents,), minval=-np.pi, maxval=np.pi)
+        states = states.at[:, 2].set(jnp.cos(theta))
+        states = states.at[:, 3].set(jnp.sin(theta))
+        v_key, key = jr.split(key, 2)
+        v = jr.uniform(v_key, (self.num_agents,), minval=-0.2, maxval=0.2)
+        states = states.at[:, 4].set(v)
+        # goals = goals.at[:, 2].set(jnp.arctan2(goals[:, 1] - states[:, 1], goals[:, 0] - states[:, 0]))
 
         env_states = self.EnvState(states, goals, obstacles, mov_obs_pos)
 
@@ -177,13 +236,12 @@ class DubinsCarAdapt(MultiAgentEnv):
         assert action.shape == (self.num_agents, self.action_dim)
         assert agent_states.shape == (self.num_agents, self.state_dim)
         x_dot = jnp.concatenate([
-            (jnp.cos(agent_states[:, 2]) * agent_states[:, 3])[:, None],
-            (jnp.sin(agent_states[:, 2]) * agent_states[:, 3])[:, None],
-            (action[:, 0] * 20.)[:, None],
-            (action[:, 1])[:, None]
+            (agent_states[:, 2] * agent_states[:, 4])[:, None],
+            (agent_states[:, 3] * agent_states[:, 4])[:, None],
+            (-agent_states[:, 3] * agent_states[:, 4] / self.params["axle"] * self.delta_scale * action[:, 0])[:, None],
+            (agent_states[:, 2] * agent_states[:, 4] / self.params["axle"] * self.delta_scale * action[:, 0])[:, None],
+            (action[:, 1] * self.accel_scale)[:, None]
         ], axis=1)
-        # print('delta in step: ', action[:, 0])
-        # print('accel in step: ', action[:, 1])
         assert x_dot.shape == (self.num_agents, self.state_dim)
         return x_dot
 
@@ -197,28 +255,54 @@ class DubinsCarAdapt(MultiAgentEnv):
         goal_states = graph.type_states(type_idx=1, n_type=self.num_agents)
         obstacles = graph.env_states.obstacle
         mov_obstacles = graph.env_states.mov_obs
-
-        mov_obs_max_x_mask = mov_obstacles[:, 0] >= self.area_size
-        mov_obs_max_y_mask = mov_obstacles[:, 1] >= self.area_size
-        mov_obs_min_x_mask = mov_obstacles[:, 0] <= 0
-        mov_obs_min_y_mask = mov_obstacles[:, 1] <= 0
+        # obs_points = obstacles.points
+        # mov_obs_vel = mov_obstacles[:, 2:4]
+        
+        # mov_obs_vel_pos_x_mask = (mov_obs_vel[:, 0] > 0)
+        # mov_obs_vel_pos_y_mask = (mov_obs_vel[:, 1] > 0)
+        # mov_obs_vel_neg_x_mask = (mov_obs_vel[:, 0] < 0)
+        # mov_obs_vel_neg_y_mask = (mov_obs_vel[:, 1] < 0)
+        
+        # obs_points_max_x_mask = (obs_points[self._params["n_obs"] // 2:, :, 0] >= self.area_size).any(axis=1)
+        # obs_points_max_y_mask = (obs_points[self._params["n_obs"] // 2:, :, 1] >= self.area_size).any(axis=1)
+        # obs_points_min_x_mask = (obs_points[self._params["n_obs"] // 2:, :, 0] <= 0).any(axis=1)
+        # obs_points_min_y_mask = (obs_points[self._params["n_obs"] // 2:, :, 1] <= 0).any(axis=1)
+        
+        # mov_obs_vel = mov_obs_vel.at[:, 0].set(jnp.where(obs_points_max_x_mask & mov_obs_vel_pos_x_mask, -mov_obstacles[:, 2], mov_obstacles[:, 2]))
+        # mov_obs_vel = mov_obs_vel.at[:, 1].set(jnp.where(obs_points_max_y_mask & mov_obs_vel_pos_y_mask, -mov_obstacles[:, 3], mov_obstacles[:, 3]))
+        # mov_obs_vel = mov_obs_vel.at[:, 0].set(jnp.where(obs_points_min_x_mask & mov_obs_vel_neg_x_mask, -mov_obstacles[:, 2], mov_obstacles[:, 2]))
+        # mov_obs_vel = mov_obs_vel.at[:, 1].set(jnp.where(obs_points_min_y_mask & mov_obs_vel_neg_y_mask, -mov_obstacles[:, 3], mov_obstacles[:, 3]))
+        
+        # jax.debug.breakpoint()
+        # mov_obs_max_x_mask = mov_obstacles[:, 0] >= self.area_size
+        # mov_obs_max_y_mask = mov_obstacles[:, 1] >= self.area_size
+        # mov_obs_min_x_mask = mov_obstacles[:, 0] <= 0
+        # mov_obs_min_y_mask = mov_obstacles[:, 1] <= 0
         
         # mov_obstacles = mov_obstacles.at[:, 2].set(jnp.where(mov_obs_max_x_mask, -mov_obstacles[:, 2], mov_obstacles[:, 2]))
-        mov_obstacles = mov_obstacles.at[:, 3].set(jnp.where(mov_obs_max_y_mask, -mov_obstacles[:, 3], mov_obstacles[:, 3]))
+        # mov_obstacles = mov_obstacles.at[:, 3].set(jnp.where(mov_obs_max_y_mask, -mov_obstacles[:, 3], mov_obstacles[:, 3]))
         # mov_obstacles = mov_obstacles.at[:, 2].set(jnp.where(mov_obs_min_x_mask, -mov_obstacles[:, 2], mov_obstacles[:, 2]))
-        mov_obstacles = mov_obstacles.at[:, 3].set(jnp.where(mov_obs_min_y_mask, -mov_obstacles[:, 3], mov_obstacles[:, 3]))
+        # mov_obstacles = mov_obstacles.at[:, 3].set(jnp.where(mov_obs_min_y_mask, -mov_obstacles[:, 3], mov_obstacles[:, 3]))
         
-        # mov_obs_vel = mov_obstacles[:, 2:]
         # mov_obs_vel = jnp.concatenate([jnp.sin(mov_obstacles[:, 2, None]), jnp.cos(mov_obstacles[:, 2, None])], axis=-1) * mov_obstacles[:, 3]
-        next_mov_obstacles = mov_obstacles.at[:, 0].set(mov_obstacles[:, 0] + jnp.sin(mov_obstacles[:, 2]) * self.dt * mov_obstacles[:, 3] * 2)
-        next_mov_obstacles = next_mov_obstacles.at[:, 1].set(mov_obstacles[:, 1] + jnp.cos(mov_obstacles[:, 2]) * self.dt * mov_obstacles[:, 3] * 2)
+        # next_mov_obstacles = mov_obstacles.at[:, 0].set(mov_obstacles[:, 0] + jnp.sin(mov_obstacles[:, 2]) * self.dt * mov_obstacles[:, 3] * 2)
+        # next_mov_obstacles = next_mov_obstacles.at[:, 1].set(mov_obstacles[:, 1] + jnp.cos(mov_obstacles[:, 2]) * self.dt * mov_obstacles[:, 3] * 2)
         
-        next_mov_obstacles = next_mov_obstacles.at[:, 2].set(mov_obstacles[:, 2] + 1 * self.dt)
-        
+        # next_mov_obstacles = next_mov_obstacles.at[:, 2].set(mov_obstacles[:, 2] + 1 * self.dt)
         
         # next_mov_obstacles = mov_obstacles.at[:, :2].set(mov_obstacles[:, :2] + mov_obs_vel * self.dt)
-
-        # action = self.clip_action(action)
+        # next_mov_obstacles = next_mov_obstacles.at[:, 2:4].set(mov_obs_vel)
+        
+        # obs_pos = obstacles.center
+        # obs_points = obstacles.points
+        # new_obs_pos = obs_pos.at[self._params["n_obs"] // 2:, :].set(obs_pos[self._params["n_obs"] // 2:, :2] + mov_obs_vel * self.dt)
+        
+        # new_obs_points = obs_points.at[self._params["n_obs"] // 2:, :, :].set(obs_points[self._params["n_obs"] // 2:, :, :2] + mov_obs_vel[:, None, :].repeat(4, axis=1) * self.dt)
+        
+        # new_obs = obstacles._replace(center=new_obs_pos, points=new_obs_points)
+        # jax.debug.breakpoint()        
+        
+        action = self.clip_action(action)
 
         assert action.shape == (self.num_agents, self.action_dim)
         assert agent_states.shape == (self.num_agents, self.state_dim)
@@ -241,7 +325,7 @@ class DubinsCarAdapt(MultiAgentEnv):
         assert cost.shape == tuple()
         assert done.shape == tuple()
 
-        next_state = self.EnvState(next_agent_states, goal_states, obstacles,next_mov_obstacles)
+        next_state = self.EnvState(next_agent_states, goal_states, obstacles ,mov_obstacles)
 
         return self.get_graph(next_state), reward, cost, done, {}
 
@@ -249,7 +333,6 @@ class DubinsCarAdapt(MultiAgentEnv):
         agent_states = graph.type_states(type_idx=0, n_type=self.num_agents)
         obstacles = graph.env_states.obstacle
         mov_obstacles = graph.env_states.mov_obs[:, :2]
-
 
         # collision between agents
         agent_pos = agent_states[:, :2]
@@ -277,20 +360,21 @@ class DubinsCarAdapt(MultiAgentEnv):
     def render_video(
         self, rollout: RolloutResult, video_path: pathlib.Path, Ta_is_unsafe=None, viz_opts: dict = None, dpi: int = 80, **kwargs
     ) -> None:
-        render_video(
-            rollout=rollout,
-            video_path=video_path,
-            side_length=self.area_size,
-            dim=2,
-            n_agent=self.num_agents,
-            n_rays=self.params["n_rays"],
-            r=self.params["car_radius"],
-            Ta_is_unsafe=Ta_is_unsafe,
-            viz_opts=viz_opts,
-            dpi=dpi,
-            n_mov_obs=self.params["n_mov_obs"],
-            **kwargs
-        )
+        pass
+        # render_video(
+        #     rollout=rollout,
+        #     video_path=video_path,
+        #     side_length=self.area_size,
+        #     dim=2,
+        #     n_agent=self.num_agents,
+        #     n_rays=self.params["n_rays"],
+        #     r=self.params["car_radius"],
+        #     Ta_is_unsafe=Ta_is_unsafe,
+        #     viz_opts=viz_opts,
+        #     dpi=dpi,
+        #     n_mov_obs=self.params["n_mov_obs"],
+        #     **kwargs
+        # )
 
     def edge_blocks(self, state: EnvState, lidar_data: State) -> list[EdgeBlock]:
         n_hits = self._params["n_rays"] * self.num_agents
@@ -301,8 +385,8 @@ class DubinsCarAdapt(MultiAgentEnv):
         dist = jnp.linalg.norm(pos_diff, axis=-1)
         dist += jnp.eye(dist.shape[1]) * (self._params["comm_radius"] + 1)
         pos_theta_diff = state.agent[:, None, :2] - state.agent[None, :, :2]
-        agent_v = jnp.concatenate([(state.agent[:, 3] * jnp.cos(state.agent[:, 2]))[:, None],
-                                   (state.agent[:, 3] * jnp.sin(state.agent[:, 2]))[:, None]], axis=-1)
+        agent_v = jnp.concatenate(((state.agent[:, 4] * state.agent[:, 2])[:, None], (state.agent[:, 4] * state.agent[:, 3])[:, None]), axis=-1)
+        
         v_diff = agent_v[:, None, :] - agent_v[None, :, :]
         state_diff = jnp.concatenate([pos_theta_diff, v_diff], axis=-1)
         agent_agent_mask = jnp.less(dist, self._params["comm_radius"])
@@ -311,7 +395,6 @@ class DubinsCarAdapt(MultiAgentEnv):
 
         # agent - goal connection
         agent_goal_edges = []
-        
         agent_goal_pos_diff = state.agent[:, :2] - state.goal[:, :2]
         agent_goal_v_diff = agent_v
         agent_goal_edge_feats = jnp.concatenate([agent_goal_pos_diff, agent_goal_v_diff], axis=-1)
@@ -331,7 +414,7 @@ class DubinsCarAdapt(MultiAgentEnv):
         for i in range(self.num_agents):
             id_hits = jnp.arange(i * self._params["n_rays"], (i + 1) * self._params["n_rays"])
             lidar_pos = agent_pos[i, :] - lidar_data[id_hits, :2]
-            lidar_feats = jnp.concatenate([state.agent[i, :2], agent_v[i]]) - lidar_data[id_hits, :]
+            lidar_feats = jnp.concatenate([state.agent[i, :2], agent_v[i]]) - lidar_data[id_hits, :4]
             lidar_dist = jnp.linalg.norm(lidar_pos, axis=-1)
             active_lidar = jnp.less(lidar_dist, self._params["comm_radius"] - 1e-1)
             agent_obs_mask = jnp.ones((1, self._params["n_rays"]))
@@ -343,51 +426,43 @@ class DubinsCarAdapt(MultiAgentEnv):
         # agent - mov obs connection
         id_mov_obs = jnp.arange(self.num_agents * 2 + n_hits, self.num_agents * 2 + n_hits + self._params["n_mov_obs"])
         agent_mov_obs_edges = []
-        
         mov_obs_pos = state.mov_obs[:, :2]
         # mov_obs_vel = self.mov_obs_vel_pred(state=state.mov_obs)
         # mov_obs_vel = self.mov_obs_vel[:, :2]
-        mov_obs_vel  = state.mov_obs[:, 2:]
+        mov_obs_vel  = state.mov_obs[:, 2:4]
         agent_mov_obs_pos = agent_pos[:, None, :2] - mov_obs_pos[None, :, :]
         agent_mov_obs_dist = jnp.linalg.norm(agent_mov_obs_pos, axis=-1)
         agent_mov_obs_mask = jnp.less(agent_mov_obs_dist, self._params["comm_radius"])
         agent_mov_obs_vel = agent_v[:, None, :] - mov_obs_vel[None, :, :]
         agent_mov_obs_edges = EdgeBlock(jnp.concatenate([agent_mov_obs_pos, agent_mov_obs_vel], axis=-1), agent_mov_obs_mask, id_agent, id_mov_obs)
-        # for i in range(self.num_agents):
-        #     # id_mov_obs = jnp.arange(self.num_agents * 2 + n_hits, self.num_agents * 2 + n_hits + self._params["n_mov_obs"])
-        #     agent_mov_obs_pos = agent_pos[i, :2] - mov_obs_pos
-        #     agent_mov_obs_dist = jnp.linalg.norm(agent_mov_obs_pos, axis=-1)
-        #     agent_mov_obs_mask = jnp.ones((1, self._params["n_mov_obs"]))
-        #     mov_obs_rel_vel = agent_v[i] - mov_obs_vel
-        #     agent_mov_obs_pos = jnp.concatenate([agent_mov_obs_pos, mov_obs_rel_vel], axis=-1)
-        #     # agent_mov_obs_pos = jnp.concatenate([agent_mov_obs_pos, jnp.ones((self._params["n_mov_obs"], 1)) * self._params["mov_obs_speed"], jnp.ones((self._params["n_mov_obs"], 1)) * self._params["car_radius"] * 4], axis=-1)
-        #     agent_mov_obs_mask = jnp.logical_and(jnp.less(agent_mov_obs_dist, self._params["comm_radius"]), agent_mov_obs_mask)
-        #     agent_mov_obs_edges.append(
-        #         EdgeBlock(agent_mov_obs_pos[None, :, :], agent_mov_obs_mask, id_agent[i][None], id_mov_obs)
-        #     )
-        
         
         return [agent_agent_edges] + agent_goal_edges + agent_obs_edges + [agent_mov_obs_edges]
 
     def control_affine_dyn(self, state: State) -> [Array, Array]:
         assert state.ndim == 2
+        
         f = jnp.concatenate([
-            (jnp.cos(state[:, 2]) * state[:, 3])[:, None],
-            (jnp.sin(state[:, 2]) * state[:, 3])[:, None],
-            jnp.zeros((state.shape[0], 2))
+            (state[:, 2] * state[:, 4])[:, None],
+            (state[:, 3] * state[:, 4])[:, None],
+            jnp.zeros((state.shape[0], 3))
         ], axis=1)
-        g = jnp.concatenate([jnp.zeros((2, 2)), jnp.array([[10., 0.], [0., 1.]])], axis=0)
+        g = self.accel_scale * jnp.concatenate([jnp.zeros((2, 2)), jnp.array([[1., 0.], [1., 0.], [0., 1.]])], axis=0)
+        # g = jnp.concatenate([jnp.zeros((2, 2)), jnp.array([[state[:, 3] / self.params["axle"], 0.0], [0., 1.]])], axis=0)
         g = jnp.expand_dims(g, axis=0).repeat(f.shape[0], axis=0)
+        # u = self.clip_action(u)
+        g1 = - state[:, 4] / self.params["axle"] * state[:, 3]
+        g2 = state[:, 4] / self.params["axle"] * state[:, 2]
+        g = g.at[:, 2, 0].set(g1) * self.delta_scale
+        g = g.at[:, 3, 0].set(g2) * self.delta_scale
         assert f.shape == state.shape
-        assert g.shape == (state.shape[0], 4, 2)
+        assert g.shape == (state.shape[0], self.state_dim, self.action_dim)
         return f, g
 
     def add_edge_feats(self, graph: GraphsTuple, state: State) -> GraphsTuple:
         assert graph.is_single
         assert state.ndim == 2
-
-        v = jnp.concatenate([(state[:, 3] * jnp.cos(state[:, 2]))[:, None],
-                             (state[:, 3] * jnp.sin(state[:, 2]))[:, None]], axis=-1)
+        v = jnp.concatenate(((state[:, 4] * state[:, 2])[:, None], (state[:, 4] * state[:, 3])[:, None]), axis=-1)
+        
         edge_state = jnp.concatenate([state[:, :2], v], axis=-1)
         assert edge_state.shape[1] == self.edge_dim
         edge_feats = edge_state[graph.receivers] - edge_state[graph.senders]
@@ -427,15 +502,15 @@ class DubinsCarAdapt(MultiAgentEnv):
             node_feats = node_feats.at[-num_mov_obs//2:, 6].set(self.safe_fast_obs_dist)  # r_obs feats
 
         node_type = -jnp.ones(n_nodes, dtype=jnp.int32)
-        node_type = node_type.at[: self.num_agents].set(DubinsCarAdapt.AGENT)
-        node_type = node_type.at[self.num_agents: self.num_agents * 2].set(DubinsCarAdapt.GOAL)
-        node_type = node_type.at[-n_hits-self._params["n_mov_obs"]: -self.params["n_mov_obs"]].set(DubinsCarAdapt.OBS)
-        node_type = node_type.at[-self._params["n_mov_obs"]:-self._params["n_mov_obs"] // 2].set(DubinsCarAdapt.SLOW_MOV_OBS)
-        node_type = node_type.at[-self._params["n_mov_obs"] // 2:].set(DubinsCarAdapt.FAST_MOV_OBS)
+        node_type = node_type.at[: self.num_agents].set(F1TenthNew.AGENT)
+        node_type = node_type.at[self.num_agents: self.num_agents * 2].set(F1TenthNew.GOAL)
+        node_type = node_type.at[-n_hits-self._params["n_mov_obs"]: -self.params["n_mov_obs"]].set(F1TenthNew.OBS)
+        node_type = node_type.at[-self._params["n_mov_obs"]:-self._params["n_mov_obs"] // 2].set(F1TenthNew.SLOW_MOV_OBS)
+        node_type = node_type.at[-self._params["n_mov_obs"] // 2:].set(F1TenthNew.FAST_MOV_OBS)
 
         # node_type = jnp.zeros(n_nodes, dtype=jnp.int32)
-        # node_type = node_type.at[self.num_agents: self.num_agents * 2].set(DubinsCarAdapt.GOAL)
-        # node_type = node_type.at[-n_hits-self._params["n_mov_obs"]: -self.params["n_mov_obs"]].set(DubinsCarAdapt.OBS)
+        # node_type = node_type.at[self.num_agents: self.num_agents * 2].set(F1TenthNew.GOAL)
+        # node_type = node_type.at[-n_hits-self._params["n_mov_obs"]: -self.params["n_mov_obs"]].set(F1TenthNew.OBS)
 
         get_lidar_vmap = jax.vmap(
             ft.partial(
@@ -446,7 +521,7 @@ class DubinsCarAdapt(MultiAgentEnv):
             )
         )
         lidar_data = merge01(get_lidar_vmap(state.agent[:, :2]))
-        lidar_data = jnp.concatenate([lidar_data, jnp.zeros((lidar_data.shape[0], 2))], axis=-1)
+        lidar_data = jnp.concatenate([lidar_data, jnp.zeros((lidar_data.shape[0], 3))], axis=-1)
         edge_blocks = self.edge_blocks(state, lidar_data)
 
         # create graph
@@ -465,8 +540,8 @@ class DubinsCarAdapt(MultiAgentEnv):
         lower_limit, upper_limit: Tuple[State, State],
             limits of the state
         """
-        lower_lim = jnp.array([-jnp.inf, -jnp.inf, -jnp.inf, -0.8])
-        upper_lim = jnp.array([jnp.inf, jnp.inf, jnp.inf, 0.8])
+        lower_lim = jnp.array([-jnp.inf, -jnp.inf, -1.0, -1.0, -1.0])
+        upper_lim = jnp.array([jnp.inf, jnp.inf, 1.0, 1.0, 1.0])
         return lower_lim, upper_lim
 
     def action_lim(self) -> Tuple[Action, Action]:
@@ -476,63 +551,117 @@ class DubinsCarAdapt(MultiAgentEnv):
         lower_limit, upper_limit: Tuple[Action, Action],
             limits of the action
         """
-        lower_lim = jnp.ones(2) * -1.0
-        upper_lim = jnp.ones(2) * 1.0
+        lower_lim = jnp.array([-1.0, -1.0])
+        upper_lim = -lower_lim
         return lower_lim, upper_lim
 
     def u_ref(self, graph: GraphsTuple) -> Action:
-        agent_states = graph.type_states(type_idx=0, n_type=self.num_agents)
-        goal_states = graph.type_states(type_idx=1, n_type=self.num_agents)
-        pos_diff = agent_states[:, :2] - goal_states[:, :2]
+        goal = graph.env_states.goal
+        state = graph.env_states.agent
+        # K = self._K
+        u = jax.vmap(self.one_u)(state, goal, None)    
+        assert u.shape == (self.num_agents, self.action_dim)
+        u = self.clip_action(u)
+        return u
+        
+    def u_one_agent(self, state, goal, K=None):
+        goal_spline = get_spline(state, goal)
+        error = state - goal_spline
+        
+        if K is not None:    
+            u = -jnp.matmul(K, error)
+        else:
+            A, B = self.get_AB(state, 0.0, 0.0)
+            Q = 100 * jnp.eye(self.state_dim)
+            R = 0.1 * jnp.eye(self.action_dim)
+            R = R.at[1, 1].set(100.)
+            X = self.dare(A, B, Q, R)
+            K1_inv = jnp.matmul(jnp.matmul(B.T, X), B) + R
+            K2 = jnp.matmul(jnp.matmul(B.T, X), A)
+            u = jnp.linalg.solve(K1_inv, -K2 @ error)
+        ## feedforward for steering
+        # theta_goal = goal_spline[2]
+        # theta_err = state[2] - theta_goal
+        # u_ff = jnp.array([- 0.5 * theta_err, 0.0])
+        # u += u_ff
+        
+        return jnp.array(u).flatten()
+    
+    def solve_discrete_are(self, A, B, Q, R, max_iters=100, tol=1e-6):
+    # Form the Hamiltonian matrix
+        # n = A.shape[0]
+        # Z = jnp.block([[A, -B @ jnp.linalg.inv(R) @ B.T],
+        #             [-Q, -A.T]])
+        
+        # # Compute the Schur decomposition
+        # U, T = schur(Z)
+        
+        # # Partition the Schur matrix into blocks
+        # U11, U12 = U[:n, :n], U[:n, n:]
+        # U21, U22 = U[n:, :n], U[n:, n:]
+        
+        # # Solve for X using U21 and U11
+        # X = solve(U11.T, U21.T).T
+        def body_fun(carry):
+            X_k, iteration = carry
+            # Compute the matrix gain using the inversion lemma
+            BRB = R + B.T @ X_k @ B
+            # G = jnp.linalg.solve(BRB, B.T @ X_k @ A)
+            A1 = BRB
+            B1 = B.T @ X_k @ A
+            G = jnp.linalg.inv(A1) @ B1
+            
+            # Update X using the optimized formula
+            X_k1 = A.T @ X_k @ A - A.T @ X_k @ B @ G + Q
+            return (X_k1, iteration + 1)
+            
+        def cond_fun(carry):
+            X_k, iteration = carry
+            X_k1, _ = body_fun(carry)
+            max_diff = jnp.max(jnp.abs(X_k1 - X_k))
+            return (max_diff > tol) & (iteration < max_iters)
 
-        # PID parameters
-        k_omega = 1.0  # 0.5
-        k_v = 2.3
-        k_a = 2.5
+        # Initialize X with the zero matrix and set the initial iteration count to 0
+        X_init = jnp.zeros_like(Q)
+        carry_init = (X_init, 0)
+        
+        # Use lax.while_loop for iteration
+        X_final, _ = jax.lax.while_loop(cond_fun, body_fun, carry_init)
+    
+        return X_final
 
-        dist = jnp.linalg.norm(pos_diff, axis=-1)
-        theta_t = jnp.arctan2(-pos_diff[:, 1], -pos_diff[:, 0]) % (2 * jnp.pi)
-        theta = agent_states[:, 2] % (2 * jnp.pi)
-        theta_diff = theta_t - theta
-        omega = jnp.zeros(agent_states.shape[0])
-        agent_dir = jnp.concatenate([jnp.cos(theta)[:, None], jnp.sin(theta)[:, None]], axis=-1)
-        assert agent_dir.shape == (agent_states.shape[0], 2)
-        theta_between = jnp.arccos(
-            jnp.clip(jnp.matmul(-pos_diff[:, None, :], agent_dir[:, :, None]).squeeze() / (dist + 0.0001),
-                     a_min=-1, a_max=1))
+    def get_AB(self, state, delta, a):
+        """
+        Compute the linearized dynamics matrices.
 
-        # when theta <= pi
-        # anti-clockwise
-        omega = jnp.where(jnp.logical_and(jnp.logical_and(theta_diff < jnp.pi, theta_diff >= 0), theta <= jnp.pi),
-                          k_omega * theta_between, omega)
-        # clockwise
-        omega = jnp.where(jnp.logical_and(
-            jnp.logical_not(jnp.logical_and(theta_diff < jnp.pi, theta_diff >= 0)), theta <= jnp.pi),
-            -k_omega * theta_between, omega
-        )
+        Args:
+            state (np.ndarray): The current state [x, y, theta, v]
+            delta (float): The steering angle command
+            a (float): The acceleration command
+        """
+        # Extract the state variables
+        _, _, theta1, theta2, v = state
 
-        # when theta > pi
-        # clockwise
-        omega = jnp.where(jnp.logical_and(jnp.logical_and(theta_diff > -jnp.pi, theta_diff <= 0), theta > jnp.pi),
-                          -k_omega * theta_between, omega)
-        # anti-clockwise
-        omega = jnp.where(jnp.logical_and(
-            jnp.logical_not(jnp.logical_and(theta_diff > -jnp.pi, theta_diff <= 0)), theta > jnp.pi),
-            k_omega * theta_between, omega
-        )
-
-        omega = jnp.clip(omega, a_min=-5., a_max=5.)
-
-        pos_diff_norm = jnp.sqrt(1e-6 + jnp.sum(pos_diff ** 2, axis=-1, keepdims=True))
-        comm_radius = self._params["comm_radius"]
-        safe_feats_norm = jnp.maximum(pos_diff_norm, comm_radius)
-        coef = jnp.where(pos_diff_norm > comm_radius, comm_radius / safe_feats_norm, 1.0)
-        pos_diff = coef * pos_diff
-        a = -k_a * agent_states[:, 3] + k_v * jnp.linalg.norm(pos_diff, axis=-1)
-
-        action = jnp.concatenate([omega[:, None], a[:, None]], axis=-1)
-        return action
-
+        A = jnp.zeros((self.state_dim, self.state_dim))
+        B = jnp.zeros((self.state_dim, self.action_dim))
+        # Compute the linearized dynamics matrices
+        A = A.at[0, 2].set(v)
+        A = A.at[0, 4].set(theta1)
+        A = A.at[1, 3].set(v)
+        A = A.at[1, 4].set(theta2)
+        A = A.at[2, 3].set((- v / self.params["axle"]) * delta)
+        A = A.at[2, 4].set(-theta2 * delta / self.params["axle"])
+        A = A.at[3, 2].set((v / self.params["axle"]) * delta)
+        A = A.at[3, 4].set(theta1 * delta / self.params["axle"])
+        
+        A = A * self.dt + jnp.eye(self.state_dim) 
+        
+        B = B.at[2, 0].set((- (v + 1e-6) * theta2 / self.params["axle"]) * self.dt * self.delta_scale)
+        B = B.at[3, 0].set(((v + 1e-6) * theta1 / self.params["axle"]) * self.dt * self.delta_scale)
+        B = B.at[4, 1].set(self.dt * self.accel_scale)
+        
+        return A, B
+  
     def forward_graph(self, graph: GraphsTuple, action: Action) -> GraphsTuple:
         # calculate next graph
         agent_states = graph.type_states(type_idx=0, n_type=self.num_agents)
@@ -583,7 +712,7 @@ class DubinsCarAdapt(MultiAgentEnv):
 
         fast_mov_obs_dist = agent_pos[:, None, :2] - mov_obs_pos[None, self._params["n_mov_obs"] // 2:, :]
         fast_mov_obs_dist = jnp.linalg.norm(fast_mov_obs_dist, axis=-1)
-        fast_mov_obs_mask = jnp.greater(fast_mov_obs_dist, self.safe_fast_obs_dist + self._params["car_radius"] * 1.0)
+        fast_mov_obs_mask = jnp.greater(fast_mov_obs_dist, self.safe_fast_obs_dist + self._params["car_radius"] * 0.75)
         
         safe_mov_obs = jnp.logical_and(slow_mov_obs_mask, fast_mov_obs_mask)
 
@@ -607,30 +736,32 @@ class DubinsCarAdapt(MultiAgentEnv):
         collision_mask = jnp.logical_or(unsafe_agent, unsafe_obs)
 
         # unsafe direction
-        agent_warn_dist = 3 * self._params["car_radius"]
-        obs_warn_dist = 2 * self._params["car_radius"]
-        obs_pos = graph.type_states(type_idx=2, n_type=self._params["n_rays"] * self.num_agents)[:, :2]
-        obs_pos_diff = obs_pos[None, :, :] - agent_pos[:, None, :]
-        obs_dist = jnp.linalg.norm(obs_pos_diff, axis=-1)
-        pos_diff = jnp.concatenate([agent_pos_diff, obs_pos_diff], axis=1)
-        warn_zone = jnp.concatenate([jnp.less(agent_dist, agent_warn_dist), jnp.less(obs_dist, obs_warn_dist)], axis=1)
-        pos_vec = (pos_diff / (jnp.linalg.norm(pos_diff, axis=2, keepdims=True) + 0.0001))
-        heading_vec = jnp.concatenate([jnp.cos(agent_state[:, 2])[:, None],
-                                       jnp.sin(agent_state[:, 2])[:, None]], axis=1)[:, None, :]
-        heading_vec = heading_vec.repeat(pos_vec.shape[1], axis=1)
-        inner_prod = jnp.sum(pos_vec * heading_vec, axis=2)
-        unsafe_theta_agent = jnp.arctan2(self._params['car_radius'] * 2,
-                                         jnp.sqrt(agent_dist ** 2 - 4 * self._params['car_radius'] ** 2))
-        unsafe_theta_obs = jnp.arctan2(self._params['car_radius'],
-                                       jnp.sqrt(obs_dist ** 2 - self._params['car_radius'] ** 2))
-        unsafe_theta = jnp.concatenate([unsafe_theta_agent, unsafe_theta_obs], axis=1)
-        lidar_mask = jnp.ones((self._params["n_rays"],))
-        lidar_mask = jax.scipy.linalg.block_diag(*[lidar_mask] * self.num_agents)
-        valid_mask = jnp.concatenate([jnp.ones((self.num_agents, self.num_agents)), lidar_mask], axis=-1)
-        warn_zone = jnp.logical_and(warn_zone, valid_mask)
-        unsafe_dir = jnp.max(jnp.logical_and(warn_zone, jnp.greater(inner_prod, jnp.cos(unsafe_theta))), axis=1)
+        # agent_warn_dist = 3 * self._params["car_radius"]
+        # obs_warn_dist = 2 * self._params["car_radius"]
+        # obs_pos = graph.type_states(type_idx=2, n_type=self._params["n_rays"] * self.num_agents)[:, :2]
+        # obs_pos_diff = obs_pos[None, :, :] - agent_pos[:, None, :]
+        # obs_dist = jnp.linalg.norm(obs_pos_diff, axis=-1)
+        # pos_diff = jnp.concatenate([agent_pos_diff, obs_pos_diff], axis=1)
+        # warn_zone = jnp.concatenate([jnp.less(agent_dist, agent_warn_dist), jnp.less(obs_dist, obs_warn_dist)], axis=1)
+        # pos_vec = (pos_diff / (jnp.linalg.norm(pos_diff, axis=2, keepdims=True) + 0.0001))
+        # # heading_vec = jnp.concatenate([jnp.cos(agent_state[:, 2])[:, None],
+        # #                                jnp.sin(agent_state[:, 2])[:, None]], axis=1)[:, None, :]
+        # heading_vec = jnp.concatenate([agent_state[:, 2][:, None], agent_state[:, 3][:, None]], axis=1)[:, None, :]
+        
+        # heading_vec = heading_vec.repeat(pos_vec.shape[1], axis=1)
+        # inner_prod = jnp.sum(pos_vec * heading_vec, axis=2)
+        # unsafe_theta_agent = jnp.arctan2(self._params['car_radius'] * 2,
+        #                                  jnp.sqrt(agent_dist ** 2 - 4 * self._params['car_radius'] ** 2))
+        # unsafe_theta_obs = jnp.arctan2(self._params['car_radius'],
+        #                                jnp.sqrt(obs_dist ** 2 - self._params['car_radius'] ** 2))
+        # unsafe_theta = jnp.concatenate([unsafe_theta_agent, unsafe_theta_obs], axis=1)
+        # lidar_mask = jnp.ones((self._params["n_rays"],))
+        # lidar_mask = jax.scipy.linalg.block_diag(*[lidar_mask] * self.num_agents)
+        # valid_mask = jnp.concatenate([jnp.ones((self.num_agents, self.num_agents)), lidar_mask], axis=-1)
+        # warn_zone = jnp.logical_and(warn_zone, valid_mask)
+        # unsafe_dir = jnp.max(jnp.logical_and(warn_zone, jnp.greater(inner_prod, jnp.cos(unsafe_theta))), axis=1)
 
-        collision_mask =  jnp.logical_or(collision_mask, unsafe_dir)
+        # collision_mask =  jnp.logical_or(collision_mask, unsafe_dir)
         
         # agents are colliding with slow moving obstacles
         mov_obs_pos = graph.env_states.mov_obs[:, :2]
@@ -697,7 +828,7 @@ class DubinsCarAdapt(MultiAgentEnv):
         # agents are colliding with fast moving obstacles
         fast_mov_obs_dist = agent_pos[:, None, :2] - mov_obs_pos[None, self._params["n_mov_obs"] // 2:, :]
         fast_mov_obs_dist = jnp.linalg.norm(fast_mov_obs_dist, axis=-1)
-        unsafe_fast_mov_obs = jnp.less(fast_mov_obs_dist, 3 * self._params["car_radius"]).any(axis=1)
+        unsafe_fast_mov_obs = jnp.less(fast_mov_obs_dist, 2 * self._params["car_radius"]).any(axis=1)
         
         unsafe_mask = jnp.logical_or(unsafe_fast_mov_obs, unsafe_slow_mov_obs)
         # unsafe_mask = jnp.logical_or(unsafe_mask, unsafe_slow_mov_obs)
@@ -720,7 +851,7 @@ class DubinsCarAdapt(MultiAgentEnv):
     def stop_mask(self, graph: GraphsTuple) -> Array:
         agent_pos = graph.type_states(type_idx=0, n_type=self.num_agents)[:, :2]
         goal_pos = graph.env_states.goal[:, :2]
-        stop = jnp.linalg.norm(agent_pos - goal_pos, axis=1) < self._params["car_radius"] * 0.5
+        stop = jnp.linalg.norm(agent_pos - goal_pos, axis=1) < 0.1 * self._params["car_radius"]
         return stop
 
     def agent_collision_mask(self, graph: GraphsTuple) -> Array:

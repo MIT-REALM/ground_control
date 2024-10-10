@@ -45,8 +45,10 @@ class GCBF_policy(ControlPolicy):
             config = yaml.load(f, Loader=yaml.UnsafeLoader)
         num_agents = 1
         node_dim = config.node_feat if "node_feat" in config else 3
+        step=10
+        
         env = make_env(
-            env_id=config.env,
+            env_id='F1TenthNew' if step == 500 else 'DubinsCarAdapt',
             num_agents=num_agents,
             num_obs=num_obs,
             num_mov_obs=mov_obs,
@@ -59,7 +61,7 @@ class GCBF_policy(ControlPolicy):
             node_feat=node_dim,
             use_stop_mask=True,
         )
-        step=1000
+        print('name: ', env.env_name())
         if "dim_factor" not in config:
             dim_factor = 2
         else:
@@ -98,8 +100,14 @@ class GCBF_policy(ControlPolicy):
         self.qp_act_fn = qp_fn
         key=jax.random.PRNGKey(0)
         graph0 = env.reset(key)
+        self.state_dim = env.state_dim
+        
         _ = self.qp_act_fn(graph0, graph0)
         self.env = env
+        self.step = jax.jit(env.step)
+        self.get_states_fn = jax.jit(self.get_states)
+        _ = self.get_states_fn(graph0, graph0, None, None, 2)
+        _ = self.step(graph0, jnp.zeros((1,2)))
         self.graph0 = graph0
         self.car_goal = car_goal
         self.graph0 = self.create_graph(car_pos, car_goal, obs_pos)
@@ -110,11 +118,24 @@ class GCBF_policy(ControlPolicy):
             graph = self.graph0
         states=graph.env_states
         obs = states.obstacle
-        agent_states= car_pos[None, :]
-        goal_states = car_goal[None, :]
+        if self.env.env_name() == 'Dubins':
+            agent_states= car_pos[None, :]
+        else:
+            agent_states = jnp.array([car_pos[0], car_pos[1], jnp.cos(car_pos[2]), jnp.sin(car_pos[2]), car_pos[3]])[None, :]
+        
+        if self.env.env_name() == 'Dubins':
+            goal_states = car_goal[None, :]
+        else:
+            goal_states = jnp.array([car_goal[0], car_goal[1], jnp.cos(car_goal[2]), jnp.sin(car_goal[2]), car_goal[3]])[None, :]
+        
+
         # mov_obs = jnp.concatenate([obs_pos[:,0], obs_pos[:,1], jnp.zeros(obs_pos.shape[0]), jnp.zeros(obs_pos.shape[0])], axis=0)
         mov_obs = obs_pos
-        mov_obs = jnp.concatenate([mov_obs, jnp.zeros((mov_obs.shape[0], 2))], axis=1)
+        if self.env.env_name() == 'Dubins':
+            mov_obs = jnp.concatenate([mov_obs, jnp.zeros((mov_obs.shape[0], 2))], axis=1)
+        else:
+            mov_obs = jnp.concatenate([mov_obs, jnp.zeros((mov_obs.shape[0], 3))], axis=1)
+
         states = self.env.EnvState(agent=agent_states, goal=goal_states, obstacle=obs, mov_obs=mov_obs)
 
         # print(type(states))
@@ -155,29 +176,75 @@ class GCBF_policy(ControlPolicy):
         mov_obs_vel = self.env.mov_obs_vel_pred(new_graph)
 
         ref_accel, flag = self.ref_check_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
-        
+        # flag = 0
+
         if flag == 1:
             accel = ref_accel[None, :]
+            next_graph, _, _, _, _  = self.env.step(new_graph, accel)
+            next_state = next_graph.env_states.agent
+            if self.env.env_name() == 'F1Tenth':
+                next_state = jnp.array([next_state[0], next_state[1], jnp.arctan2(next_state[2], next_state[3]), next_state[4]])
+            return F1TenthAction(
+                acceleration=accel[0, 1],
+                steering_angle=accel[0, 0],
+            ), next_state.squeeze(), flag
         else:
-            state = graph.env_states.agent
-            print('prev state: ', state)
-            
-            accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
-            # accel = self.act_fn(new_graph)
-        accel = self.env.clip_action(accel)
-        
-        new_graph, _, _, _, _ = self.env.step(new_graph, accel)
-        
-        obs_coll = self.env.mov_obs_collision_mask(new_graph)
-        print('obs coll:', obs_coll * 1)
-        
-        next_state = new_graph.env_states.agent
-        # print('accel: ', accel)
-        print('graph state after step: ', new_graph.env_states.agent)
+            num_iter = 50
+            states, accel = self.get_states_fn(new_graph, graph, mov_obs_vel, ref_vel, num_iter)
+            # states = jnp.zeros((num_iter, graph.env_states.agent.shape[1]))
+            # for j in range(num_iter):
+            #     state = graph.env_states.agent
+            #     print('prev state: ', state)
+                
+            #     accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+            #     # accel = self.act_fn(new_graph)
+            #     accel = self.env.clip_action(accel)
+                
+            #     new_graph, _, _, _, _ = self.step(new_graph, accel)
+                
+            #     obs_coll = self.env.mov_obs_collision_mask(new_graph)
 
+            #     print('obs coll:', obs_coll * 1)
+                
+            #     next_state = new_graph.env_states.agent
+            #     # print('accel: ', accel)
+            #     print('graph state after step: ', new_graph.env_states.agent)
+            #     states = states.at[j].set(next_state.squeeze())
+        
+            next_state = states
+            if self.env.env_name() == 'F1Tenth':
+                next_state = jnp.array([next_state[:, 0], next_state[:, 1], jnp.arctan2(next_state[:, 2], next_state[:, 3]), next_state[:, 4]])
         return F1TenthAction(
             acceleration=accel[0, 1],
             steering_angle=accel[0, 0],
         ), next_state.squeeze(), flag
     
+    def get_states(self, new_graph, graph, mov_obs_vel, ref_vel, num_iter):
+        states = jnp.zeros((20, self.state_dim))
+        def body(init):
+            new_graph = init[0]
+            graph = init[1]
+            j = init[2]
+            states = init[3]
+            accel = self.qp_act_fn(new_graph, graph, mov_obs_vel=mov_obs_vel, ref_in=ref_vel)
+            # accel = self.act_fn(new_graph)
+            graph = new_graph
+            accel = self.env.clip_action(accel)
+            
+            new_graph, _, _, _, _ = self.step(new_graph, accel)
+            next_state = new_graph.env_states.agent
+            states = states.at[j].set(next_state.squeeze())
+            j = j+1
+
+            return [new_graph, graph, j, states, accel]
+        
+        def cond_fn(init):
+            return init[2]< num_iter
+
+        _, _, _, new_states, accel = jax.lax.while_loop(cond_fn, body, [new_graph, graph, 0, states, jnp.zeros((1, 2))])
+
+        return new_states, accel
+        
+
+
  

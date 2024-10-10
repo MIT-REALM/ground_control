@@ -8,6 +8,7 @@ from .base import MultiAgentEnv
 # from .linear_drone import LinearDrone
 # from .dubins_car import DubinsCar
 from .dubins_car_adapt import DubinsCarAdapt
+from .F1tenth_new import F1TenthNew
 # from .crazyflie import CrazyFlie
 # from .arm import Arm
 
@@ -20,6 +21,7 @@ ENV = {
     # 'LinearDrone': LinearDrone,
     # 'DubinsCar': DubinsCar,
     'DubinsCarAdapt': DubinsCarAdapt,
+    'F1TenthNew': F1TenthNew,
     # 'CrazyFlie': CrazyFlie,
     # 'Arm': Arm,
 }

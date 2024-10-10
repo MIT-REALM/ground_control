@@ -183,6 +183,9 @@ class GCBFPlus(GCBF):
         if params is None:
             params = self.actor_train_state.params
         action = 2 * self.actor.get_action(params, graph) + self._env.u_ref(graph)
+        # if self._env.env_name() == 'F1Tenth':
+        action = jnp.where(self._env.env_name() == 'F1Tenth', jnp.array([action[0, 0] * 10, action[0, 1] * 15]), action)
+
         return action
 
     def step(self, graph: GraphsTuple, key: PRNGKey, params: Optional[Params] = None) -> Tuple[Action, Array]:
@@ -351,7 +354,8 @@ class GCBFPlus(GCBF):
         # h_mov_obs = h_obs(mov_obs)[:, 0, ...]
         Lh_mov_obs = jax.jacobian(h_obs)(mov_obs)[:, 0, ...]
         
-        Lfh_mov_obs = ei.einsum(Lh_mov_obs, mov_obs_vel, "agent_i n_mov_obs nx, n_mov_obs nx -> agent_i")
+        
+        Lfh_mov_obs = ei.einsum(Lh_mov_obs[..., :mov_obs_vel.shape[1]], mov_obs_vel, "agent_i n_mov_obs nx, n_mov_obs nx -> agent_i")
         
         agent_state = graph.type_states(type_idx=0, n_type=self.n_agents)
         h_ = h_aug(agent_state)
@@ -365,7 +369,7 @@ class GCBFPlus(GCBF):
         Lf_h = Lf_h + Lfh_mov_obs
         Lg_h = ei.einsum(h_x, dyn_g, "agent_i agent_j nx, agent_j nx nu -> agent_i agent_j nu")
         Lg_h = Lg_h.reshape((self.n_agents, -1))
-        
+
         u_lb, u_ub = self._env.action_lim()
         u_lb = u_lb[None, :].repeat(self.n_agents, axis=0).reshape(-1)
         u_ub = u_ub[None, :].repeat(self.n_agents, axis=0).reshape(-1)
@@ -419,7 +423,7 @@ class GCBFPlus(GCBF):
         # h_mov_obs = h_obs(mov_obs)[:, 0, ...]
         Lh_mov_obs = jax.jacobian(h_obs)(mov_obs)[:, 0, ...]
         
-        Lfh_mov_obs = ei.einsum(Lh_mov_obs, mov_obs_vel, "agent_i n_mov_obs nx, n_mov_obs nx -> agent_i")
+        Lfh_mov_obs = ei.einsum(Lh_mov_obs[..., :mov_obs_vel.shape[1]], mov_obs_vel, "agent_i n_mov_obs nx, n_mov_obs nx -> agent_i")
         
         agent_state = graph.type_states(type_idx=0, n_type=self.n_agents)
         h_ = h_aug(agent_state)
