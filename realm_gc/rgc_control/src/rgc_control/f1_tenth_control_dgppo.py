@@ -26,6 +26,7 @@ from rgc_control.robot_control import RobotControl
 # from rgc_control.policies.gcbf_policy import GCBF_policy
 from rgc_control.policies.cmarl_policy import CMARL_policy
 
+from rgc_control.policies.dgppo_policy import DGPPO_policy
 
 from rgc_control.policies.ral_experiment_policies import (
     create_ral_f1tenth_policy,RALF1tenthObservation
@@ -161,16 +162,27 @@ class F1TenthControl(RobotControl):
         obs = np.concatenate((obs1, obs2), axis=0)
         # print('obs shape: ', obs.shape)
 
-        self.control_policy = CMARL_policy(
+        # self.control_policy = CMARL_policy(
+        #     min_distance=1.0,
+        #     car_pos=car_pos,
+        #     car_goal=goal,
+        #     obs_pos=obs,
+        #     num_obs=1,
+        #     mov_obs=obs.shape[0],
+        #     model_path='/catkin_ws/src/realm_gc/rgc_control/src/cmarl/logs/LidarF1TenthTarget/gcbfcrpo/seed0_926111104'
+        # )
+
+        self.control_policy = DGPPO_policy(
             min_distance=1.0,
             car_pos=car_pos,
             car_goal=goal,
             obs_pos=obs,
             num_obs=1,
             mov_obs=obs.shape[0],
-            model_path='/catkin_ws/src/realm_gc/rgc_control/src/cmarl/logs/LidarF1TenthTarget/gcbfcrpo/seed0_926111104'
+            # model_path='/catkin_ws/src/realm_gc/rgc_control/src/cmarl/logs/LidarF1TenthTarget/gcbfcrpo/seed0_926111104'
+            model_path='/catkin_ws/src/realm_gc/rgc_control/src/dgppo/log/LidarBicycleTarget/seed0_1108102032_SVTI'
         )
-
+        
         # c = np.linspace(0, 1, 10)
         # x = car_pos[0] * (1-c) + goal[0] * c
         # y = car_pos[1] * (1-c) + goal[1] * c

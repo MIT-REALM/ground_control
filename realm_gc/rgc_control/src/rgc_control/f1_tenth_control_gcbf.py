@@ -182,7 +182,8 @@ class F1TenthControl(RobotControl):
             obs_pos=obs,
             num_obs=1,
             mov_obs=obs.shape[0],
-            model_path='/catkin_ws/src/realm_gc/rgc_control/src/cmarl/logs/LidarF1TenthTarget/gcbfcrpo/seed0_926111104'
+            # model_path='/catkin_ws/src/realm_gc/rgc_control/src/cmarl/logs/LidarF1TenthTarget/gcbfcrpo/seed0_926111104'
+            model_path='/catkin_ws/src/realm_gc/rgc_control/src/dgppo/logs/LidarBicycleTarget/seed0_1108102032_SVTI'
         )
 
         # c = np.linspace(0, 1, 10)

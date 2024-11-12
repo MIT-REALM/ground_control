@@ -10,12 +10,13 @@ import pytictoc
 from rgc_control.policies.common import F1TenthAction
 from rgc_control.policies.policy import ControlPolicy
 
-from cmarl.cmarl.algo import make_algo, EFInforMARL
-from cmarl.cmarl.env import make_env
-from cmarl.cmarl.env.lidar_env import LidarEnvState
-from cmarl.cmarl.trainer.utils import get_bb_cbf, plot_rnn_states, test_rollout, get_bb_Vh
-from cmarl.cmarl.utils.graph import GraphsTuple
-from cmarl.cmarl.utils.utils import jax_jit_np, tree_index, chunk_vmap, merge01, jax_vmap, np2jax, jax2np
+from dgppo.algo import make_algo, DGPPO
+# from dgppo.algo import make_algo, EFInforMARL
+from dgppo.env import make_env
+from dgppo.env.lidar_env.base import LidarEnvState
+# from dgppo.trainer.utils import get_bb_cbf, plot_rnn_states, test_rollout, get_bb_Vh
+# from dgppo.utils.graph import GraphsTuple
+# from dgppo.utils.utils import jax_jit_np, tree_index, chunk_vmap, merge01, jax_vmap, np2jax, jax2np
 
 t = pytictoc.TicToc()
 # from policies.common import F1TenthAction
@@ -25,7 +26,7 @@ t = pytictoc.TicToc()
 # from common import F1TenthAction
 # from policy import ControlPolicy
 
-class CMARL_policy(ControlPolicy):
+class DGPPO_policy(ControlPolicy):
     def __init__(
             self, 
             min_distance: float = 1.0,
