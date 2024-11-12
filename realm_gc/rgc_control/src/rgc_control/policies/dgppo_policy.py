@@ -10,10 +10,10 @@ import pytictoc
 from rgc_control.policies.common import F1TenthAction
 from rgc_control.policies.policy import ControlPolicy
 
-from dgppo.algo import make_algo, DGPPO
+from dgppo.cmarl.algo import make_algo, DGPPO
 # from dgppo.algo import make_algo, EFInforMARL
-from dgppo.env import make_env
-from dgppo.env.lidar_env.base import LidarEnvState
+from dgppo.cmarl.env import make_env
+from dgppo.cmarl.env.lidar_env.base import LidarEnvState
 # from dgppo.trainer.utils import get_bb_cbf, plot_rnn_states, test_rollout, get_bb_Vh
 # from dgppo.utils.graph import GraphsTuple
 # from dgppo.utils.utils import jax_jit_np, tree_index, chunk_vmap, merge01, jax_vmap, np2jax, jax2np
@@ -54,11 +54,11 @@ class DGPPO_policy(ControlPolicy):
             num_agents=num_agents,
             num_obs=mov_obs,
             max_step=128,
-            max_travel=100,
+            # max_travel=100,
             full_observation=True,
-            n_mov_obs=mov_obs,
-            delta_scale=10.0,
-            goal_reward_scale=config.goal_reward_scale if "goal_reward_scale" in config else 1.0,
+            # n_mov_obs=mov_obs,
+            # delta_scale=10.0,
+            # goal_reward_scale=config.goal_reward_scale if "goal_reward_scale" in config else 1.0,
         )
         
         algo = make_algo(

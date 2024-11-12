@@ -10,7 +10,7 @@ from jax.lax import while_loop
 
 from ..utils.typing import Array, Radius, BoolScalar, Pos, State, Action, PRNGKey
 from ..utils.utils import merge01
-from cmarl.env.obstacle import Obstacle, Rectangle, Cuboid, Sphere
+from dgppo.cmarl.env.obstacle import Obstacle, Rectangle, Cuboid, Sphere
 
 
 def RK4_step(x_dot_fn: Callable, x: State, u: Action, dt: float) -> Array:
@@ -242,3 +242,55 @@ def get_node_goal_rng(
         cond_fun=reset_not_terminate, body_fun=reset_body, init_val=(0, key, states, goals))
 
     return states, goals
+
+def get_rectangle_obstacle_rng(
+        key: PRNGKey,
+        side_length: float,
+        n_obs: int,
+        obs_len_range: Tuple[float, float],
+        r: Radius,
+        avoid_pos = None,
+        side_length_y: float = None
+) -> Rectangle:
+    side_length_y = side_length if side_length_y is None else side_length_y
+    max_side = jnp.array([side_length, side_length_y])
+    create_obstacles = jax.vmap(Rectangle.create)
+
+    def get_obs(inp):
+        this_key, _, _, _ = inp
+        pos_key, length_key, theta_key, this_key = jr.split(this_key, 4)
+        pos = jr.uniform(pos_key, (1, 2), minval=0, maxval=max_side)
+        length = jr.uniform(
+            length_key,
+            (1, 2),
+            minval=obs_len_range[0],
+            maxval=obs_len_range[1],
+        )
+        theta = jr.uniform(theta_key, (1,), minval=0, maxval=jnp.pi)
+        return this_key, pos, length, theta
+
+    def non_valid_obs(inp):
+        _, pos, length, theta = inp
+        obs = create_obstacles(pos, length[:, 0], length[:, 1], theta)
+        return inside_obstacles(avoid_pos, obs, r=r).max()
+
+    def get_valid_obs(carry, inp):
+        this_key = inp
+        pos_key, length_key, theta_key, this_key = jr.split(this_key, 4)
+        pos = jr.uniform(pos_key, (1, 2), minval=0, maxval=max_side)
+        length = jr.uniform(
+            length_key,
+            (1, 2),
+            minval=obs_len_range[0],
+            maxval=obs_len_range[1],
+        )
+        theta = jr.uniform(theta_key, (1,), minval=0, maxval=jnp.pi)
+        _, pos, length, theta = jax.lax.while_loop(non_valid_obs, get_obs, (this_key, pos, length, theta))
+        return carry, (pos, length, theta)
+
+    obs_key, key = jr.split(key)
+    obs_keys = jr.split(obs_key, n_obs)
+    _, (obs_pos, obs_length, obs_theta) = jax.lax.scan(get_valid_obs, None, obs_keys)
+    obstacles = create_obstacles(
+        obs_pos.squeeze(1), obs_length[:, :, 0].squeeze(1), obs_length[:, :, 1].squeeze(1), obs_theta.squeeze(1))
+    return obstacles

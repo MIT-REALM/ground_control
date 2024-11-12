@@ -2,10 +2,10 @@ import jax.numpy as jnp
 
 from typing import Optional
 
-from cmarl.utils.graph import EdgeBlock
-from cmarl.utils.typing import Action, Array, Pos2d, Reward, State
-from cmarl.env.lidar_env.base import LidarEnv, LidarEnvState, LidarEnvGraphsTuple
-from cmarl.utils.utils import jax_vmap
+from dgppo.cmarl.utils.graph import EdgeBlock
+from dgppo.cmarl.utils.typing import Action, Array, Pos2d, Reward, State
+from dgppo.cmarl.env.lidar_env.base import LidarEnv, LidarEnvState, LidarEnvGraphsTuple
+from dgppo.cmarl.utils.utils import jax_vmap
 
 
 class LidarSpread(LidarEnv):

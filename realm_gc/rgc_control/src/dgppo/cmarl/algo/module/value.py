@@ -146,7 +146,7 @@ class ValueNet:
                 rnn_cls=self.rnn,
             )
 
-    def initialize_carry(self, key: PRNGKey) -> tuple[Array | Any, Array | Any] | Array:
+    def initialize_carry(self, key: PRNGKey) -> tuple:
         if self.use_rnn:
             return self.rnn_base().initialize_carry(key, (self.gnn_out_dim,))
         else:

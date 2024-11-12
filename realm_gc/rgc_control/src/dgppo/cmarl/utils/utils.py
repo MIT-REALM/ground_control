@@ -2,11 +2,14 @@ import pathlib
 import jax.lax as lax
 import einops as ei
 import jax
+import jax.numpy as jnp
+import jax.tree_util as jtu
 import matplotlib.collections as mcollections
 import numpy as np
+import functools as ft
 
 from datetime import timedelta
-from typing import Any, Callable, Iterable, ParamSpec, Sequence, TypeVar, Tuple, List, NamedTuple
+from typing import Any, Callable, Iterable, Sequence, TypeVar, Tuple, List, NamedTuple
 from jax import numpy as jnp, tree_util as jtu
 from jax._src.lib import xla_client as xc
 from matplotlib.animation import FuncAnimation
@@ -20,21 +23,21 @@ def merge01(x):
     return ei.rearrange(x, "n1 n2 ... -> (n1 n2) ...")
 
 
-_P = ParamSpec("_P")
-_R = TypeVar("_R")
-_Fn = Callable[_P, _R]
+# _P = ParamSpec("_P")
+# _R = TypeVar("_R")
+# _Fn = Callable[_P, _R]
 
-_PyTree = TypeVar("_PyTree")
-_Arr = TypeVar("_Arr", np.ndarray, jnp.ndarray, bool)
-_T = TypeVar("_T")
-_U = TypeVar("_U")
+# _PyTree = TypeVar("_PyTree")
+# _Arr = TypeVar("_Arr", np.ndarray, jnp.ndarray, bool)
+# _T = TypeVar("_T")
+# _U = TypeVar("_U")
 
 
-def jax_vmap(fn: _Fn, in_axes: int | Sequence[Any] = 0, out_axes: Any = 0) -> _Fn:
+def jax_vmap(fn, in_axes = 0, out_axes: Any = 0):
     return jax.vmap(fn, in_axes, out_axes)
 
 
-def rep_vmap(fn: _Fn, rep: int, in_axes: int | Sequence[Any] = 0, **kwargs) -> _Fn:
+def rep_vmap(fn, rep: int, in_axes = 0, **kwargs):
     for ii in range(rep):
         fn = jax.vmap(fn, in_axes=in_axes, **kwargs)
     return fn
@@ -58,22 +61,22 @@ def concat_at_front(arr1: jnp.ndarray, arr2: jnp.ndarray, axis: int) -> jnp.ndar
         return jnp.concatenate([jnp.expand_dims(arr1, axis=axis), arr2], axis=axis)
 
 
-def tree_concat_at_front(tree1: _PyTree, tree2: _PyTree, axis: int) -> _PyTree:
+def tree_concat_at_front(tree1, tree2, axis: int):
     def tree_concat_at_front_inner(arr1: jnp.ndarray, arr2: jnp.ndarray):
         return concat_at_front(arr1, arr2, axis=axis)
 
     return jtu.tree_map(tree_concat_at_front_inner, tree1, tree2)
 
 
-def tree_index(tree: _PyTree, idx: int | Array) -> _PyTree:
+def tree_index(tree, idx):
     return jtu.tree_map(lambda x: x[idx], tree)
 
 
-def jax2np(pytree: _PyTree) -> _PyTree:
+def jax2np(pytree):
     return jtu.tree_map(np.array, pytree)
 
 
-def np2jax(pytree: _PyTree) -> _PyTree:
+def np2jax(pytree):
     return jtu.tree_map(jnp.array, pytree)
 
 
@@ -83,26 +86,26 @@ def mask2index(mask: jnp.ndarray, n_true: int) -> jnp.ndarray:
 
 
 def jax_jit_np(
-        fn: _Fn,
-        static_argnums: int | Sequence[int] | None = None,
-        static_argnames: str | Iterable[str] | None = None,
-        donate_argnums: int | Sequence[int] = (),
+        fn,
+        static_argnums = None,
+        static_argnames: str = None,
+        donate_argnums: int = (),
         device: xc.Device = None,
         *args,
         **kwargs,
-) -> _Fn:
+):
     jit_fn = jax.jit(fn, static_argnums, static_argnames, donate_argnums, device, *args, **kwargs)
 
-    def wrapper(*args, **kwargs) -> _R:
+    def wrapper(*args, **kwargs) :
         return jax2np(jit_fn(*args, **kwargs))
 
     return wrapper
 
 
-def chunk_vmap(fn: _Fn, chunks: int) -> _Fn:
+def chunk_vmap(fn, chunks: int):
     fn_jit_vmap = jax_jit_np(jax.vmap(fn))
 
-    def wrapper(*args) -> _R:
+    def wrapper(*args) :
         args = list(args)
         # 1: Get the batch size.
         batch_size = len(jtu.tree_leaves(args[0])[0])
@@ -148,11 +151,7 @@ class CustomTimeElapsedColumn(ProgressColumn):
 def save_anim(ani: FuncAnimation, path: pathlib.Path):
     pbar = Progress(*Progress.get_default_columns(), CustomTimeElapsedColumn())
     pbar.start()
-    if hasattr(ani, "save_count"):
-        save_count = ani.save_count
-    else:
-        save_count = ani._save_count
-    task = pbar.add_task("Animating", total=save_count)
+    task = pbar.add_task("Animating", total=ani._save_count)
 
     def progress_callback(curr_frame: int, total_frames: int):
         pbar.update(task, advance=1)
@@ -182,7 +181,7 @@ def tree_stack(trees: list):
     return jtu.tree_map(tree_stack_inner, *trees)
 
 
-def as_shape(shape: int | Shape) -> Shape:
+def as_shape(shape) -> Shape:
     if isinstance(shape, int):
         shape = (shape,)
     if not isinstance(shape, tuple):
@@ -190,11 +189,11 @@ def as_shape(shape: int | Shape) -> Shape:
     return shape
 
 
-def get_or(maybe: _T | None, value: _U) -> _T | _U:
+def get_or(maybe, value):
     return value if maybe is None else maybe
 
 
-def assert_shape(arr: _Arr, shape: int | Shape, label: str | None = None) -> _Arr:
+def assert_shape(arr, shape, label= None):
     shape = as_shape(shape)
     label = get_or(label, "array")
     if arr.shape != shape:
@@ -202,6 +201,6 @@ def assert_shape(arr: _Arr, shape: int | Shape, label: str | None = None) -> _Ar
     return arr
 
 
-def tree_where(cond: BoolScalar | bool, true_val: _PyTree, false_val: _PyTree) -> _PyTree:
+def tree_where(cond, true_val, false_val):
     return jtu.tree_map(lambda x, y: jnp.where(cond, x, y), true_val, false_val)
 

@@ -2,9 +2,9 @@ import jax.numpy as jnp
 
 from typing import Optional
 
-from cmarl.utils.graph import EdgeBlock
-from cmarl.utils.typing import Action, Reward
-from cmarl.env.mpe.base import MPE, MPEEnvState, MPEEnvGraphsTuple
+from dgppo.cmarl.utils.graph import EdgeBlock
+from dgppo.cmarl.utils.typing import Action, Reward
+from dgppo.cmarl.env.mpe.base import MPE, MPEEnvState, MPEEnvGraphsTuple
 
 
 class MPETarget(MPE):

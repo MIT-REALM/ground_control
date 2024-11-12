@@ -11,14 +11,14 @@ from matplotlib.collections import LineCollection
 from matplotlib.patches import Polygon
 from matplotlib.pyplot import Axes
 
-from cmarl.env.plot import get_obs_collection, get_f1tenth_body
-from cmarl.env.utils import get_node_goal_rng
-from cmarl.trainer.data import Rollout
-from cmarl.utils.graph import GraphsTuple
-from cmarl.utils.typing import Action, Array, State, AgentState
-from cmarl.env.lidar_env.base import LidarEnvState
-from cmarl.env.lidar_env.lidar_target import LidarTarget
-from cmarl.utils.utils import tree_index, MutablePatchCollection, save_anim
+from dgppo.cmarl.env.plot import get_obs_collection, get_f1tenth_body
+from dgppo.cmarl.env.utils import get_node_goal_rng
+from dgppo.cmarl.trainer.data import Rollout
+from dgppo.cmarl.utils.graph import GraphsTuple
+from dgppo.cmarl.utils.typing import Action, Array, State, AgentState
+from dgppo.cmarl.env.lidar_env.base import LidarEnvState
+from dgppo.cmarl.env.lidar_env.lidar_target import LidarTarget
+from dgppo.cmarl.utils.utils import tree_index, MutablePatchCollection, save_anim
 
 
 class LidarBicycleTarget(LidarTarget):

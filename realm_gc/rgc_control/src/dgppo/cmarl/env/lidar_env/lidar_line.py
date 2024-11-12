@@ -4,11 +4,11 @@ import jax
 
 from typing import Optional
 
-from cmarl.env.utils import get_node_goal_rng, inside_obstacles
-from cmarl.utils.graph import GraphsTuple
-from cmarl.utils.typing import Action, Array, Pos2d, Reward
-from cmarl.env.lidar_env.base import LidarEnvState, LidarEnvGraphsTuple
-from cmarl.env.lidar_env.lidar_spread import LidarSpread
+from dgppo.cmarl.env.utils import get_node_goal_rng, inside_obstacles
+from dgppo.cmarl.utils.graph import GraphsTuple
+from dgppo.cmarl.utils.typing import Action, Array, Pos2d, Reward
+from dgppo.cmarl.env.lidar_env.base import LidarEnvState, LidarEnvGraphsTuple
+from dgppo.cmarl.env.lidar_env.lidar_spread import LidarSpread
 
 
 class LidarLine(LidarSpread):
