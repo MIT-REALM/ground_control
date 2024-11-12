@@ -14,6 +14,7 @@ from dgppo.cmarl.algo import make_algo, DGPPO
 # from dgppo.algo import make_algo, EFInforMARL
 from dgppo.cmarl.env import make_env
 from dgppo.cmarl.env.lidar_env.base import LidarEnvState
+from dgppo.cmarl.env.lidar_env.lidar_circle import LidarCircleEnvState
 # from dgppo.trainer.utils import get_bb_cbf, plot_rnn_states, test_rollout, get_bb_Vh
 # from dgppo.utils.graph import GraphsTuple
 # from dgppo.utils.utils import jax_jit_np, tree_index, chunk_vmap, merge01, jax_vmap, np2jax, jax2np
@@ -48,7 +49,7 @@ class DGPPO_policy(ControlPolicy):
         with open(os.path.join(model_path, "config.yaml"), "r") as f:
             config = yaml.load(f, Loader=yaml.UnsafeLoader)
         num_agents = 1
-        node_dim = config.node_feat if "node_feat" in config else 3
+        # node_dim = config.node_feat if "node_feat" in config else 3
         env = make_env(
             env_id=config.env,
             num_agents=num_agents,
@@ -56,7 +57,7 @@ class DGPPO_policy(ControlPolicy):
             max_step=128,
             # max_travel=100,
             full_observation=True,
-            # n_mov_obs=mov_obs,
+            n_mov_obs=mov_obs,
             # delta_scale=10.0,
             # goal_reward_scale=config.goal_reward_scale if "goal_reward_scale" in config else 1.0,
         )
@@ -130,7 +131,7 @@ class DGPPO_policy(ControlPolicy):
         # print('mov obs vel shape:', mov_obs_vel.shape)
         # print('mov_obs shape:', mov_obs.shape)
         mov_obs = jnp.concatenate([mov_obs, mov_obs_vel, jnp.zeros((mov_obs.shape[0], 1))], axis=1)
-        states = LidarEnvState(agent=agent_states, goal=goal_states, obstacle=obs, mov_obs=mov_obs)
+        states = LidarCircleEnvState(agent=agent_states, goal=goal_states, obstacle=obs, move_obs=mov_obs)
 
         graph = self.env.get_graph(states)
         return graph
@@ -157,18 +158,18 @@ class DGPPO_policy(ControlPolicy):
         new_graph = self.create_graph(car_pos, goal, obs, graph)
         self.graph0 = new_graph
 
-        Vh = self.Vh_fn(graph, self.init_rnn_state)
-        next_ref_graph = self.step(graph, jnp.array([ref_inp.steering_angle, ref_inp.acceleration])[None, :])
-        Vh_next = self.Vh_fn(next_ref_graph, self.init_rnn_state)
-        Vh_dot = (Vh_next - Vh) / dt
+        # Vh = self.Vh_fn(graph, self.init_rnn_state)
+        # next_ref_graph = self.step(graph, jnp.array([ref_inp.steering_angle, ref_inp.acceleration])[None, :])
+        # Vh_next = self.Vh_fn(next_ref_graph, self.init_rnn_state)
+        # Vh_dot = (Vh_next - Vh) / dt
 
-        Vhcond = Vh_dot + 10 * Vh
-        max_Vhcond = jnp.max(Vhcond)
+        # Vhcond = Vh_dot + 10 * Vh
+        # max_Vhcond = jnp.max(Vhcond)
 
-        print('Vh cond max: ', max_Vhcond)
-        print('vh: ', Vh)
-        if max_Vhcond < 0:
-            return ref_inp, next_ref_graph.env_states.agent.squeeze(), 1
+        # print('Vh cond max: ', max_Vhcond)
+        # print('vh: ', Vh)
+        # if max_Vhcond < 0:
+        #     return ref_inp, next_ref_graph.env_states.agent.squeeze(), 1
         # print('graph state before step: ', new_graph.env_states.agent)
         # if ref_inp is not None:
         #     ref_vel = jnp.array([ref_inp.steering_angle, ref_inp.acceleration])
@@ -177,7 +178,7 @@ class DGPPO_policy(ControlPolicy):
 
         # mov_obs_vel = self.env.mov_obs_vel_pred(new_graph)
         # t.tic()
-        num_iter = 1
+        num_iter = 20
         states = jnp.zeros((num_iter, 5))
         for j in range(num_iter):
             accel, self.init_rnn_state = self.act_fn(new_graph, self.init_rnn_state)

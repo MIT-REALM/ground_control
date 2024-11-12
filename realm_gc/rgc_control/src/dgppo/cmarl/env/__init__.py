@@ -34,6 +34,7 @@ def make_env(
         full_observation: bool = False,
         num_obs: Optional[int] = None,
         n_rays: Optional[int] = None,
+        n_mov_obs: Optional[int] = None,
 ) -> MultiAgentEnv:
     assert env_id in ENV.keys(), f'Environment {env_id} not implemented.'
     params = ENV[env_id].PARAMS
@@ -45,6 +46,8 @@ def make_env(
     if full_observation:
         area_size = params['default_area_size']
         params['comm_radius'] = area_size * 10
+    if n_mov_obs is not None:
+        params['n_move_obs'] = n_mov_obs
     return ENV[env_id](
         num_agents=num_agents,
         area_size=None,

@@ -36,8 +36,11 @@ class LidarBicycleCircle(LidarCircle):
             area_size: Optional[float] = None,
             max_step: int = 128,
             dt: float = 0.03,
-            params: dict = None
+            params: dict = None,
+            n_mov_obs: int = None,
     ):
+        if n_mov_obs is not None:
+            params["n_move_obs"] = n_mov_obs
         area_size = LidarBicycleCircle.PARAMS["default_area_size"] if area_size is None else area_size
         super(LidarBicycleCircle, self).__init__(num_agents, area_size, max_step, dt, params)
 
@@ -159,8 +162,10 @@ class LidarBicycleCircle(LidarCircle):
             self, graph: LidarCircleGraphsTuple, action: Action, get_eval_info: bool = False
     ) -> Tuple[LidarCircleGraphsTuple, Reward, Cost, Done, Info]:
         # get information from graph
-        agent_states = graph.type_states(type_idx=0, n_type=self.num_agents)
-        goals = graph.type_states(type_idx=1, n_type=self.num_goals)
+        # agent_states = graph.type_states(type_idx=0, n_type=self.num_agents)
+        agent_states = graph.env_states.agent
+        # goals = graph.type_states(type_idx=1, n_type=self.num_goals)
+        goals = graph.env_states.goal
         obstacles = graph.env_states.obstacle if self.params['n_obs'] > 0 else None
 
         # calculate next states
@@ -197,11 +202,13 @@ class LidarBicycleCircle(LidarCircle):
         done = jnp.array(False)
 
         # compute reward and cost
-        reward = self.get_reward(graph, action)
-        cost = self.get_cost(graph)
-        assert reward.shape == tuple()
+        # reward = self.get_reward(graph, action)
+        reward = 0.0
+        cost = 0.0
+        # cost = self.get_cost(graph)
+        # assert reward.shape == tuple()
 
-        return self.get_graph(next_state, lidar_data_next), reward, cost, done, info
+        return self.get_graph(next_state, lidar_data_next)
 
     def state_lim(self, state: Optional[State] = None) -> Tuple[State, State]:
         lower_lim = jnp.array([0., 0., -1, -1, -1.0])

@@ -345,7 +345,7 @@ class F1TenthControl(RobotControl):
 
             min_obs_dist = np.min(obs_dist)
             
-            if min_obs_dist < 0.5:
+            if min_obs_dist < 5:
                 
                 pytic.tic()
                 control_gcbf, next_state, flag = self.control_policy.compute_action(current_state, control_steer, obs=obs, mov_obs_vel=obs_vel, dt=self.dt)
@@ -358,6 +358,7 @@ class F1TenthControl(RobotControl):
             else:
                 flag = 1
             
+            flag = 1
             # print('flag: ', flag)
             # if flag == 0:
             #     print('states: ', next_state[:, :2])
