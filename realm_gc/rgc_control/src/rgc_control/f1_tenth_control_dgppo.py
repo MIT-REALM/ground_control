@@ -153,9 +153,10 @@ class F1TenthControl(RobotControl):
         obs_pos = np.array([[self.obs1[0], self.obs1[1]], [self.obs2[0], self.obs2[1]]])
 
         obs_center = obs_pos
-        obs_r = 0.25
+        obs_r = 0.0
+        self.obs_r= obs_r
         theta = np.linspace(0, 2*np.pi, 10)
-        circ = 1.5 * np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
+        circ = obs_r * np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
         
         obs1 = np.repeat(obs_center[0, :][:, None], 10, axis=1).T + circ
         obs2 = np.repeat(obs_center[1, :][:, None], 10, axis=1).T + circ
@@ -332,7 +333,7 @@ class F1TenthControl(RobotControl):
             obs_vel = (obs_pos_new - obs_pos_old) / self.dt
 
             obs_center = obs_pos
-            obs_r = 0.25
+            obs_r = self.obs_r
             theta = np.linspace(0, 2*np.pi, 10)
             circ = np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
             
@@ -384,8 +385,8 @@ class F1TenthControl(RobotControl):
                 traj = spline_traj
                 # ind, _ = spline_traj.calc_nearest_index(self.state)
                 # closest_cx = traj['X'][ind]
-                traj_x = traj.cx[-5:]
-                traj_y = traj.cy[-5:]
+                traj_x = traj.cx[-50:]
+                traj_y = traj.cy[-50:]
 
                 # c = np.linspace(0, 1, 10)
                 
@@ -420,23 +421,23 @@ class F1TenthControl(RobotControl):
 
                 # self.control = control_gcbf
             # else:
-            self.control = control_steer
+            # self.control = control_steer
             # else:
-            #     self.control = control_gcbf
+            self.control = control_gcbf
 
-            if np.isnan(self.control.steering_angle):
-                if np.isnan(control_gcbf.steering_angle):
-                    self.control.steering_angle = 0.0
-                else:
-                    self.control.steering_angle = control_gcbf.steering_angle
+            # if np.isnan(self.control.steering_angle):
+            #     if np.isnan(control_gcbf.steering_angle):
+            #         self.control.steering_angle = 0.0
+            #     else:
+            #         self.control.steering_angle = control_gcbf.steering_angle
             
-            if np.isnan(self.control.acceleration):
-                if np.isnan(control_gcbf.acceleration):
-                    self.control.acceleration = 0.0
-                else:
-                    self.control.acceleration = control_gcbf.acceleration
+            # if np.isnan(self.control.acceleration):
+            #     if np.isnan(control_gcbf.acceleration):
+            #         self.control.acceleration = 0.0
+            #     else:
+            #         self.control.acceleration = control_gcbf.acceleration
 
-            if t >= 10.0:
+            if t >= 100.0:
                 self.control = F1TenthAction(0.0, 0.0)
 
         elif self.state is None:

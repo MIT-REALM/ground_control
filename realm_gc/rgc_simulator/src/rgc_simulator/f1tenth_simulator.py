@@ -149,8 +149,8 @@ class F1TenthSimulator:
                     [
                         v * np.cos(theta),
                         v * np.sin(theta),
-                        # (v / self.axle_length) * np.tan(delta),
-                        delta, 
+                        (v / self.axle_length) * np.tan(delta),
+                        # delta, 
                         a,
                     ]
                 )

@@ -104,7 +104,7 @@ class VisualizeSimulator:
         
         obs_pos = self.xy[-2:, :]
         obs_center = obs_pos
-        obs_r = 0.25
+        obs_r = 0.0
         theta = np.linspace(0, 2*np.pi, 10)
         circ = np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
         
@@ -155,7 +155,7 @@ class VisualizeSimulator:
 
             obs_pos = self.xy[-2:, :]
             obs_center = obs_pos
-            obs_r = 0.25
+            obs_r = 0.0
             theta = np.linspace(0, 2*np.pi, 10)
             circ = np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
             
