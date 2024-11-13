@@ -15,7 +15,7 @@ class F1TenthSimulator:
         sim_rate = os.environ['SIMRATE']
         print('sim_rate: ', sim_rate)
         if sim_rate is None:
-            sim_rate = 10
+            sim_rate = 100
         else:
             sim_rate = int(sim_rate)
         """Initialize the simulator."""
@@ -40,9 +40,9 @@ class F1TenthSimulator:
         self.position_obs2= rospy.get_param("~position_topic2", "/vicon/realm_obs2/realm_obs2")
 
         # Initialize the f1tenth state
-        self.state = np.array([0.0, 0.0, 0.0, 0.0])
-        self.obs = np.array([0.0, -0.5, 0.0, 0.0])
-        self.obs2 = np.array([0.0, 1.0, 0.0, 0.0])
+        self.state = np.array([3.5, 1.0, 0.0, 0.0])
+        self.obs = np.array([3.5, -0.5 + 5.0, 0.0, 0.0])
+        self.obs2 = np.array([3.5, 1.0 + 5.0, 0.0, 0.0])
         self.command = np.array([0.0, 0.0, 0.0])
 
         # Set the simulation rate
@@ -80,9 +80,11 @@ class F1TenthSimulator:
 
         self.ref_traj = SplineTrajectory2D(0.5,self.traj_filepath)
 
-        self.state[0] = self.ref_traj.cx[0]
-        self.state[1] = self.ref_traj.cy[0]
-        self.state[2] = self.ref_traj.cyaw[0]
+        # self.state[0] = self.ref_traj.cx[0]
+        # self.state[1] = self.ref_traj.cy[0]
+        # self.state[2] = self.ref_traj.cyaw[0]
+        self.state[0] = 3.5
+        self.state[1] = 1.0
 
         tf_obs = TransformStamped()
         tf_obs.header.stamp = rospy.Time.now()

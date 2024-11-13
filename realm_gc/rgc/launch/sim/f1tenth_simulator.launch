@@ -6,7 +6,8 @@
     <arg name="traj_topic" default = "/vesc/high_level/ackermann_cmd_mux/traj"/>
     <arg name="base_path" default="$(find rgc_control)/saved_policies/base"/>
     <arg name="filename" default="ego_traj_nominal_1.pkl"/>
-    
+    <arg name="goal_topic" default="/vesc/high_level/ackermann_cmd_mux/goal"/>
+
     <node name="f1tenth_simulator" pkg="rgc_simulator" type="f1tenth_simulator.py" output="screen">
         <param name="position_topic" type="string" value="$(arg position_topic)"/>
         <param name="control_topic" type="string" value="$(arg control_topic)"/>

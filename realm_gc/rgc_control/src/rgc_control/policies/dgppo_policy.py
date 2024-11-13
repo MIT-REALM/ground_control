@@ -110,17 +110,17 @@ class DGPPO_policy(ControlPolicy):
             graph = self.graph0
         states=graph.env_states
         obs = states.obstacle
-        agent_states= car_pos[:2] + min_x
+        agent_states= car_pos[:2] + jnp.array([3.5, 5.0])
         theta = car_pos[None, 2]
         v = car_pos[None, -1]
         agent_states = jnp.concatenate([agent_states, jnp.cos(theta), jnp.sin(theta), v])[None, :]
 
-        goal_states = car_goal[:2] + min_x
+        goal_states = car_goal[:2]
         goal_theta = car_goal[None,2]
         goal_v = car_goal[None,-1]
         goal_states = jnp.concatenate([goal_states, jnp.cos(goal_theta), jnp.sin(goal_theta), goal_v])[None, :]
 
-        mov_obs = obs_pos + min_x
+        mov_obs = obs_pos
         if graph is not None:
             mov_obs_vel = self.env.mov_obs_vel_pred(graph)
         else:
@@ -147,17 +147,20 @@ class DGPPO_policy(ControlPolicy):
     ) -> F1TenthAction:
         # Brake to avoid collisions based on the average distance to the
         # obstacle in the center of the image
-        min_x = 4
+        min_x = 0
         graph = self.graph0
         if obs is None:
             obs = self.obs
-        else:
-            obs = obs
+        
+        obs[:, 1] = obs[:, 1] + 5.0
+        obs[:, 0] = obs[:, 0] + 3.5
+
         if goal is None:
             goal = self.car_goal
         
+        goal = goal.at[1].set(goal[1] + min_x)
         
-        car_pos = jnp.array([car_pos.x, car_pos.y, car_pos.theta, car_pos.v])
+        car_pos = jnp.array([car_pos.x, car_pos.y + min_x, car_pos.theta, car_pos.v])
 
         new_graph = self.create_graph(car_pos, goal, obs, graph)
         self.graph0 = new_graph
@@ -185,6 +188,11 @@ class DGPPO_policy(ControlPolicy):
         num_iter = 1
         states = jnp.zeros((num_iter, 5))
         for j in range(num_iter):
+
+            # print("agent: ", new_graph.env_states.agent[:, :2])
+            # print("goal: ", new_graph.env_states.goal[:, :2])
+            # print("obs: ", obs)
+
             accel, self.init_rnn_state = self.act_fn(new_graph, self.init_rnn_state)
             accel = self.env.clip_action(accel)
             # print('action time: ', t.tocvalue())
@@ -198,7 +206,9 @@ class DGPPO_policy(ControlPolicy):
         # print('obs coll:', obs_coll * 1)
         
         # next_state = new_graph.env_states.agent
-        next_state = states - min_x
+        next_state = states
+        next_state = next_state.at[:, 1].set(next_state[:, 1] - min_x)
+
         print('accel: ', accel)
         # print('graph state after step: ', new_graph.env_states.agent)
         # print("all next states: ", next_state)

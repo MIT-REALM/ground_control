@@ -35,7 +35,10 @@ class F1tenthEKFStateEstimator(StateEstimator):
         )
 
         # Initialize the EKF variables
-        self.state = np.zeros((4, 1))  # [x, y, theta, v]
+        # self.state = np.zeros((4, 1))  # [x, y, theta, v]
+        self.state = np.array([3.5, 1.0, 0.0, 0.0])
+        # self.state[3] = np.pi / 2
+
         self.covariance = np.eye(4)  # Initial covariance matrix
 
         # Set up subscribers

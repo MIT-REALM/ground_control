@@ -9,8 +9,10 @@ from f1tenth_msgs.msg import MultiArray
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import FFMpegWriter
 
-import matplotlib.pyplot as plt
+from rgc_state_estimators.msg import F1TenthState
 
+import matplotlib.pyplot as plt
+import jax.numpy as jnp
 
 import os
 from rgc_control.policies.tracking.trajectory import SplineTrajectory2D
@@ -35,9 +37,27 @@ class VisualizeSimulator:
         self.traj_topic = rospy.get_param(
             "~traj_topic", "/vesc/high_level/ackermann_cmd_mux/traj"
         )
+        # self.dt = 0.005
+
+        self.goal_topic = rospy.get_param(
+            "~goal_topic", "/vesc/high_level/ackermann_cmd_mux/goal")
+
+        self.goal_sub = rospy.Subscriber(
+            self.goal_topic, F1TenthState, self.goal_callback
+        )
+
+        # self.goal_pub = rospy.Publisher(
+        #     "/vesc/high_level/ackermann_cmd_mux/goal",
+        #     F1TenthState,
+        #     queue_size=1,
+        # )
 
         self.new_trajx = None
         self.new_trajy = None
+        self.goal = F1TenthState()
+
+        self.goal.x = 0.0
+        self.goal.y = -4.0
 
         self.traj_sub = rospy.Subscriber(
             self.traj_topic, MultiArray, self.traj_callback
@@ -78,10 +98,16 @@ class VisualizeSimulator:
         
         self.new_trajx = msg.datax
         self.new_trajy = msg.datay
+    
+    def goal_callback(self, msg):
+        self.goal = msg
+        self.goal.x = self.goal.x - 3.5
+        self.goal.y = self.goal.y - 5.0
+        # self.new_trajy = msg.datay
 
     def position_callback(self, msg, idx):
-        self.xy[idx,0] = msg.transform.translation.x
-        self.xy[idx,1] = msg.transform.translation.y
+        self.xy[idx,0] = msg.transform.translation.x #- 3.5
+        self.xy[idx,1] = msg.transform.translation.y #- 5.0
         z = msg.transform.rotation.z
         w = msg.transform.rotation.w
         self.theta[idx] = np.arctan2(2*(w*z), 1-2*z**2)
@@ -95,7 +121,30 @@ class VisualizeSimulator:
         # see https://matplotlib.org/stable/users/explain/animations/blitting.html
         fig, ax = plt.subplots(figsize=(10, 10))
         
+        # goals = jnp.array([self.goal.x, self.goal.y, self.goal.theta, self.goal.speed]).reshape(1, 4)
+        #     # goals = goals.at[1].set(goals[1] + 5.5)
+        #     # goals = goals.at[0].set(goals[0] + 3.5)
+
+        # thetas = jnp.arctan2(goals[:, 1] - 7.0 / 2, goals[:, 0] - 7.0 / 2)
+        # thetas_next = thetas + 1.0 * self.dt / 2.5
+        # next_goal_pos = jnp.stack([7.0 / 2 + 2.5 * jnp.cos(thetas_next),
+        #                         7.0 / 2 + 2.5 * jnp.sin(thetas_next)], axis=-1)
+        # next_goal_vel_dir = jnp.stack([-jnp.sin(thetas_next), jnp.cos(thetas_next)], axis=-1)
+        # next_goal_vel = jnp.ones((1,)) * 1.0
+        # next_goals = goals.at[:, :2].set(next_goal_pos).at[:, 2:4].set(next_goal_vel_dir).at[:, 4].set(next_goal_vel)
         
+        
+        # next_goals = next_goals.squeeze()
+        # goal_msg = F1TenthState()
+        # goal_msg.x = next_goals[0]
+        # goal_msg.y = next_goals[1]
+        # goal_msg.theta = next_goals[2]
+        # goal_msg.speed = next_goals[3]
+
+        # self.goal = goal_msg
+
+        # self.goal_pub.publish(goal_msg)
+            
         pts = ax.scatter(self.xy[:, 0], self.xy[:, 1], animated=True, s=100, c=['b', 'r', 'r'])
 
         yaw = self.theta[0]
@@ -116,6 +165,7 @@ class VisualizeSimulator:
 
         (pts1, )= ax.plot(np.array(self.ref_traj.cx), np.array(self.ref_traj.cy), c='k', linestyle='-', animated=True, linewidth=2)
 
+        pts_goal = ax.scatter(self.goal.x, self.goal.y, animated=True, s=100, c='k')
         # lines = ax.plot(self.xy, self.xy + 0.1*np.array([np.cos(self.theta), np.sin(self.theta)]).T, animated=True, linewidth=2)
         
         x_min = -5
@@ -147,11 +197,37 @@ class VisualizeSimulator:
         ax.draw_artist(pts1)
         ax.draw_artist(pts_obs)
         ax.draw_artist(pt_arrow)
+        ax.draw_artist(pts_goal)
         fig.canvas.blit(fig.bbox)
 
         while not rospy.is_shutdown():
+            # goals = jnp.array([self.goal.x, self.goal.y, self.goal.theta, self.goal.speed]).reshape(1, 4)
+            # # goals = goals.at[1].set(goals[1] + 5.5)
+            # # goals = goals.at[0].set(goals[0] + 3.5)
+
+            # thetas = jnp.arctan2(goals[:, 1] - 7.0 / 2, goals[:, 0] - 7.0 / 2)
+            # thetas_next = thetas + 1.0 * self.dt / 2.5
+            # next_goal_pos = jnp.stack([7.0 / 2 + 2.5 * jnp.cos(thetas_next),
+            #                         7.0 / 2 + 2.5 * jnp.sin(thetas_next)], axis=-1)
+            # next_goal_vel_dir = jnp.stack([-jnp.sin(thetas_next), jnp.cos(thetas_next)], axis=-1)
+            # next_goal_vel = jnp.ones((1,)) * 1.0
+            # next_goals = goals.at[:, :2].set(next_goal_pos).at[:, 2:4].set(next_goal_vel_dir).at[:, 4].set(next_goal_vel)
+            
+            
+            # next_goals = next_goals.squeeze()
+            # goal_msg = F1TenthState()
+            # goal_msg.x = next_goals[0]
+            # goal_msg.y = next_goals[1]
+            # goal_msg.theta = next_goals[2]
+            # goal_msg.speed = next_goals[3]
+
+            # self.goal = goal_msg
+
+            # self.goal_pub.publish(goal_msg)
+
             fig.canvas.restore_region(bg)
             pts.set_offsets(self.xy)
+            pts_goal.set_offsets(np.array([self.goal.x, self.goal.y]))
 
             obs_pos = self.xy[-2:, :]
             obs_center = obs_pos
@@ -187,15 +263,12 @@ class VisualizeSimulator:
             ax.draw_artist(pts)
             ax.draw_artist(pts_obs)
             ax.draw_artist(pt_arrow)
-
+            ax.draw_artist(pts_goal)
             # ax.draw_artist(lines)
             # writer.grab_frame()
             fig.canvas.blit(fig.bbox)
             fig.canvas.flush_events()
             
-        
-            
-
 
 if __name__ == "__main__":
     try:
