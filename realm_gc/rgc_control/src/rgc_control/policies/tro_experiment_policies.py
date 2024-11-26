@@ -11,9 +11,9 @@ from rgc_control.policies.tracking.steering_policies import (
 )
 from rgc_control.policies.tracking.tracking_policies import (
     TimedPose2DObservation,
-    TrajectoryTrackingPolicy,
+    # TrajectoryTrackingPolicy,
 )
-from rgc_control.policies.tracking.trajectory import LinearTrajectory2D
+# from rgc_control.policies.tracking.trajectory import LinearTrajectory2D
 from rgc_control.policies.visual.common import VisualObservation
 from rgc_control.policies.visual.vision_barrier_policies import (
     F1TenthVisionBarrierPolicy,
@@ -31,97 +31,97 @@ class TROTurtlebotObservation(TimedPose2DObservation):
     """The observation type for the turtlebot nonego agents in the TRO experiment."""
 
 
-def create_tro_f1tenth_policy(
-    initial_state, traj_eqx_path, mlp_eqx_path
-) -> CompositePolicy:
-    """Create a composite policy for the F1Tenth ego agent in the TRO experiment.
+# def create_tro_f1tenth_policy(
+#     initial_state, traj_eqx_path, mlp_eqx_path
+# ) -> CompositePolicy:
+#     """Create a composite policy for the F1Tenth ego agent in the TRO experiment.
 
-    Args:
-        initial_state: The initial 4D state of the F1Tenth.
-        traj_eqx_path: The path to the trajectory (stored in an Equinox file).
-        mlp_eqx_path: The path to the MLP (stored in an Equinox file).
-    """
-    # Construct the components of the policy using the parameters they were trained with
+#     Args:
+#         initial_state: The initial 4D state of the F1Tenth.
+#         traj_eqx_path: The path to the trajectory (stored in an Equinox file).
+#         mlp_eqx_path: The path to the MLP (stored in an Equinox file).
+#     """
+#     # Construct the components of the policy using the parameters they were trained with
 
-    # Start pointing along +y in the highbay
-    desired_equilibrium_state = jnp.array([0.0, 0.0, jnp.pi / 2.0, 1.5])
+#     # Start pointing along +y in the highbay
+#     desired_equilibrium_state = jnp.array([0.0, 0.0, jnp.pi / 2.0, 1.5])
 
-    # Load the trajectory and flip x and y to convert from sim to high bay layout
-    ego_traj = LinearTrajectory2D.from_eqx(6, traj_eqx_path)
-    ego_traj = LinearTrajectory2D(p=jnp.fliplr(ego_traj.p))
+#     # Load the trajectory and flip x and y to convert from sim to high bay layout
+#     ego_traj = LinearTrajectory2D.from_eqx(6, traj_eqx_path)
+#     ego_traj = LinearTrajectory2D(p=jnp.fliplr(ego_traj.p))
 
-    # Make the trajectory tracking policy
-    steering_controller = F1TenthSteeringPolicy(
-        equilibrium_state=desired_equilibrium_state,
-        axle_length=0.28,
-        dt=0.1,
-    )
-    ego_tracking_policy = TrajectoryTrackingPolicy(ego_traj, steering_controller)
+#     # Make the trajectory tracking policy
+#     steering_controller = F1TenthSteeringPolicy(
+#         equilibrium_state=desired_equilibrium_state,
+#         axle_length=0.28,
+#         dt=0.1,
+#     )
+#     ego_tracking_policy = TrajectoryTrackingPolicy(ego_traj, steering_controller)
 
-    # Make the vision policy
-    image_width = 16
-    aspect = 4.0 / 3.0
-    image_shape = (image_width, int(image_width / aspect))
-    ego_mlp_policy = F1TenthVisionMLPPolicy.from_eqx(image_shape, mlp_eqx_path)
+#     # Make the vision policy
+#     image_width = 16
+#     aspect = 4.0 / 3.0
+#     image_shape = (image_width, int(image_width / aspect))
+#     ego_mlp_policy = F1TenthVisionMLPPolicy.from_eqx(image_shape, mlp_eqx_path)
 
-    # Make the barrier policy
-    barrier_policy = F1TenthVisionBarrierPolicy(min_distance=1.0)
+#     # Make the barrier policy
+#     barrier_policy = F1TenthVisionBarrierPolicy(min_distance=1.0)
 
-    # Combine the policies into a composite policy
-    return CompositePolicy(
-        [
-            ego_tracking_policy,
-            ego_mlp_policy,
-            barrier_policy,
-        ]
-    )
+#     # Combine the policies into a composite policy
+#     return CompositePolicy(
+#         [
+#             ego_tracking_policy,
+#             ego_mlp_policy,
+#             barrier_policy,
+#         ]
+#     )
 
 
-def create_tro_turtlebot_policy(
-    initial_position, traj_eqx_path, randomize=False
-) -> CompositePolicy:
-    """Create a composite policy for the turtlebot nonego agents in the TRO experiment.
+# def create_tro_turtlebot_policy(
+#     initial_position, traj_eqx_path, randomize=False
+# ) -> CompositePolicy:
+#     """Create a composite policy for the turtlebot nonego agents in the TRO experiment.
 
-    Args:
-        initial_position: The initial 2D position of the turtlebot.
-        traj_eqx_path: The path to the trajectory (stored in an Equinox file).
-        randomize: Whether to randomize the trajectory according to the prior.
-    """
-    # Construct the components of the policy using the parameters they were trained with
+#     Args:
+#         initial_position: The initial 2D position of the turtlebot.
+#         traj_eqx_path: The path to the trajectory (stored in an Equinox file).
+#         randomize: Whether to randomize the trajectory according to the prior.
+#     """
+#     # Construct the components of the policy using the parameters they were trained with
 
-    # Load the trajectory and flip the x and y coordinates, then add some noise
-    non_ego_traj = LinearTrajectory2D.from_eqx(2, traj_eqx_path)
-    p = jnp.fliplr(non_ego_traj.p)
+#     # Load the trajectory and flip the x and y coordinates, then add some noise
+#     non_ego_traj = LinearTrajectory2D.from_eqx(2, traj_eqx_path)
+#     p = jnp.fliplr(non_ego_traj.p)
 
-    # # Clamp the initial position to be the intended starting position
-    # if p[0, 1] <= -3.0:
-    #     p = p.at[0, 0].set(-0.5)
-    # else:
-    #     p = p.at[0, 0].set(0.5)
+#     # # Clamp the initial position to be the intended starting position
+#     # if p[0, 1] <= -3.0:
+#     #     p = p.at[0, 0].set(-0.5)
+#     # else:
+#     #     p = p.at[0, 0].set(0.5)
 
-    # Shift to +y to account for limited highbay space
-    p = p.at[:, 1].add(0.5)
+#     # Shift to +y to account for limited highbay space
+#     p = p.at[:, 1].add(0.5)
 
-    # Upscale if it's small
-    if p.shape == (2, 2):
-        p_new = jnp.zeros((6, 2))
-        p_new = p_new.at[:, 0].set(jnp.interp(jnp.linspace(0, 1, 6), jnp.array([0.0, 1.0]), p[:, 0]))
-        p_new = p_new.at[:, 1].set(jnp.interp(jnp.linspace(0, 1, 6), jnp.array([0.0, 1.0]), p[:, 1]))
-        p = p_new
+#     # Upscale if it's small
+#     if p.shape == (2, 2):
+#         p_new = jnp.zeros((6, 2))
+#         p_new = p_new.at[:, 0].set(jnp.interp(jnp.linspace(0, 1, 6), jnp.array([0.0, 1.0]), p[:, 0]))
+#         p_new = p_new.at[:, 1].set(jnp.interp(jnp.linspace(0, 1, 6), jnp.array([0.0, 1.0]), p[:, 1]))
+#         p = p_new
 
-    if randomize:
-        noise_scale = 0.05
-        p += np.random.normal(scale=np.sqrt(noise_scale), size=p.shape)
+#     if randomize:
+#         noise_scale = 0.05
+#         p += np.random.normal(scale=np.sqrt(noise_scale), size=p.shape)
 
-    non_ego_traj = LinearTrajectory2D(p=p)
-    print("Loaded trajectory with waypoints:")
-    print(non_ego_traj.p)
+#     non_ego_traj = LinearTrajectory2D(p=p)
+#     print("Loaded trajectory with waypoints:")
+#     print(non_ego_traj.p)
 
-    # Make the trajectory tracking policy
-    steering_controller = TurtlebotSteeringPolicy()
-    ego_tracking_policy = TrajectoryTrackingPolicy(non_ego_traj, steering_controller)
+#     # Make the trajectory tracking policy
+#     steering_controller = TurtlebotSteeringPolicy()
+#     ego_tracking_policy = TrajectoryTrackingPolicy(non_ego_traj, steering_controller)
 
-    return ego_tracking_policy
+#     return ego_tracking_policy
 
 
 if __name__ == "__main__":

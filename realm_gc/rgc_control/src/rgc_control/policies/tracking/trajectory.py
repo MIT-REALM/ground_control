@@ -103,3 +103,4 @@ class SplineTrajectory2D():
         """Return the point along the trajectory at the given index"""
         return np.array([self.cx[t],self.cy[t], self.cyaw[t], self.v[t], self.ck[t]])
 
+

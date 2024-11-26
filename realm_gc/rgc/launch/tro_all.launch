@@ -17,4 +17,34 @@
         <arg name="T" default="12"/>
         <arg name="v_ref" default="0.5"/>
     </include>
+
+
+    <!-- Start the Turtlebot stacks -->
+    <group ns="turtle1">
+        <include file="$(find rgc)/launch/tro_turtlebot.launch">
+            <arg name="base_path" default="$(find rgc_control)/saved_policies/v1/base"/>
+            <arg name="traj_filepath" default="non_ego_traj_0.eqx"/>
+
+            <arg name="position_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
+            <arg name="T" default="12"/>
+            <arg name="randomize_trajectory" default="true"/>
+
+            <arg name="default_linear" default = "1.0"/>
+            <arg name="default_angular" default = "1.0"/>
+        </include>
+    </group>
+
+    <group ns="turtle2">
+        <include file="$(find rgc)/launch/tro_turtlebot.launch">
+            <arg name="base_path" default="$(find rgc_control)/saved_policies/v1/base"/>
+            <arg name="traj_filepath" default="non_ego_traj_1.eqx"/>
+
+            <arg name="position_topic" default="/vicon/realm_turtle_2/realm_turtle_2"/>
+            <arg name="T" default="12"/>
+            <arg name="randomize_trajectory" default="true"/>
+
+            <arg name="default_linear" default = "1.0"/>
+            <arg name="default_angular" default = "-1.0"/>
+        </include>
+    </group>
 </launch>

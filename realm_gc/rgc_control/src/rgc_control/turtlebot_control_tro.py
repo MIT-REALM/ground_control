@@ -10,7 +10,7 @@ from rgc_control.policies.common import TurtlebotAction
 from rgc_control.policies.tracking.tracking_policies import (
     TimedPose2DObservation,
 )
-from rgc_control.policies.tro_experiment_policies import create_tro_turtlebot_policy
+# from rgc_control.policies.tro_experiment_policies import create_tro_turtlebot_policy
 from rgc_control.robot_control import RobotControl
 
 
@@ -31,6 +31,10 @@ class TurtlebotControl(RobotControl):
             self.state_estimate_topic, TurtlebotState, self.state_estimate_callback
         )
 
+        # self.print_test = rospy.get_param("~print_test", None)
+        self.default_linear = rospy.get_param("~default_linear", 0.0)
+        self.default_angular = rospy.get_param("~default_angular", 0.0)
+
         # Instantiate control policy using Turtlebot steering policy and reference
         # trajectory. We need to wait until we get the first state estimate in order
         # to instantiate the control policy.
@@ -44,22 +48,23 @@ class TurtlebotControl(RobotControl):
         rospy.loginfo("State estimate has converged. Instantiating control policy.")
 
         self.randomize_trajectory = rospy.get_param("~randomize_trajectory", False)
-        self.control_policy = create_tro_turtlebot_policy(
-            np.array([self.state.x, self.state.y]),
-            self.eqx_filepath,
-            self.randomize_trajectory,
-        )
+        # self.control_policy = create_tro_turtlebot_policy(
+        #     np.array([self.state.x, self.state.y]),
+        #     self.eqx_filepath,
+        #     self.randomize_trajectory,
+        # )
+
 
     def state_estimate_callback(self, msg):
         self.state = msg
 
     def stop_control_callback(self, msg):
         super().stop_control_callback(msg)
-        self.control_policy = create_tro_turtlebot_policy(
-            np.array([self.state.x, self.state.y]),
-            self.eqx_filepath,
-            self.randomize_trajectory,
-        )
+        # self.control_policy = create_tro_turtlebot_policy(
+        #     np.array([self.state.x, self.state.y]),
+        #     self.eqx_filepath,
+        #     self.randomize_trajectory,
+        # )
 
     def reset_control(self, msg=None):
         """Reset the turtlebot to its start position."""
@@ -71,7 +76,8 @@ class TurtlebotControl(RobotControl):
             current_state = TimedPose2DObservation(
                 x=self.state.x, y=self.state.y, theta=self.state.theta, v=0.0, t=0.0
             )
-            self.control = self.control_policy.compute_action(current_state)
+            # REPLACE WITH CONTROL
+            # self.control = self.control_policy.compute_action(current_state)
 
         msg = Twist()
         msg.linear.x = self.control.linear_velocity
@@ -93,11 +99,12 @@ class TurtlebotControl(RobotControl):
             current_state = TimedPose2DObservation(
                 x=self.state.x, y=self.state.y, theta=self.state.theta, v=v, t=t
             )
-            self.control = self.control_policy.compute_action(current_state)
+            # self.control = self.control_policy.compute_action(current_state)
+        print("turtle")
 
         msg = Twist()
-        msg.linear.x = self.control.linear_velocity
-        msg.angular.z = self.control.angular_velocity
+        msg.linear.x = self.default_linear #self.control.linear_velocity
+        msg.angular.z = self.default_angular #self.control.angular_velocity
         self.control_pub.publish(msg)
 
 

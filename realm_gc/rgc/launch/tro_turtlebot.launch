@@ -1,0 +1,39 @@
+<!-- This launch file starts the controller and state estimator for the turtlebot platform -->
+
+<launch>
+    <arg name="base_path" default="$(find rgc_control)/saved_policies"/>
+    <arg name="traj_filepath" default="base/non_ego_traj_0.eqx"/>
+    <arg name="T" default="6.0"/>
+    
+    <arg name="position_topic" default="/vicon/realm_turtle_1/realm_turtle_1"/>
+
+    <arg name="randomize_trajectory" default="false"/>
+
+    <arg name="default_linear" default = "0.0"/>
+    <arg name="default_angular" default = "0.0"/>
+    
+    <!-- State estimator -->
+    <node name="turtlebot_state_estimator" pkg="rgc_state_estimators" type="turtlebot_ekf.py" output="screen">
+        <param name="position_topic" type="string" value="$(arg position_topic)"/>
+        <param name="obs_noise_cov" type="double" value="0.1"/>
+        <param name="process_noise_cov" type="double" value="0.1"/>
+    </node>
+
+    <!-- Controller -->
+    <node name="turtlebot_controller" pkg="rgc_control" type="turtlebot_control_tro.py" output="screen">
+        <!-- Info on where to find the saved trajectory file -->
+        <param name="trajectory/base_path" type="string" value="$(arg base_path)"/>
+        <param name="trajectory/filename" type="string" value="$(arg traj_filepath)"/>
+        <param name="T" type="double" value="$(arg T)"/>
+
+        <!-- Match up with state estimator topic name -->
+        <param name="state_estimate_topic" type="string" value="turtlebot_state_estimator/estimate"/>
+
+        <!-- Whether or not to randomize the trajectory -->
+        <param name="randomize_trajectory" type="bool" value="$(arg randomize_trajectory)"/>
+        
+        <!-- <param name="print_test" type="string" value="$(arg print_test)"/> -->
+        <param name="default_linear" type="double" value="$(arg default_linear)" />
+        <param name="default_angular" type="double" value="$(arg default_angular)" />
+    </node>
+</launch>
