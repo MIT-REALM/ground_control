@@ -99,22 +99,37 @@ class F1TenthControl(RobotControl):
         )
 
         self.obs1 = None
-        self.obs_state_topic = rospy.get_param(
+        self.obs_state_topic1 = rospy.get_param(
             "~position_topic1", "/vicon/realm_obs/realm_obs")
         
-        self.obs_state_sub = rospy.Subscriber(
-            self.obs_state_topic, TransformStamped, self.obs_state_callback
+        self.obs_state_sub1 = rospy.Subscriber(
+            self.obs_state_topic1, TransformStamped, self.obs_state_callback
         )
         
         self.obs2 = None
-        self.obs_state_topic = rospy.get_param("~position_topic2",
+        self.obs_state_topic2 = rospy.get_param("~position_topic2",
             "/vicon/realm_obs2/realm_obs2")
         
-        self.obs_state_sub = rospy.Subscriber(
-            self.obs_state_topic, TransformStamped, self.obs_state_callback2
+        self.obs_state_sub2 = rospy.Subscriber(
+            self.obs_state_topic2, TransformStamped, self.obs_state_callback2
         )
 
+        self.obs3 = None
+        self.obs_state_topic3 = rospy.get_param(
+            "~position_topic3", "/vicon/realm_turtle_1/realm_turtle_1")
+        
+        self.obs_state_sub3 = rospy.Subscriber(
+            self.obs_state_topic3, TransformStamped, self.obs_state_callback3
+        )
+        
+        self.obs4 = None
 
+        self.obs_state_topic4 = rospy.get_param("~position_topic4",
+            "/vicon/realm_turtle_2/realm_turtle_2")
+        
+        self.obs_state_sub4 = rospy.Subscriber(
+            self.obs_state_topic4, TransformStamped, self.obs_state_callback4
+        )
         # Instantiate control policy using F1Tenth steering policy and reference
         # trajectory. We need to wait until we get the first state estimate in order
         # to instantiate the control policy.
@@ -140,8 +155,24 @@ class F1TenthControl(RobotControl):
             )
             rospy.sleep(1.0)
         
-        print('obs positions obtained: ',self.obs1, self.obs2)
+        while self.obs3 is None:
+            rospy.loginfo(
+                "Waiting for obs3 state estimate to converge to instantiate control policy"
+            )
+            rospy.sleep(1.0)
+        
+        while self.obs4 is None:
+            rospy.loginfo(
+                "Waiting for obs4 state estimate to converge to instantiate control policy"
+            )
+            rospy.sleep(1.0)
 
+        print('obs positions obtained: ',self.obs1, self.obs2, self.obs3, self.obs4)
+
+        # print("obs 1: ", self.obs1)
+        # print("obs 2: ", self.obs2)
+        # print("obs 3: ", self.obs3)
+        # print("obs 4: ", self.obs4)
 
         self.traj_filepath = os.path.join(
             rospy.get_param("~trajectory/base_path"), 
@@ -170,17 +201,20 @@ class F1TenthControl(RobotControl):
 
         self.goal = goal
         # self.goal = F1TenthState()
-        obs_pos = np.array([[self.obs1[0], self.obs1[1]], [self.obs2[0], self.obs2[1]]])
+        obs_pos = np.array([[self.obs1[0], self.obs1[1]], [self.obs2[0], self.obs2[1]], [self.obs3[0], self.obs3[1]], [self.obs4[0], self.obs4[1]]])
 
         obs_center = obs_pos
         obs_r = 0.0
         self.obs_r= obs_r
-        theta = np.linspace(0, 2*np.pi, 10)
+        theta = np.linspace(0, 2*np.pi, 1)
         circ = obs_r * np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
         
-        obs1 = np.repeat(obs_center[0, :][:, None], 10, axis=1).T + circ
-        obs2 = np.repeat(obs_center[1, :][:, None], 10, axis=1).T + circ
-        obs = np.concatenate((obs1, obs2), axis=0)
+        obs1 = np.repeat(obs_center[0, :][:, None], 1, axis=1).T + circ
+        obs2 = np.repeat(obs_center[1, :][:, None], 1, axis=1).T + circ
+        obs3 = np.repeat(obs_center[2, :][:, None], 1, axis=1).T + circ
+        obs4 = np.repeat(obs_center[3, :][:, None], 1, axis=1).T + circ
+    
+        obs = np.concatenate((obs1, obs2, obs3, obs4), axis=0)
         # print('obs shape: ', obs.shape)
 
         # self.control_policy = CMARL_policy(
@@ -259,6 +293,13 @@ class F1TenthControl(RobotControl):
     def obs_state_callback2(self, msg):
         self.obs2 = np.array([msg.transform.translation.x, msg.transform.translation.y, 0.0, 0.0])
         # print('obs_state:', msg.transform.translation.x, msg.transform.translation.y)
+    
+    def obs_state_callback3(self, msg):
+        self.obs3 = np.array([msg.transform.translation.x, msg.transform.translation.y, 0.0, 0.0])
+        # print('obs_state:', msg.transform.translation.x, msg.transform.translation.y)
+
+    def obs_state_callback4(self, msg):
+        self.obs4 = np.array([msg.transform.translation.x, msg.transform.translation.y, 0.0, 0.0])
     
     def state_estimate_callback(self, msg):
         self.state = msg
@@ -374,19 +415,22 @@ class F1TenthControl(RobotControl):
             # print('steering control time: ', pytic.tocvalue())
             # reference_control, self.e, self.theta_e, self.target_ind = self.control_policy_ral.compute_action(current_state_timed)
             
-            obs_pos = np.array([[self.obs1[0], self.obs1[1]], [self.obs2[0], self.obs2[1]]])
+            obs_pos = np.array([[self.obs1[0], self.obs1[1]], [self.obs2[0], self.obs2[1]], [self.obs3[0], self.obs3[1]], [self.obs4[0], self.obs4[1]]])
             obs_pos_old = self.obs_pos_past
             obs_pos_new = obs_pos
             obs_vel = (obs_pos_new - obs_pos_old) / self.dt
 
             obs_center = obs_pos
             obs_r = self.obs_r
-            theta = np.linspace(0, 2*np.pi, 10)
+            theta = np.linspace(0, 2*np.pi, 1)
             circ = np.concatenate((np.cos(theta)[:, None], np.sin(theta)[:, None]), axis=1)
             
-            obs1 = np.repeat(obs_center[0, :][:, None], 10, axis=1).T + circ * obs_r
-            obs2 = np.repeat(obs_center[1, :][:, None], 10, axis=1).T + circ * obs_r
-            obs = np.concatenate((obs1, obs2), axis=0)
+            obs1 = np.repeat(obs_center[0, :][:, None], 1, axis=1).T + circ * obs_r
+            obs2 = np.repeat(obs_center[1, :][:, None], 1, axis=1).T + circ * obs_r
+            obs3 = np.repeat(obs_center[2, :][:, None], 1, axis=1).T + circ
+            obs4 = np.repeat(obs_center[3, :][:, None], 1, axis=1).T + circ
+        
+            obs = np.concatenate((obs1, obs2, obs3, obs4), axis=0)
             agent_state = np.array([self.state.x, self.state.y]).reshape(1, 2)
 
             obs_dist = np.linalg.norm([agent_state - obs], axis=-1)

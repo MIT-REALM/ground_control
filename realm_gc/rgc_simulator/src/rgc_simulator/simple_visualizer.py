@@ -28,10 +28,11 @@ class VisualizeSimulator:
 
         default_position_topics = [
             "/vicon/realm_f1tenth/realm_f1tenth",
-            # "/vicon/realm_turtle_1/realm_turtle_1",
-            # "/vicon/realm_turtle_2/realm_turtle_2",
             "/vicon/realm_obs/realm_obs",
-            "/vicon/realm_obs2/realm_obs2"
+            "/vicon/realm_obs2/realm_obs2",
+            "/vicon/realm_turtle_1/realm_turtle_1",
+            "/vicon/realm_turtle_2/realm_turtle_2",
+            
         ]
 
         self.traj_topic = rospy.get_param(
@@ -65,6 +66,8 @@ class VisualizeSimulator:
 
         default_position_names = [
             "f1tenth",
+            "obs1",
+            "obs2",
             "turtle1",
             "turtle2",
         ]
@@ -145,13 +148,13 @@ class VisualizeSimulator:
 
         # self.goal_pub.publish(goal_msg)
             
-        pts = ax.scatter(self.xy[:, 0], self.xy[:, 1], animated=True, s=100, c=['b', 'r', 'r'])
+        pts = ax.scatter(self.xy[:, 0], self.xy[:, 1], animated=True, s=100, c=['b', 'r', 'r', 'r', 'r'])
 
         yaw = self.theta[0]
         r = 0.2 
         pt_arrow = ax.arrow(self.xy[0, 0], self.xy[0, 1], r*np.cos(yaw), r*np.sin(yaw), head_width=0.1, head_length=0.1, fc='k', ec='k', animated=True)
         
-        obs_pos = self.xy[-2:, :]
+        obs_pos = self.xy[1:, :]
         obs_center = obs_pos
         obs_r = 0.0
         theta = np.linspace(0, 2*np.pi, 10)
@@ -159,9 +162,12 @@ class VisualizeSimulator:
         
         obs1 = np.repeat(obs_center[0, :][:, None], 10, axis=1).T + circ * obs_r
         obs2 = np.repeat(obs_center[1, :][:, None], 10, axis=1).T + circ * obs_r
-        obs = np.concatenate((obs1, obs2), axis=0)
+        obs3 = np.repeat(obs_center[2, :][:, None], 10, axis=1).T + circ * obs_r
+        obs4 = np.repeat(obs_center[3, :][:, None], 10, axis=1).T + circ * obs_r
+        
+        obs = np.concatenate((obs1, obs2, obs3, obs4), axis=0)
 
-        pts_obs = ax.scatter(obs[:, 0], obs[:, 1], animated=True, s=100, c=['r']*20)
+        pts_obs = ax.scatter(obs[:, 0], obs[:, 1], animated=True, s=100, c=['r']*40)
 
         (pts1, )= ax.plot(np.array(self.ref_traj.cx), np.array(self.ref_traj.cy), c='k', linestyle='-', animated=True, linewidth=2)
 
@@ -201,6 +207,8 @@ class VisualizeSimulator:
         fig.canvas.blit(fig.bbox)
 
         while not rospy.is_shutdown():
+            # print("printing xy shape: ", self.xy.shape)
+            
             # goals = jnp.array([self.goal.x, self.goal.y, self.goal.theta, self.goal.speed]).reshape(1, 4)
             # # goals = goals.at[1].set(goals[1] + 5.5)
             # # goals = goals.at[0].set(goals[0] + 3.5)
@@ -229,7 +237,7 @@ class VisualizeSimulator:
             pts.set_offsets(self.xy)
             pts_goal.set_offsets(np.array([self.goal.x, self.goal.y]))
 
-            obs_pos = self.xy[-2:, :]
+            obs_pos = self.xy[1:, :]
             obs_center = obs_pos
             obs_r = 0.0
             theta = np.linspace(0, 2*np.pi, 10)
@@ -237,7 +245,10 @@ class VisualizeSimulator:
             
             obs1 = np.repeat(obs_center[0, :][:, None], 10, axis=1).T + circ * obs_r
             obs2 = np.repeat(obs_center[1, :][:, None], 10, axis=1).T + circ * obs_r
-            obs = np.concatenate((obs1, obs2), axis=0)
+            obs3 = np.repeat(obs_center[2, :][:, None], 10, axis=1).T + circ * obs_r
+            obs4 = np.repeat(obs_center[3, :][:, None], 10, axis=1).T + circ * obs_r
+        
+            obs = np.concatenate((obs1, obs2, obs3, obs4), axis=0)
             pts_obs.set_offsets(obs)
 
             # pts1.set_offsets(np.array([self.new_trajx, self.new_trajy]))

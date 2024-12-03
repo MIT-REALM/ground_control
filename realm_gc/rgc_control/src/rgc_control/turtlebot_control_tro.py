@@ -100,7 +100,7 @@ class TurtlebotControl(RobotControl):
                 x=self.state.x, y=self.state.y, theta=self.state.theta, v=v, t=t
             )
             # self.control = self.control_policy.compute_action(current_state)
-        print("turtle")
+        # print("turtle")
 
         msg = Twist()
         msg.linear.x = self.default_linear #self.control.linear_velocity
