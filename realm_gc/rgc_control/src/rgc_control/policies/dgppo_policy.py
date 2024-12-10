@@ -111,14 +111,15 @@ class DGPPO_policy(ControlPolicy):
         states=graph.env_states
         obs = states.obstacle
         agent_states= car_pos[:2] + jnp.array([3.5, 5.0])
+        # agent_states = agent_states.reshape(1, 5)
         theta = car_pos[None, 2]
         v = car_pos[None, -1]
         agent_states = jnp.concatenate([agent_states, jnp.cos(theta), jnp.sin(theta), v])[None, :]
 
-        goal_states = car_goal[:2]
-        goal_theta = car_goal[None,2]
-        goal_v = car_goal[None,-1]
-        goal_states = jnp.concatenate([goal_states, jnp.cos(goal_theta), jnp.sin(goal_theta), goal_v])[None, :]
+        goal_states = car_goal.reshape(1, 5)
+        # goal_theta = car_goal[None,2]
+        # goal_v = car_goal[None,-1]
+        # goal_states = jnp.concatenate([goal_states, jnp.cos(goal_theta), jnp.sin(goal_theta), goal_v])[None, :]
 
         mov_obs = obs_pos
         if graph is not None:
@@ -131,6 +132,8 @@ class DGPPO_policy(ControlPolicy):
         # print('mov obs vel shape:', mov_obs_vel.shape)
         # print('mov_obs shape:', mov_obs.shape)
         mov_obs = jnp.concatenate([mov_obs, mov_obs_vel, jnp.zeros((mov_obs.shape[0], 1))], axis=1)
+        # print("agent states shape: ", agent_states)
+        # print("goal states shape:", goal_states)
         states = LidarCircleEnvState(agent=agent_states, goal=goal_states, obstacle=obs, move_obs=mov_obs)
 
         graph = self.env.get_graph(states)
@@ -162,6 +165,8 @@ class DGPPO_policy(ControlPolicy):
         
         car_pos = jnp.array([car_pos.x, car_pos.y + min_x, car_pos.theta, car_pos.v])
 
+        # print("car_pos: ", car_pos)
+        # print("goal: ", goal)
         new_graph = self.create_graph(car_pos, goal, obs, graph)
         self.graph0 = new_graph
 

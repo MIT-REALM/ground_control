@@ -179,7 +179,7 @@ class F1TenthControl(RobotControl):
             rospy.get_param("~trajectory/filename")
         )
         # self.v_ref = rospy.get_param("~v_ref", 2.0)     
-        self.v_ref = 1.2
+        self.v_ref = 1.0  # maximum speed
         
         self.goal_x = 0.0
         self.goal_y = 4.0
@@ -190,11 +190,11 @@ class F1TenthControl(RobotControl):
         self.control_state = None
         # goal = np.array([self.goal_x, self.goal_y, self.goal_yaw, 0.0])
 
-        self.accel_limit = 0.1
+        self.accel_limit = 0.5
         # self.state.y = -2.0
 
         # car_pos = np.array([self.state.x, self.state.y, self.state.theta, self.state.speed])
-        car_pos = np.array([3.5, 1.0, 0.0, 0.0])
+        car_pos = np.array([3.5, 1.0, 0.0, 1.0, 0.0])
 
         
         goal = car_pos
@@ -350,6 +350,7 @@ class F1TenthControl(RobotControl):
                 v=self.state.speed,
                 t=t,
             )
+            print("vicon state:", current_state)
 
 
             current_state_timed = RALF1tenthObservation(
@@ -384,7 +385,7 @@ class F1TenthControl(RobotControl):
             
             # temp_goal = np.array([traj.cx[ind + 5], traj.cy[ind + 5], 0.0, 0.0])
             # self.goal[1] = self.goal[1] + 4.0
-            goals = jnp.array(self.goal.reshape(1, 4))
+            goals = jnp.array(self.goal.reshape(1, 5))
             # goals = goals.at[1].set(goals[1] + 5.5)
             # goals = goals.at[0].set(goals[0] + 3.5)
 
@@ -396,6 +397,9 @@ class F1TenthControl(RobotControl):
             next_goal_vel = jnp.ones((1,)) * 1.0
             next_goals = goals.at[:, :2].set(next_goal_pos).at[:, 2:4].set(next_goal_vel_dir).at[:, 4].set(next_goal_vel)
             
+            print("goal:", goals)
+            print("next goal: ", next_goals)
+
             # next_goals = jnp.array([self.goal.x, self.goal.y, self.goal.theta, self.goal.speed]).reshape(1, 4)
             self.goal = next_goals.squeeze()
             # self.goal = self.goal.at[1].set(self.goal[1] - 5.5)
@@ -551,8 +555,8 @@ class F1TenthControl(RobotControl):
         if self.desired_speed > self.v_ref: # and self.state.speed > self.v_ref:
             self.desired_speed = self.v_ref
             msg.drive.acceleration = 0.0
-        elif self.desired_speed < -self.v_ref / 2: # and self.state.speed < -self.v_ref / 2:
-            self.desired_speed = -self.v_ref / 2
+        elif self.desired_speed < -1.0: # and self.state.speed < -self.v_ref / 2:
+            self.desired_speed = -1.0#-self.v_ref / 2
             msg.drive.acceleration = 0.0
 
         msg.drive.mode = 0

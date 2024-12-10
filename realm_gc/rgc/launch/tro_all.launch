@@ -29,8 +29,8 @@
             <arg name="T" default="12"/>
             <arg name="randomize_trajectory" default="true"/>
 
-            <arg name="default_linear" default = "1.0"/>
-            <arg name="default_angular" default = "1.0"/>
+            <arg name="default_linear" default = "5.0"/>
+            <arg name="default_angular" default = ".2"/>
         </include>
     </group>
 
@@ -43,8 +43,8 @@
             <arg name="T" default="12"/>
             <arg name="randomize_trajectory" default="true"/>
 
-            <arg name="default_linear" default = "1.0"/>
-            <arg name="default_angular" default = "-1.0"/>
+            <arg name="default_linear" default = "5.0"/>
+            <arg name="default_angular" default = "-.2"/>
         </include>
     </group>
 </launch>
